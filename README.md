@@ -1,56 +1,60 @@
-# Welcome to your Expo app 👋
+# Routy
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Routy is an iOS-first Expo client designed to interface with ZTE routers. It allows to manage SMS messages and monitor device status directly from an iPhone without using the router's web interface.
 
-## Get started
+## Overview
 
-1. Install dependencies
+The application connects to the ZTE router over the local network (Wi-Fi) using its internal API. It provides a native messaging experience, background monitoring for new messages, and a real-time dashboard for network statistics.
+
+## Key Features
+
+- **SMS Management**: Read, send, and delete SMS messages with a native interface.
+- **Background Monitoring**: Periodic background polling for new messages with local system notifications (using `expo-background-fetch`).
+- **Network Dashboard**: Real-time monitoring of signal strength (RSRP/SINR), active bands (Carrier Aggregation support), and current network operator.
+- **Data Tracking**: Monthly data usage visualization and real-time throughput monitoring.
+- **Device Management**: View and monitor all devices currently connected to the router's network.
+- **Privacy Focused**: All communications happen locally between the iPhone and the router. No external servers or push notification services are used.
+
+## How it Works
+
+The app interacts with the ZTE router's `goform` API. It handles authentication, session management, and data parsing locally.
+
+Since it bypasses the need for a central server for notifications, it utilizes a background task that polls the router at defined intervals. This approach ensures privacy and avoids the requirement for paid developer accounts or complex server infrastructures.
+
+## Tech Stack
+
+- **Framework**: [Expo](https://expo.dev) / React Native
+- **Navigation**: Expo Router (File-based routing)
+- **Styling**: Vanilla CSS with a focus on native iOS aesthetics
+- **Animations**: React Native Reanimated
+- **Storage**: AsyncStorage for local credentials and message tracking
+- **Background Tasks**: Expo Task Manager & Background Fetch
+
+## Requirements
+
+- A compatible ZTE mobile router (only tested on MF289F).
+- The smartphone must be connected to the router's Wi-Fi network.
+- Local Network permissions must be granted to allow communication with the router's IP.
+
+## Getting Started
+
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. Start the development server:
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Run on a physical device (recommended for testing background fetch and local network features):
+   ```bash
+   npx expo run:ios --device
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+_Note: This is a third-party application and is not affiliated with ZTE Corporation._
