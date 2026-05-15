@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import { t } from "../i18n";
 import CryptoJS from "crypto-js";
 
 import {
@@ -115,11 +116,11 @@ export class RouterApi {
 		// "0" or "success": login ok
 		// "1": already logged in
 		// "3": wrong password
-		if (result === "3") throw new Error("Password errata.");
+		if (result === "3") throw new Error(t('settings.wrong_password'));
 
 		const isSuccess = result === "0" || result === "1" || result === "success";
 		if (!isSuccess) {
-			throw new Error(`Login fallito (codice: ${result})`);
+			throw new Error(`${t('settings.login_failed')} (code: ${result})`);
 		}
 
 		console.log("[RouterApi] Login successful");
@@ -338,7 +339,7 @@ export class RouterApi {
 		console.log("[RouterApi] Response DELETE_SMS:", res.data);
 
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
-			throw new Error(`Eliminazione fallita (codice: ${res.data?.result})`);
+			throw new Error(`${t('messages.delete_failed')} (code: ${res.data?.result})`);
 		}
 	}
 

@@ -1,0 +1,5 @@
+{
+	"CFBundleDisplayName": "Routy",
+	"NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
+	"NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per visualizzare info e SMS in tempo reale."
+}

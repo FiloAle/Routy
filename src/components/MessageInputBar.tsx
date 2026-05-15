@@ -14,6 +14,8 @@ import Reanimated, {
 	withTiming,
 } from "react-native-reanimated";
 
+import { t } from "@/i18n";
+
 const AnimatedGlassView = Reanimated.createAnimatedComponent(GlassView);
 
 interface MessageInputBarProps {
@@ -33,7 +35,7 @@ export function MessageInputBar({
 	onSend,
 	isSending = false,
 	disabled = false,
-	placeholder = "Messaggio di testo · SMS",
+	placeholder = t("messages.input_placeholder"),
 	containerStyle,
 	bottomOffset,
 }: MessageInputBarProps) {
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 40,
 		borderRadius: 20,
-		backgroundColor: "#007AFF",
+		backgroundColor: "#208AEF",
 		justifyContent: "center",
 		alignItems: "center",
 		overflow: "hidden",

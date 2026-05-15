@@ -14,6 +14,7 @@ import React, {
 import { contactsService } from '../services/contacts-service';
 import { RouterApi, DataUsage } from '../services/router-api';
 import { Conversation, SmsMessage } from '../utils/sms';
+import { t } from '../i18n';
 
 const STORAGE_KEY_URL = '@routy/router_url';
 const STORAGE_KEY_PASSWORD = '@routy/password';
@@ -157,7 +158,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       // Check if we need to renew session
       const now = Date.now();
       if (now - lastLoginRef.current > LOGIN_RENEWAL_MS) {
-        console.log('[RouterContext] Renewing session...');
+        console.log(`[RouterContext] ${t('dashboard.renewing')}`);
         await apiRef.current.login(password);
         lastLoginRef.current = now;
       }
@@ -262,7 +263,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           } catch (e: any) {
             if (mountedRef.current) {
               setAuthStatus('error');
-              setAuthError(e?.message ?? 'Errore di connessione.');
+              setAuthError(e?.message ?? t('settings.error_conn'));
             }
           }
         }
@@ -301,7 +302,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async () => {
     if (!password) {
-      setAuthError('Inserisci la password nelle impostazioni.');
+      setAuthError(t('settings.error_pw'));
       setAuthStatus('error');
       return;
     }
@@ -312,7 +313,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       setAuthStatus('logged_in');
     } catch (e: any) {
       setAuthStatus('error');
-      setAuthError(e?.message ?? 'Errore di connessione.');
+      setAuthError(e?.message ?? t('settings.error_conn'));
     }
   }, [password]);
 

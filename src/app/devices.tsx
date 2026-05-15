@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { AppleImac2021, Wifi, WifiOff } from "iconoir-react-native";
 import { useRouter } from "@/context/router-context";
+import { t } from "@/i18n";
 
 import { SectionLabel } from "@/components/SectionLabel";
 
@@ -67,19 +68,19 @@ export default function DevicesScreen() {
 	};
 
 	const sections = [
-		{ title: "Connessi", data: connectedDevices },
-		{ title: "Disconnessi", data: knownDevices },
+		{ title: t('devices.connected'), data: connectedDevices },
+		{ title: t('devices.disconnected'), data: knownDevices },
 	].filter((s) => s.data.length > 0);
 
 	return (
 		<View style={styles.container}>
 			<Stack.Screen
 				options={{
-					title: "Dispositivi",
+					title: t('devices.title'),
 					headerLargeTitle: false,
 					headerTransparent: true,
 					headerShadowVisible: false,
-					headerBackTitle: "Home",
+					headerBackTitle: t('tabs.home'),
 					headerTitleStyle: { color: "#fff" },
 				}}
 			/>
@@ -114,7 +115,7 @@ export default function DevicesScreen() {
 				ListEmptyComponent={
 					!isLoadingDevices && devices.length === 0 ? (
 						<View style={styles.empty}>
-							<Text style={styles.emptyText}>Nessun dispositivo rilevato</Text>
+							<Text style={styles.emptyText}>{t('devices.empty')}</Text>
 						</View>
 					) : null
 				}

@@ -1,51 +1,59 @@
 {
-  "expo": {
-    "name": "Routy",
-    "slug": "Routy",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "routy",
-    "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.filippoalessandrini.routy",
-      "infoPlist": {
-        "NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
-        "NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
-        "UIBackgroundModes": [
-          "fetch"
-        ]
-      }
-    },
-    "plugins": [
-      "expo-router",
-      "expo-background-fetch",
-      "expo-task-manager",
-      "./withRemovePushEntitlement",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/icon.png",
-          "color": "#007AFF"
-        }
-      ],
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#208AEF"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
-  }
+	"expo": {
+		"name": "Routy",
+		"slug": "Routy",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/images/icon.png",
+		"scheme": "routy",
+		"userInterfaceStyle": "automatic",
+		"splash": {
+			"image": "./assets/images/icon.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#000000"
+		},
+		"ios": {
+			"icon": "./assets/expo.icon",
+			"bundleIdentifier": "com.filippoalessandrini.routy",
+			"infoPlist": {
+				"CFBundleAllowMixedLocalizations": true,
+				"NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
+				"NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
+				"UIBackgroundModes": ["fetch"]
+			}
+		},
+		"locales": {
+			"en": "./src/i18n/locales/en-native.json",
+			"it": "./src/i18n/locales/it-native.json"
+		},
+		"plugins": [
+			"expo-router",
+			"expo-background-fetch",
+			"expo-task-manager",
+			"./withRemovePushEntitlement",
+			[
+				"expo-notifications",
+				{
+					"icon": "./assets/images/icon.png",
+					"color": "#208AEF"
+				}
+			],
+			[
+				"expo-contacts",
+				{
+					"contactsPermission": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
+				}
+			],
+			[
+				"expo-splash-screen",
+				{
+					"backgroundColor": "#208AEF"
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true,
+			"reactCompiler": true
+		}
+	}
 }

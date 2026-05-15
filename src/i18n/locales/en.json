@@ -1,0 +1,76 @@
+{
+	"tabs": {
+		"home": "Home",
+		"messages": "Messages",
+		"settings": "Settings"
+	},
+	"dashboard": {
+		"usage": "USAGE",
+		"network": "NETWORK STATUS",
+		"signal": "SIGNAL DETAILS",
+		"operator": "Provider",
+		"bands": "Active bands",
+		"speed": "Speed (Kbps)",
+		"devices": "Devices",
+		"rsrp": "RSRP (Strength)",
+		"sinr": "SINR (Quality)",
+		"renewing": "Renewing session...",
+		"received": "Received",
+		"sent": "Sent",
+		"usage_limit": "out of %{limit}"
+	},
+	"messages": {
+		"title": "Messages",
+		"back": "All",
+		"to": "To:",
+		"delete": "Delete",
+		"delete_title": "Delete chat",
+		"delete_confirm": "Are you sure you want to delete the chat with %{name}?",
+		"cancel": "Cancel",
+		"send": "Send",
+		"empty": "No conversations found",
+		"you": "You: ",
+		"loading": "Loading messages...",
+		"new": "New message",
+		"recipient_placeholder": "Number or contact",
+		"error_send": "Unable to send message.",
+		"input_placeholder": "Text Message · SMS",
+		"delete_failed": "Delete failed"
+	},
+	"settings": {
+		"title": "Settings",
+		"router": "Router",
+		"address": "Router IP address",
+		"password": "Password",
+		"info": "Information",
+		"error_pw": "Please enter the password in settings.",
+		"error_conn": "Connection error.",
+		"error_hint": "Check your settings and make sure you are connected to the router network.",
+		"retry": "Retry",
+		"status_connecting": "Connecting to router...",
+		"save_and_connect": "Save and Connect",
+		"status_idle": "Not connected",
+		"status_connected": "Connected",
+		"status_error": "Error",
+		"login_success_title": "Connected ✅",
+		"login_success_msg": "Login to router successful!",
+		"saved_title": "Saved",
+		"saved_msg": "Settings saved. Go back to Messages screen.",
+		"attention": "Attention",
+		"enter_pw_alert": "Please enter the router password.",
+		"info_connection": "Connection",
+		"wrong_password": "Wrong password",
+		"login_failed": "Login failed"
+	},
+	"devices": {
+		"title": "Devices",
+		"connected": "Connected",
+		"disconnected": "Disconnected",
+		"empty": "No devices detected"
+	},
+	"common": {
+		"error": "Error",
+		"today": "Today",
+		"yesterday": "Yesterday"
+	}
+}

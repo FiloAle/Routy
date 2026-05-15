@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "@/context/router-context";
 import { SmsMessage } from "@/utils/sms";
 import { MessageInputBar } from "@/components/MessageInputBar";
+import i18n, { t } from "@/i18n";
 
 // ── Day label separator ───────────────────────────────────────────────────────
 
@@ -26,13 +27,16 @@ function dayLabel(date: Date): string {
 	const dateStart = startOfDay(date);
 	const diffDays = Math.round((todayStart - dateStart) / 86400000);
 
-	if (diffDays === 0) return "Oggi";
-	if (diffDays === 1) return "Ieri";
+	if (diffDays === 0) return t("common.today");
+	if (diffDays === 1) return t("common.yesterday");
 	// Same calendar week (within last 6 days)
 	if (diffDays < 7)
-		return date.toLocaleDateString("it-IT", { weekday: "long" });
+		return date.toLocaleDateString(i18n.locale, { weekday: "long" });
 	// Older: "7 maggio"
-	return date.toLocaleDateString("it-IT", { day: "numeric", month: "long" });
+	return date.toLocaleDateString(i18n.locale, {
+		day: "numeric",
+		month: "long",
+	});
 }
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
@@ -145,6 +149,7 @@ export default function ChatScreen() {
 			<Stack.Screen
 				options={{
 					title: getDisplayName(number ?? "").split(" ")[0] ?? "",
+					headerBackTitle: t("messages.back"),
 				}}
 			/>
 
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
 		borderBottomLeftRadius: 4,
 	},
 	bubbleSent: {
-		backgroundColor: "#007AFF",
+		backgroundColor: "#208AEF",
 		borderBottomRightRadius: 4,
 	},
 	bubbleText: {

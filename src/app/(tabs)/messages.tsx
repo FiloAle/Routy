@@ -38,6 +38,7 @@ const AnimatedGlassView = Reanimated.createAnimatedComponent(GlassView);
 
 import { useRouter } from "@/context/router-context";
 import { Conversation, formatMessageDate } from "@/utils/sms";
+import { t } from "@/i18n";
 
 function ConversationAvatar({ name }: { name: string }) {
 	const isNumeric = /^\+?\d+$/.test(name);
@@ -73,7 +74,9 @@ function ConversationRow({
 	onDelete: (number: string, onCancel?: () => void) => void;
 }) {
 	const lastMsg = conversation.lastMessage;
-	const preview = lastMsg.isSent ? `Tu: ${lastMsg.content}` : lastMsg.content;
+	const preview = lastMsg.isSent
+		? `${t("messages.you")}${lastMsg.content}`
+		: lastMsg.content;
 	const dateStr = formatMessageDate(lastMsg.date);
 	const swipeableRef = React.useRef<any>(null);
 	const isFullSwipe = useSharedValue(false);
@@ -271,16 +274,16 @@ export default function MessagesScreen() {
 		(number: string, onCancel?: () => void) => {
 			const name = conversations.find((c) => c.number === number)?.displayName;
 			Alert.alert(
-				"Elimina chat",
-				`Sei sicuro di voler eliminare la chat con ${name || number}?`,
+				t("messages.delete_title"),
+				t("messages.delete_confirm", { name: name || number }),
 				[
 					{
-						text: "Annulla",
+						text: t("messages.cancel"),
 						style: "cancel",
 						onPress: () => onCancel?.(),
 					},
 					{
-						text: "Elimina",
+						text: t("messages.delete"),
 						style: "destructive",
 						onPress: () => deleteConversation(number),
 					},
@@ -356,7 +359,7 @@ export default function MessagesScreen() {
 			setMessageText("");
 			loadSms();
 		} catch (error) {
-			Alert.alert("Errore", "Impossibile inviare il messaggio.");
+			Alert.alert(t("common.error"), t("messages.error_send"));
 		} finally {
 			setIsSending(false);
 		}
@@ -365,8 +368,8 @@ export default function MessagesScreen() {
 	if (authStatus === "loading") {
 		return (
 			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" color="#007AFF" />
-				<Text style={styles.statusText}>Connessione al router…</Text>
+				<ActivityIndicator size="large" />
+				<Text style={styles.statusText}>{t("settings.status_connecting")}</Text>
 			</View>
 		);
 	}
@@ -376,12 +379,9 @@ export default function MessagesScreen() {
 			<View style={styles.centerContainer}>
 				<Text style={styles.errorIcon}>⚠️</Text>
 				<Text style={styles.errorText}>{authError}</Text>
-				<Text style={styles.errorHint}>
-					Controlla le impostazioni e assicurati di essere connesso alla rete
-					del router.
-				</Text>
+				<Text style={styles.errorHint}>{t("settings.error_hint")}</Text>
 				<Pressable style={styles.retryButton} onPress={login}>
-					<Text style={styles.retryButtonText}>Riprova</Text>
+					<Text style={styles.retryButtonText}>{t("settings.retry")}</Text>
 				</Pressable>
 			</View>
 		);
@@ -413,7 +413,7 @@ export default function MessagesScreen() {
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>Messaggi</Text>
+				<Text style={styles.headerTitle}>{t("messages.title")}</Text>
 				<TouchableOpacity
 					onPress={() => setIsModalVisible(true)}
 					activeOpacity={0.7}
@@ -432,8 +432,8 @@ export default function MessagesScreen() {
 
 			{isLoadingSms && conversations.length === 0 ? (
 				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#007AFF" />
-					<Text style={styles.statusText}>Caricamento messaggi…</Text>
+					<ActivityIndicator size="large" />
+					<Text style={styles.statusText}>{t("messages.loading")}</Text>
 				</View>
 			) : (
 				<Animated.FlatList
@@ -471,7 +471,7 @@ export default function MessagesScreen() {
 					ListEmptyComponent={
 						<View style={styles.emptyContent}>
 							<Text style={styles.emptyIcon}>💬</Text>
-							<Text style={styles.emptyText}>Nessun messaggio trovato</Text>
+							<Text style={styles.emptyText}>{t("messages.empty")}</Text>
 						</View>
 					}
 				/>
@@ -485,7 +485,7 @@ export default function MessagesScreen() {
 			>
 				<View style={styles.modalContainer}>
 					<View style={styles.modalHeader}>
-						<Text style={styles.modalTitle}>Nuovo messaggio</Text>
+						<Text style={styles.modalTitle}>{t("messages.new")}</Text>
 						<TouchableOpacity
 							style={styles.closeButtonContainer}
 							onPress={() => setIsModalVisible(false)}
@@ -507,12 +507,12 @@ export default function MessagesScreen() {
 						glassEffectStyle="regular"
 					>
 						<View style={styles.recipientField}>
-							<Text style={styles.recipientLabel}>A:</Text>
+							<Text style={styles.recipientLabel}>{t('messages.to')}</Text>
 							<TextInput
 								style={styles.recipientInput}
 								value={recipient}
 								onChangeText={handleRecipientChange}
-								placeholder="Numero o contatto"
+								placeholder={t("messages.recipient_placeholder")}
 								placeholderTextColor="#636366"
 								autoFocus
 								keyboardType="default"
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 		paddingHorizontal: 24,
 		paddingVertical: 12,
-		backgroundColor: "#007AFF",
+		backgroundColor: "#208AEF",
 		borderRadius: 12,
 	},
 	retryButtonText: {
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
 		width: 10,
 		height: 10,
 		borderRadius: 5,
-		backgroundColor: "#007AFF",
+		backgroundColor: "#208AEF",
 		marginTop: 1,
 	},
 	separator: {

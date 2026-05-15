@@ -1,0 +1,76 @@
+{
+	"tabs": {
+		"home": "Home",
+		"messages": "Messaggi",
+		"settings": "Impostazioni"
+	},
+	"dashboard": {
+		"usage": "CONSUMI",
+		"network": "STATO RETE",
+		"signal": "DETTAGLI SEGNALE",
+		"operator": "Operatore",
+		"bands": "Bande attive",
+		"speed": "Velocità (Kbps)",
+		"devices": "Dispositivi",
+		"rsrp": "RSRP (Potenza)",
+		"sinr": "SINR (Qualità)",
+		"renewing": "Rinnovo sessione...",
+		"received": "Ricevuti",
+		"sent": "Inviati",
+		"usage_limit": "di %{limit}"
+	},
+	"messages": {
+		"title": "Messaggi",
+		"back": "Tutti",
+		"to": "A:",
+		"delete": "Elimina",
+		"delete_title": "Elimina chat",
+		"delete_confirm": "Sei sicuro di voler eliminare la chat con %{name}?",
+		"cancel": "Annulla",
+		"send": "Invia",
+		"empty": "Nessuna conversazione trovata",
+		"you": "Tu: ",
+		"loading": "Caricamento messaggi...",
+		"new": "Nuovo messaggio",
+		"recipient_placeholder": "Numero o contatto",
+		"error_send": "Impossibile inviare il messaggio.",
+		"input_placeholder": "Messaggio di testo · SMS",
+		"delete_failed": "Eliminazione fallita"
+	},
+	"settings": {
+		"title": "Impostazioni",
+		"router": "Router",
+		"address": "Indirizzo IP router",
+		"password": "Password",
+		"info": "Informazioni",
+		"error_pw": "Inserisci la password nelle impostazioni.",
+		"error_conn": "Errore di connessione.",
+		"error_hint": "Controlla le impostazioni e assicurati di essere connesso alla rete del router.",
+		"retry": "Riprova",
+		"status_connecting": "Connessione al router…",
+		"save_and_connect": "Salva e connetti",
+		"status_idle": "Non connesso",
+		"status_connected": "Connesso",
+		"status_error": "Errore",
+		"login_success_title": "Connesso ✅",
+		"login_success_msg": "Login al router riuscito!",
+		"saved_title": "Salvato",
+		"saved_msg": "Impostazioni salvate. Torna alla schermata Messaggi.",
+		"attention": "Attenzione",
+		"enter_pw_alert": "Inserisci la password del router.",
+		"info_connection": "Connessione",
+		"wrong_password": "Password errata",
+		"login_failed": "Login fallito"
+	},
+	"devices": {
+		"title": "Dispositivi",
+		"connected": "Connessi",
+		"disconnected": "Disconnessi",
+		"empty": "Nessun dispositivo rilevato"
+	},
+	"common": {
+		"error": "Errore",
+		"today": "Oggi",
+		"yesterday": "Ieri"
+	}
+}

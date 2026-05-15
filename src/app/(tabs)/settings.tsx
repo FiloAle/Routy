@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "@/context/router-context";
 import { SectionLabel } from "@/components/SectionLabel";
+import { t } from "@/i18n";
 
 export default function SettingsScreen() {
 	const { routerUrl, password, saveSettings, login, authStatus } = useRouter();
@@ -26,7 +27,7 @@ export default function SettingsScreen() {
 	const handleSave = async () => {
 		const url = urlInput.trim() || "http://192.168.0.1";
 		if (!passwordInput.trim()) {
-			Alert.alert("Attenzione", "Inserisci la password del router.");
+			Alert.alert(t("settings.attention"), t("settings.enter_pw_alert"));
 			return;
 		}
 		setIsSaving(true);
@@ -34,10 +35,12 @@ export default function SettingsScreen() {
 		await login();
 		setIsSaving(false);
 		Alert.alert(
-			authStatus === "logged_in" ? "Connesso ✅" : "Salvato",
 			authStatus === "logged_in"
-				? "Login al router riuscito!"
-				: "Impostazioni salvate. Torna alla schermata Messaggi.",
+				? t("settings.login_success_title")
+				: t("settings.saved_title"),
+			authStatus === "logged_in"
+				? t("settings.login_success_msg")
+				: t("settings.saved_msg"),
 		);
 	};
 
@@ -80,7 +83,7 @@ export default function SettingsScreen() {
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>Impostazioni</Text>
+				<Text style={styles.headerTitle}>{t("settings.title")}</Text>
 			</Animated.View>
 
 			<KeyboardAvoidingView
@@ -97,10 +100,12 @@ export default function SettingsScreen() {
 					keyboardShouldPersistTaps="handled"
 				>
 					{/* Router section */}
-					<SectionLabel style={{ marginTop: 0 }}>ROUTER</SectionLabel>
+					<SectionLabel style={{ marginTop: 0 }}>
+						{t("settings.router")}
+					</SectionLabel>
 					<View style={styles.card}>
 						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>Indirizzo router</Text>
+							<Text style={styles.fieldLabel}>{t("settings.address")}</Text>
 							<TextInput
 								style={styles.fieldInput}
 								value={urlInput}
@@ -114,7 +119,7 @@ export default function SettingsScreen() {
 						</View>
 						<View style={styles.divider} />
 						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>Password</Text>
+							<Text style={styles.fieldLabel}>{t("settings.password")}</Text>
 							<TextInput
 								style={styles.fieldInput}
 								value={passwordInput}
@@ -137,20 +142,24 @@ export default function SettingsScreen() {
 						{isSaving ? (
 							<ActivityIndicator color="#fff" />
 						) : (
-							<Text style={styles.saveButtonText}>Salva e connetti</Text>
+							<Text style={styles.saveButtonText}>
+								{t("settings.save_and_connect")}
+							</Text>
 						)}
 					</Pressable>
 
 					{/* Info section */}
-					<SectionLabel>INFO</SectionLabel>
+					<SectionLabel>{t("settings.info")}</SectionLabel>
 					<View style={styles.card}>
 						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>Router</Text>
+							<Text style={styles.infoLabel}>{t("settings.router")}</Text>
 							<Text style={styles.infoValue}>ZTE MF289F</Text>
 						</View>
 						<View style={styles.divider} />
 						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>Connessione</Text>
+							<Text style={styles.infoLabel}>
+								{t("settings.info_connection")}
+							</Text>
 							<View style={styles.statusRow}>
 								<View
 									style={[
@@ -161,10 +170,10 @@ export default function SettingsScreen() {
 									]}
 								/>
 								<Text style={styles.infoValue}>
-									{authStatus === "idle" && "Non connesso"}
-									{authStatus === "loading" && "Connessione…"}
-									{authStatus === "logged_in" && "Connesso"}
-									{authStatus === "error" && "Errore"}
+									{authStatus === "idle" && t("settings.status_idle")}
+									{authStatus === "loading" && t("settings.status_connecting")}
+									{authStatus === "logged_in" && t("settings.status_connected")}
+									{authStatus === "error" && t("settings.status_error")}
 								</Text>
 								{authStatus === "loading" && (
 									<ActivityIndicator size="small" color="#8E8E93" />
@@ -257,7 +266,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	saveButton: {
-		backgroundColor: "#32ADE6",
+		backgroundColor: "#208AEF",
 		borderRadius: 12,
 		paddingVertical: 14,
 		alignItems: "center",

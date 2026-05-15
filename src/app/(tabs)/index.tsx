@@ -14,6 +14,7 @@ import Svg, { Circle } from "react-native-svg";
 import { Link, Stack } from "expo-router";
 
 import { useRouter } from "@/context/router-context";
+import { t } from "@/i18n";
 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = 120;
@@ -57,7 +58,7 @@ export default function HomeScreen() {
 	if (authStatus === "loading") {
 		return (
 			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" color="#32ADE6" />
+				<ActivityIndicator size="large" color="#208AEF" />
 			</View>
 		);
 	}
@@ -93,7 +94,7 @@ export default function HomeScreen() {
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>Home</Text>
+				<Text style={styles.headerTitle}>{t("tabs.home")}</Text>
 			</Animated.View>
 
 			<Animated.ScrollView
@@ -112,7 +113,9 @@ export default function HomeScreen() {
 					/>
 				}
 			>
-				<SectionLabel style={{ marginTop: 0 }}>CONSUMI</SectionLabel>
+				<SectionLabel style={{ marginTop: 0 }}>
+					{t("dashboard.usage")}
+				</SectionLabel>
 
 				<View style={styles.usageCard}>
 					{/* Progress Section */}
@@ -122,7 +125,7 @@ export default function HomeScreen() {
 								cx={CIRCLE_SIZE / 2}
 								cy={CIRCLE_SIZE / 2}
 								r={RADIUS}
-								stroke="#32ADE6"
+								stroke="#208AEF"
 								strokeWidth={STROKE_WIDTH}
 								fill="transparent"
 								opacity={0.2}
@@ -131,7 +134,7 @@ export default function HomeScreen() {
 								cx={CIRCLE_SIZE / 2}
 								cy={CIRCLE_SIZE / 2}
 								r={RADIUS}
-								stroke="#32ADE6"
+								stroke="#208AEF"
 								strokeWidth={STROKE_WIDTH}
 								fill="transparent"
 								strokeDasharray={CIRCUMFERENCE}
@@ -142,14 +145,16 @@ export default function HomeScreen() {
 						</Svg>
 						<View style={styles.chartTextContainer}>
 							<Text style={styles.chartValue}>{Math.round(consumedGB)}</Text>
-							<Text style={styles.chartSubtext}>di 1TB</Text>
+							<Text style={styles.chartSubtext}>
+								{t("dashboard.usage_limit", { limit: "1TB" })}
+							</Text>
 						</View>
 					</View>
 
 					{/* Stats Section */}
 					<View style={styles.statsSection}>
 						<View style={styles.statGroup}>
-							<Text style={styles.statLabel}>Ricevuti</Text>
+							<Text style={styles.statLabel}>{t("dashboard.received")}</Text>
 							<View style={styles.valueRow}>
 								<Text style={[styles.statValueMain, { color: "#FF2D55" }]}>
 									{receivedGB.toFixed(1)}
@@ -159,7 +164,7 @@ export default function HomeScreen() {
 						</View>
 
 						<View style={styles.statGroup}>
-							<Text style={styles.statLabel}>Inviati</Text>
+							<Text style={styles.statLabel}>{t("dashboard.sent")}</Text>
 							<View style={styles.valueRow}>
 								<Text style={[styles.statValueMain, { color: "#A7FF00" }]}>
 									{sentGB.toFixed(1)}
@@ -171,19 +176,22 @@ export default function HomeScreen() {
 				</View>
 
 				{/* Info Cards Row 1 */}
-				<SectionLabel>STATO RETE</SectionLabel>
+				<SectionLabel>{t("dashboard.network")}</SectionLabel>
 				<View style={styles.infoRow}>
 					<DashboardCard
-						label="Operatore"
+						label={t("dashboard.operator")}
 						value={`${dataUsage?.networkProvider} ${dataUsage?.networkType}${dataUsage?.isCA ? "+" : ""}`}
 					/>
 
-					<DashboardCard label="Bande attive" value={dataUsage?.bands} />
+					<DashboardCard
+						label={t("dashboard.bands")}
+						value={dataUsage?.bands}
+					/>
 				</View>
 
 				{/* Info Cards Row 2 */}
 				<View style={styles.infoRow}>
-					<DashboardCard label="Velocità (Kbps)">
+					<DashboardCard label={t("dashboard.speed")}>
 						<View
 							style={{
 								flexDirection: "row",
@@ -204,22 +212,22 @@ export default function HomeScreen() {
 
 					<Link href="/devices" asChild>
 						<DashboardCard
-							label="Dispositivi"
+							label={t("dashboard.devices")}
 							value={devices.filter((d) => d.ip && d.ip !== "-").length}
 							showChevron
 						/>
 					</Link>
 				</View>
 
-				<SectionLabel>DETTAGLI SEGNALE</SectionLabel>
+				<SectionLabel>{t("dashboard.signal")}</SectionLabel>
 				<View style={styles.infoRow}>
 					<DashboardCard
-						label="RSRP (Potenza)"
+						label={t("dashboard.rsrp")}
 						value={`${dataUsage?.rsrp} dBm`}
 					/>
 
 					<DashboardCard
-						label="SINR (Qualità)"
+						label={t("dashboard.sinr")}
 						value={`${dataUsage?.sinr} dB`}
 					/>
 				</View>
