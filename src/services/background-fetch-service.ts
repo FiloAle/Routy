@@ -1,4 +1,4 @@
-import * as BackgroundFetch from 'expo-background-fetch';
+import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,7 +14,7 @@ const STORAGE_KEY_KNOWN_IDS = '@routy/known_sms_ids';
 // 1. Define the task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   const now = new Date();
-  console.log(`[BackgroundFetch] Task triggered at: ${now.toLocaleString()}`);
+  console.log(`[BackgroundTask] Task triggered at: ${now.toLocaleString()}`);
 
   try {
     const [savedUrl, savedPw, knownRaw] = await Promise.all([
@@ -24,8 +24,8 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     ]);
 
     if (!savedUrl || !savedPw) {
-      console.log('[BackgroundFetch] Missing credentials, skipping.');
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      console.log('[BackgroundTask] Missing credentials, skipping.');
+      return;
     }
 
     const api = new RouterApi(savedUrl);
@@ -47,11 +47,11 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     );
 
     if (newMessages.length === 0) {
-      console.log('[BackgroundFetch] No new messages found.');
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      console.log('[BackgroundTask] No new messages found.');
+      return;
     }
 
-    console.log(`[BackgroundFetch] Found ${newMessages.length} new messages!`);
+    console.log(`[BackgroundTask] Found ${newMessages.length} new messages!`);
 
     // Load contacts to show names if possible
     await contactsService.load();
@@ -74,11 +74,8 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     // Save updated known IDs
     await AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIds)));
-
-    return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
-    console.error('[BackgroundFetch] Task failed:', error);
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+    console.error('[BackgroundTask] Task failed:', error);
   }
 });
 
@@ -87,20 +84,18 @@ export async function registerBackgroundFetchAsync() {
   try {
     const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
     if (isRegistered) {
-      console.log('[BackgroundFetch] Task already registered.');
+      console.log('[BackgroundTask] Task already registered.');
     }
 
-    return BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-      minimumInterval: 15 * 60, // 15 minutes (iOS minimum)
-      stopOnTerminate: false, // keep running after app is closed
-      startOnBoot: true, // start after device reboot
+    return BackgroundTask.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+      minimumInterval: 15, // 15 minutes
     });
   } catch (err) {
-    console.error('[BackgroundFetch] Registration failed:', err);
+    console.error('[BackgroundTask] Registration failed:', err);
   }
 }
 
 // 3. Unregister the task (useful for debugging/testing)
 export async function unregisterBackgroundFetchAsync() {
-  return BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+  return BackgroundTask.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
 }

@@ -40,6 +40,7 @@
 	"settings": {
 		"title": "Impostazioni",
 		"router": "Router",
+		"model": "Modello",
 		"address": "Indirizzo IP router",
 		"password": "Password",
 		"info": "Informazioni",
@@ -47,11 +48,7 @@
 		"error_conn": "Errore di connessione.",
 		"error_hint": "Controlla le impostazioni e assicurati di essere connesso alla rete del router.",
 		"retry": "Riprova",
-		"status_connecting": "Connessione al router…",
 		"save_and_connect": "Salva e connetti",
-		"status_idle": "Non connesso",
-		"status_connected": "Connesso",
-		"status_error": "Errore",
 		"login_success_title": "Connesso ✅",
 		"login_success_msg": "Login al router riuscito!",
 		"saved_title": "Salvato",
@@ -60,7 +57,24 @@
 		"enter_pw_alert": "Inserisci la password del router.",
 		"info_connection": "Connessione",
 		"wrong_password": "Password errata",
-		"login_failed": "Login fallito"
+		"login_failed": "Login fallito",
+		"network": "Rete",
+		"data_network": "Rete dati",
+		"public_ip": "IP Pubblico",
+		"reboot": "Riavvia",
+		"reboot_success": "Il router si sta riavviando...",
+		"reboot_error": "Errore durante il riavvio.",
+		"night_mode": "Modalità Notturna",
+		"night_mode_on": "Modalità notturna",
+		"night_mode_start": "Inizio",
+		"night_mode_end": "Fine",
+		"software_version": "Versione software",
+		"status_idle": "Non connesso",
+		"status_connecting": "Connessione al router…",
+		"status_disconnecting": "Disconnessione...",
+		"status_connected": "Connesso",
+		"status_disconnected": "Disconnesso",
+		"status_error": "Errore"
 	},
 	"devices": {
 		"title": "Dispositivi",
@@ -70,6 +84,7 @@
 	},
 	"common": {
 		"error": "Errore",
+		"info": "Info",
 		"today": "Oggi",
 		"yesterday": "Ieri"
 	}

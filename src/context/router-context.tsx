@@ -2,6 +2,7 @@ import { useRouter as useExpoRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Contacts from 'expo-contacts';
+import { Alert } from 'react-native';
 import React, {
   createContext,
   useCallback,
@@ -36,6 +37,22 @@ interface RouterContextValue {
   isLoadingSms: boolean;
   isLoadingData: boolean;
   isLoadingDevices: boolean;
+
+  // Advanced Network
+  networkStatus: "idle" | "connecting" | "connected" | "disconnecting" | "disconnected" | "error";
+  connectNetwork: () => Promise<void>;
+  disconnectNetwork: () => Promise<void>;
+  reboot: () => Promise<void>;
+
+  // Software & Updates
+  softwareVersion: string | null;
+  softwareModel: string | null;
+
+  // Night Mode
+  nightMode: { enabled: boolean; start: string; end: string } | null;
+  fetchNightMode: () => Promise<void>;
+  setNightMode: (enabled: boolean, start: string, end: string) => Promise<void>;
+
   saveSettings: (url: string, pw: string) => Promise<void>;
   login: () => Promise<void>;
   loadSms: () => Promise<void>;
@@ -73,6 +90,18 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingSms, setIsLoadingSms] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
+  // Advanced states
+  const [networkStatus, setNetworkStatus] = useState<
+    "idle" | "connecting" | "connected" | "disconnecting" | "disconnected" | "error"
+  >("idle");
+  const [softwareVersion, setSoftwareVersion] = useState<string | null>(null);
+  const [softwareModel, setSoftwareModel] = useState<string | null>(null);
+  const [nightMode, setNightModeState] = useState<{
+    enabled: boolean;
+    start: string;
+    end: string;
+  } | null>(null);
   const expoRouter = useExpoRouter();
 
   const apiRef = useRef<RouterApi>(new RouterApi(DEFAULT_URL));
@@ -332,13 +361,88 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingData(true);
     try {
       const usage = await apiRef.current.fetchDataUsage();
-      if (mountedRef.current) setDataUsage(usage);
+      if (mountedRef.current) {
+        setDataUsage(usage);
+        console.log('[RouterContext] ppp_status:', usage.pppStatus);
+        
+        if (usage.pppStatus === "ppp_connected" || usage.pppStatus === "connected") {
+          setNetworkStatus("connected");
+        } else {
+          setNetworkStatus("disconnected");
+        }
+
+        if (!softwareVersion) {
+          apiRef.current.fetchSoftwareVersion().then(({ model, version }) => {
+            if (mountedRef.current) {
+              setSoftwareVersion(version);
+              setSoftwareModel(model);
+            }
+          });
+        }
+      }
     } catch (e) {
       console.warn('[loadDataUsage] error:', e);
     } finally {
       setIsLoadingData(false);
     }
   }, [authStatus]);
+
+  const connectNetwork = useCallback(async () => {
+    try {
+      setNetworkStatus("connecting");
+      await apiRef.current.connectNetwork();
+      setNetworkStatus("connected");
+      await loadDataUsage();
+    } catch (e) {
+      setNetworkStatus("disconnected");
+      throw e;
+    }
+  }, [loadDataUsage]);
+
+  const disconnectNetwork = useCallback(async () => {
+    try {
+      setNetworkStatus("disconnecting");
+      await apiRef.current.disconnectNetwork();
+      setNetworkStatus("disconnected");
+      await loadDataUsage();
+    } catch (e) {
+      setNetworkStatus("connected");
+      throw e;
+    }
+  }, [loadDataUsage]);
+
+  const reboot = useCallback(async () => {
+    try {
+      await apiRef.current.reboot();
+      Alert.alert(t('settings.login_success_title'), t('settings.reboot_success'));
+    } catch (e) {
+      console.warn("[reboot] error:", e);
+      Alert.alert(t('common.error'), t('settings.reboot_error'));
+      throw e;
+    }
+  }, []);
+
+  const fetchNightMode = useCallback(async () => {
+    try {
+      const settings = await apiRef.current.fetchNightMode();
+      if (mountedRef.current) setNightModeState(settings);
+    } catch (e) {
+      console.warn("[fetchNightMode] error:", e);
+    }
+  }, []);
+
+  const setNightMode = useCallback(
+    async (enabled: boolean, start: string, end: string) => {
+      try {
+        await apiRef.current.setNightMode(enabled, start, end);
+        if (mountedRef.current) setNightModeState({ enabled, start, end });
+      } catch (e) {
+        console.warn("[setNightMode] error:", e);
+        throw e;
+      }
+    },
+    [],
+  );
 
   const loadDevices = useCallback(async () => {
     if (authStatus !== 'logged_in') return;
@@ -431,6 +535,15 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         isLoadingSms,
         isLoadingData,
         isLoadingDevices,
+        networkStatus,
+        connectNetwork,
+        disconnectNetwork,
+        reboot,
+        softwareVersion,
+        softwareModel,
+        nightMode,
+        fetchNightMode,
+        setNightMode,
         saveSettings,
         login,
         loadSms,

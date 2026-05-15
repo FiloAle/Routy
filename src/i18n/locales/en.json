@@ -40,6 +40,7 @@
 	"settings": {
 		"title": "Settings",
 		"router": "Router",
+		"model": "Model",
 		"address": "Router IP address",
 		"password": "Password",
 		"info": "Information",
@@ -47,11 +48,7 @@
 		"error_conn": "Connection error.",
 		"error_hint": "Check your settings and make sure you are connected to the router network.",
 		"retry": "Retry",
-		"status_connecting": "Connecting to router...",
 		"save_and_connect": "Save and Connect",
-		"status_idle": "Not connected",
-		"status_connected": "Connected",
-		"status_error": "Error",
 		"login_success_title": "Connected ✅",
 		"login_success_msg": "Login to router successful!",
 		"saved_title": "Saved",
@@ -60,7 +57,24 @@
 		"enter_pw_alert": "Please enter the router password.",
 		"info_connection": "Connection",
 		"wrong_password": "Wrong password",
-		"login_failed": "Login failed"
+		"login_failed": "Login failed",
+		"network": "Network",
+		"data_network": "Data network",
+		"public_ip": "Public IP",
+		"reboot": "Reboot",
+		"reboot_success": "The router is rebooting...",
+		"reboot_error": "Error during reboot.",
+		"night_mode": "Night Mode",
+		"night_mode_on": "Night mode",
+		"night_mode_start": "Start",
+		"night_mode_end": "End",
+		"software_version": "Software version",
+		"status_idle": "Idle",
+		"status_connecting": "Connecting...",
+		"status_disconnecting": "Disconnecting...",
+		"status_connected": "Connected",
+		"status_disconnected": "Disconnected",
+		"status_error": "Error"
 	},
 	"devices": {
 		"title": "Devices",
@@ -70,6 +84,7 @@
 	},
 	"common": {
 		"error": "Error",
+		"info": "Info",
 		"today": "Today",
 		"yesterday": "Yesterday"
 	}

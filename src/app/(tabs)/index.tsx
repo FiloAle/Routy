@@ -55,13 +55,6 @@ export default function HomeScreen() {
 		extrapolate: "clamp",
 	});
 
-	if (authStatus === "loading") {
-		return (
-			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" color="#208AEF" />
-			</View>
-		);
-	}
 
 	return (
 		<View style={styles.container}>

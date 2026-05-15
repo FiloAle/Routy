@@ -23,6 +23,9 @@ export interface DataUsage {
 	connectedDevices: number;
 	realtimeRxThrpt: string; // Kbps
 	realtimeTxThrpt: string; // Kbps
+	pppStatus: string; // ppp_connected, disconnected, etc.
+	wanIp: string;
+	ssid: string;
 }
 
 export interface Device {
@@ -42,9 +45,10 @@ export class RouterApi {
 
 		this.client = axios.create({
 			baseURL: this.baseUrl,
-			timeout: 8000,
+			timeout: 10000,
 			headers: {
-				Referer: this.baseUrl,
+				Referer: `${this.baseUrl}index.html#management/software_update.html`,
+				"X-Requested-With": "XMLHttpRequest",
 			},
 		});
 
@@ -116,11 +120,11 @@ export class RouterApi {
 		// "0" or "success": login ok
 		// "1": already logged in
 		// "3": wrong password
-		if (result === "3") throw new Error(t('settings.wrong_password'));
+		if (result === "3") throw new Error(t("settings.wrong_password"));
 
 		const isSuccess = result === "0" || result === "1" || result === "success";
 		if (!isSuccess) {
-			throw new Error(`${t('settings.login_failed')} (code: ${result})`);
+			throw new Error(`${t("settings.login_failed")} (code: ${result})`);
 		}
 
 		console.log("[RouterApi] Login successful");
@@ -165,7 +169,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: {
 				isTest: false,
-				cmd: "monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt",
+				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid",
 				multi_data: "1",
 			},
 		});
@@ -226,6 +230,9 @@ export class RouterApi {
 			connectedDevices: parseInt(data.wifi_access_sta_num || "0", 10),
 			realtimeRxThrpt: toKbps(data.realtime_rx_thrpt),
 			realtimeTxThrpt: toKbps(data.realtime_tx_thrpt),
+			pppStatus: data.ppp_status,
+			wanIp: data.wan_ipaddr,
+			ssid: data.wifi_chip1_ssid1_ssid || "Unknown",
 		};
 	}
 
@@ -339,7 +346,138 @@ export class RouterApi {
 		console.log("[RouterApi] Response DELETE_SMS:", res.data);
 
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
-			throw new Error(`${t('messages.delete_failed')} (code: ${res.data?.result})`);
+			throw new Error(
+				`${t("messages.delete_failed")} (code: ${res.data?.result})`,
+			);
+		}
+	}
+
+	async connectNetwork(): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "CONNECT_NETWORK",
+			AD: adToken,
+		});
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Connect failed: ${res.data?.result}`);
+		}
+	}
+
+	async disconnectNetwork(): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "DISCONNECT_NETWORK",
+			AD: adToken,
+		});
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Disconnect failed: ${res.data?.result}`);
+		}
+	}
+
+	async fetchSoftwareVersion(): Promise<{ model: string; version: string }> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: {
+				isTest: "false",
+				cmd: "cr_version",
+				multi_data: "1",
+			},
+		});
+		const rawVersion = res.data?.cr_version;
+		if (!rawVersion) return { model: "ZTE Router", version: "Unknown" };
+
+		const lastV = rawVersion.lastIndexOf("V");
+		const lastM = rawVersion.lastIndexOf("M", lastV);
+
+		let model = "ZTE Router";
+		let version = rawVersion;
+
+		if (lastV !== -1) {
+			version = rawVersion.substring(lastV + 1);
+			if (lastM !== -1) {
+				model = `ZTE ${rawVersion.substring(lastM, lastV)}`;
+			}
+		}
+
+		return { model, version };
+	}
+
+	async fetchNightMode(): Promise<{
+		enabled: boolean;
+		start: string;
+		end: string;
+	}> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: {
+				isTest: "false",
+				cmd: "night_mode_switch,night_mode_start_time,night_mode_end_time,night_mode_close_all_led",
+				multi_data: "1",
+			},
+		});
+
+		console.log("[RouterApi] Raw night mode response:", res.data);
+
+		return {
+			enabled: res.data?.night_mode_switch === "1",
+			start: res.data?.night_mode_start_time || "22:00",
+			end: res.data?.night_mode_end_time || "07:00",
+		};
+	}
+
+	async reboot(): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "REBOOT_DEVICE",
+			AD: adToken,
+		});
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Reboot failed: ${res.data?.result}`);
+		}
+	}
+
+	async setNightMode(
+		enabled: boolean,
+		start: string,
+		end: string,
+	): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "SET_DEVICE_LED",
+			night_mode_switch: enabled ? "1" : "0",
+			night_mode_start_time: start,
+			night_mode_end_time: end,
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending setNightMode params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response setNightMode:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Night mode update failed: ${res.data?.result}`);
 		}
 	}
 
@@ -349,10 +487,6 @@ export class RouterApi {
 			const resHost = await this.client.get("goform/goform_get_cmd_process", {
 				params: { isTest: false, cmd: "hostNameList" },
 			});
-			console.log(
-				"[RouterApi] hostNameList raw:",
-				JSON.stringify(resHost.data, null, 2),
-			);
 
 			// Fetch station_list
 			const resStation = await this.client.get(
@@ -360,10 +494,6 @@ export class RouterApi {
 				{
 					params: { isTest: false, cmd: "station_list" },
 				},
-			);
-			console.log(
-				"[RouterApi] station_list raw:",
-				JSON.stringify(resStation.data, null, 2),
 			);
 
 			const hostNames: any[] = resHost.data?.devices || [];

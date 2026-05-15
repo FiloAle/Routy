@@ -1,28 +1,74 @@
 import { Stack } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
 	Alert,
 	KeyboardAvoidingView,
 	Platform,
-	Pressable,
 	StyleSheet,
 	Text,
 	TextInput,
 	View,
 	Animated,
+	Switch,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "@/context/router-context";
 import { SectionLabel } from "@/components/SectionLabel";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import { t } from "@/i18n";
 
 export default function SettingsScreen() {
-	const { routerUrl, password, saveSettings, login, authStatus } = useRouter();
+	const {
+		routerUrl,
+		password,
+		saveSettings,
+		login,
+		authStatus,
+		dataUsage,
+		networkStatus,
+		connectNetwork,
+		disconnectNetwork,
+		reboot,
+		softwareVersion,
+		softwareModel,
+		nightMode,
+		fetchNightMode,
+		setNightMode,
+		loadDataUsage,
+	} = useRouter();
 
 	const [urlInput, setUrlInput] = useState(routerUrl);
 	const [passwordInput, setPasswordInput] = useState(password);
 	const [isSaving, setIsSaving] = useState(false);
+
+	// Picker states
+	const [showStartPicker, setShowStartPicker] = useState(false);
+	const [showEndPicker, setShowEndPicker] = useState(false);
+
+	useEffect(() => {
+		if (authStatus === "logged_in") {
+			fetchNightMode();
+			loadDataUsage();
+		}
+	}, [authStatus, fetchNightMode, loadDataUsage]);
+
+	// Helpers for time conversion
+	const timeStringToDate = (timeStr: string) => {
+		const [hours, minutes] = (timeStr || "00:00")
+			.split(":")
+			.map((s) => parseInt(s, 10));
+		const date = new Date();
+		date.setHours(hours, minutes, 0, 0);
+		return date;
+	};
+
+	const dateToTimeString = (date: Date) => {
+		const hours = date.getHours().toString().padStart(2, "0");
+		const minutes = date.getMinutes().toString().padStart(2, "0");
+		return `${hours}:${minutes}`;
+	};
 
 	const handleSave = async () => {
 		const url = urlInput.trim() || "http://192.168.0.1";
@@ -42,6 +88,30 @@ export default function SettingsScreen() {
 				? t("settings.login_success_msg")
 				: t("settings.saved_msg"),
 		);
+	};
+
+	const toggleNetwork = async () => {
+		try {
+			if (networkStatus === "connected") {
+				await disconnectNetwork();
+			} else {
+				await connectNetwork();
+			}
+		} catch (e) {
+			Alert.alert("Errore", "Impossibile cambiare lo stato della rete.");
+		}
+	};
+
+	const toggleNightMode = async (val: boolean) => {
+		try {
+			await setNightMode(
+				val,
+				nightMode?.start || "22:00",
+				nightMode?.end || "07:00",
+			);
+		} catch (e) {
+			Alert.alert("Errore", "Impossibile aggiornare la modalità notturna.");
+		}
 	};
 
 	const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -98,6 +168,7 @@ export default function SettingsScreen() {
 					)}
 					scrollEventThrottle={16}
 					keyboardShouldPersistTaps="handled"
+					showsVerticalScrollIndicator={false}
 				>
 					{/* Router section */}
 					<SectionLabel style={{ marginTop: 0 }}>
@@ -133,27 +204,125 @@ export default function SettingsScreen() {
 						</View>
 					</View>
 
-					{/* Save button */}
-					<Pressable
-						style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+					<PrimaryButton
+						label={t("settings.save_and_connect")}
 						onPress={handleSave}
-						disabled={isSaving}
-					>
-						{isSaving ? (
-							<ActivityIndicator color="#fff" />
-						) : (
-							<Text style={styles.saveButtonText}>
-								{t("settings.save_and_connect")}
-							</Text>
+						isLoading={isSaving}
+						style={{ marginTop: 4, marginBottom: 8 }}
+					/>
+
+					{/* Network section */}
+					<SectionLabel>{t("settings.network")}</SectionLabel>
+					<View style={styles.card}>
+						{dataUsage?.ssid && (
+							<>
+								<View style={styles.infoRow}>
+									<Text style={styles.infoLabel}>SSID</Text>
+									<Text style={styles.infoValue}>{dataUsage.ssid}</Text>
+								</View>
+								<View style={styles.divider} />
+							</>
 						)}
-					</Pressable>
+						<View style={styles.field}>
+							<Text style={styles.fieldLabel}>
+								{t("settings.data_network")}
+							</Text>
+							<Switch
+								value={
+									networkStatus === "connected" ||
+									networkStatus === "connecting"
+								}
+								onValueChange={toggleNetwork}
+								trackColor={{ false: "#3A3A3C", true: "#3B82F6" }}
+								disabled={
+									networkStatus === "connecting" ||
+									networkStatus === "disconnecting"
+								}
+							/>
+						</View>
+						{dataUsage?.wanIp && (
+							<>
+								<View style={styles.divider} />
+								<View style={styles.infoRow}>
+									<Text style={styles.infoLabel}>
+										{t("settings.public_ip")}
+									</Text>
+									<Text style={styles.infoValue}>{dataUsage.wanIp}</Text>
+								</View>
+							</>
+						)}
+					</View>
+
+					{/* Night Mode section */}
+					<SectionLabel>{t("settings.night_mode")}</SectionLabel>
+					<View style={styles.card}>
+						<View style={styles.field}>
+							<Text style={styles.fieldLabel}>
+								{t("settings.night_mode_on")}
+							</Text>
+							<Switch
+								value={nightMode?.enabled || false}
+								onValueChange={toggleNightMode}
+								trackColor={{ false: "#3A3A3C", true: "#3B82F6" }}
+							/>
+						</View>
+						<View style={styles.divider} />
+
+						{/* Start Time Picker */}
+						<View style={styles.field}>
+							<Text style={styles.fieldLabel}>
+								{t("settings.night_mode_start")}
+							</Text>
+							<DateTimePicker
+								value={timeStringToDate(nightMode?.start || "22:00")}
+								mode="time"
+								is24Hour={true}
+								display="default"
+								onChange={(event, date) => {
+									if (date) {
+										setNightMode(
+											nightMode?.enabled || false,
+											dateToTimeString(date),
+											nightMode?.end || "07:00",
+										);
+									}
+								}}
+								themeVariant="dark"
+							/>
+						</View>
+
+						<View style={styles.divider} />
+
+						{/* End Time Picker */}
+						<View style={styles.field}>
+							<Text style={styles.fieldLabel}>
+								{t("settings.night_mode_end")}
+							</Text>
+							<DateTimePicker
+								value={timeStringToDate(nightMode?.end || "07:00")}
+								mode="time"
+								is24Hour={true}
+								display="default"
+								onChange={(event, date) => {
+									if (date) {
+										setNightMode(
+											nightMode?.enabled || false,
+											nightMode?.start || "22:00",
+											dateToTimeString(date),
+										);
+									}
+								}}
+								themeVariant="dark"
+							/>
+						</View>
+					</View>
 
 					{/* Info section */}
 					<SectionLabel>{t("settings.info")}</SectionLabel>
 					<View style={styles.card}>
 						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>{t("settings.router")}</Text>
-							<Text style={styles.infoValue}>ZTE MF289F</Text>
+							<Text style={styles.infoLabel}>{t("settings.model")}</Text>
+							<Text style={styles.infoValue}>{softwareModel || "..."}</Text>
 						</View>
 						<View style={styles.divider} />
 						<View style={styles.infoRow}>
@@ -180,7 +349,21 @@ export default function SettingsScreen() {
 								)}
 							</View>
 						</View>
+						<View style={styles.divider} />
+						<View style={styles.infoRow}>
+							<Text style={styles.infoLabel}>
+								{t("settings.software_version")}
+							</Text>
+							<Text style={styles.infoValue}>{softwareVersion || "..."}</Text>
+						</View>
 					</View>
+
+					<PrimaryButton
+						label={t("settings.reboot")}
+						onPress={reboot}
+						color="#FF2D55"
+						style={{ marginTop: 4, marginBottom: 48 }}
+					/>
 				</Animated.ScrollView>
 			</KeyboardAvoidingView>
 		</View>
@@ -194,7 +377,7 @@ const styles = StyleSheet.create({
 	},
 	scroll: {
 		paddingHorizontal: 16,
-		paddingBottom: 48,
+		paddingBottom: 100,
 		paddingTop: 112,
 	},
 	header: {
@@ -208,12 +391,6 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		letterSpacing: 0.4,
 	},
-	sectionFooter: {
-		fontSize: 12,
-		color: "#636366",
-		lineHeight: 16,
-		textAlign: "center",
-	},
 	card: {
 		backgroundColor: "#1C1C1E",
 		borderRadius: 12,
@@ -221,19 +398,21 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	field: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 		paddingHorizontal: 16,
-		paddingVertical: 12,
-		gap: 4,
+		paddingVertical: 14,
 	},
 	fieldLabel: {
-		fontSize: 12,
-		color: "#8E8E93",
-		fontWeight: "500",
+		fontSize: 16,
+		color: "#fff",
 	},
 	fieldInput: {
 		fontSize: 16,
-		color: "#fff",
-		paddingVertical: 0,
+		color: "#8E8E93",
+		flex: 1,
+		textAlign: "right",
 	},
 	divider: {
 		height: StyleSheet.hairlineWidth,
@@ -259,26 +438,6 @@ const styles = StyleSheet.create({
 	},
 	statusDotLoading: {
 		backgroundColor: "#FF9F0A",
-	},
-	statusText: {
-		fontSize: 14,
-		color: "#8E8E93",
-		flex: 1,
-	},
-	saveButton: {
-		backgroundColor: "#208AEF",
-		borderRadius: 12,
-		paddingVertical: 14,
-		alignItems: "center",
-		marginTop: 4,
-	},
-	saveButtonDisabled: {
-		opacity: 0.6,
-	},
-	saveButtonText: {
-		color: "#fff",
-		fontSize: 16,
-		fontWeight: "600",
 	},
 	infoRow: {
 		flexDirection: "row",
