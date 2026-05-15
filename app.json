@@ -8,31 +8,38 @@
     "scheme": "routy",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.filippoalessandrini.routy",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
+        "NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
+        "UIBackgroundModes": [
+          "fetch"
+        ]
+      }
     },
     "plugins": [
       "expo-router",
+      "expo-background-fetch",
+      "expo-task-manager",
+      "./withRemovePushEntitlement",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#007AFF"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#208AEF"
         }
       ]
     ],
