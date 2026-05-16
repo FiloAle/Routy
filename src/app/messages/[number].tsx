@@ -158,13 +158,13 @@ export default function ChatScreen() {
 			/>
 
 			<KeyboardAvoidingView
-				style={{ flex: 1 }}
+				style={messageStyles.keyboardAvoidingView}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				keyboardVerticalOffset={Platform.OS === "ios" ? -6 : 0}
 			>
 				<FlatList
 					ref={listRef}
-					style={{ flex: 1, marginBottom: -90 }}
+					style={messageStyles.chatList}
 					showsVerticalScrollIndicator={false}
 					data={messages}
 					keyExtractor={(item) => item.id}

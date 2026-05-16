@@ -94,4 +94,9 @@ export const dashboardStyles = StyleSheet.create({
 		fontWeight: "600",
 		fontFamily: "ui-rounded",
 	},
+	speedValueContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
 });

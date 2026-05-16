@@ -91,20 +91,21 @@ export default function DevicesScreen() {
 				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{
-						paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0,
-						paddingBottom: 20,
-					},
+					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
+					globalStyles.scrollNoTab,
 				]}
 				ListHeaderComponent={() => (
-					<View style={{ gap: 32 }}>
+					<View style={deviceStyles.listContainer}>
 						{sections.map((section, index) => (
 							<View
 								key={section.title}
-								style={[globalStyles.section, index === 0 && { marginTop: 12 }]}
+								style={[
+									globalStyles.section,
+									index === 0 && globalStyles.firstSection,
+								]}
 							>
 								<SectionLabel>{section.title}</SectionLabel>
-								<View style={{ gap: 8 }}>
+								<View style={deviceStyles.sectionCards}>
 									{section.data.map((device) => (
 										<View key={device.mac}>
 											{renderDevice({ item: device })}

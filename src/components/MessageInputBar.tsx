@@ -77,7 +77,6 @@ export function MessageInputBar({
 				styles.inputBar,
 				{
 					paddingBottom: finalBottomPadding,
-					paddingTop: 12,
 				},
 				containerStyle,
 			]}
@@ -142,6 +141,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		backgroundColor: "transparent",
 		marginBottom: 12,
+		paddingTop: 12,
 	},
 	inputGlass: {
 		flex: 1,

@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 import { Colors } from "../constants/Colors";
 import { Layout } from "./globalStyles";
 
@@ -279,8 +279,8 @@ export const messageStyles = StyleSheet.create({
 	},
 	listContent: {
 		paddingHorizontal: 8,
-		paddingTop: 12,
-		paddingBottom: 90,
+		paddingTop: Layout.headerOffset,
+		paddingBottom: 84,
 		flexGrow: 1,
 		justifyContent: "flex-end",
 	},
@@ -295,7 +295,7 @@ export const messageStyles = StyleSheet.create({
 	bubbleRow: {
 		flexDirection: "row",
 		justifyContent: "flex-start",
-		marginVertical: 2,
+		marginVertical: 1,
 		paddingHorizontal: 8,
 	},
 	bubbleRowSent: {
@@ -306,7 +306,7 @@ export const messageStyles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingTop: 8,
 		paddingBottom: 10,
-		borderRadius: Layout.borderRadius + 4,
+		borderRadius: Layout.borderRadius - 4,
 	},
 	bubbleReceived: {
 		backgroundColor: Colors.routyDarkGray,
@@ -335,6 +335,14 @@ export const messageStyles = StyleSheet.create({
 	},
 	keyboardAvoidingView: {
 		flex: 1,
+	},
+	headerComposeIcon: {
+		marginTop: -2,
+	},
+	listContainer: {
+		minHeight: Dimensions.get("window").height - Layout.headerOffset - 90,
+		paddingBottom: 100,
+		paddingHorizontal: 0,
 	},
 });
 

@@ -43,4 +43,10 @@ export const deviceStyles = StyleSheet.create({
 		color: Colors.routyGray,
 		fontSize: 16,
 	},
+	listContainer: {
+		gap: 32,
+	},
+	sectionCards: {
+		gap: 8,
+	},
 });

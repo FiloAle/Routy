@@ -52,4 +52,14 @@ export const settingsStyles = StyleSheet.create({
 	unitTextActive: {
 		color: Colors.routyWhite,
 	},
+	fieldRow: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	dataLimitInput: {
+		textAlign: "right",
+		marginRight: 12,
+		flex: 0,
+		minWidth: 60,
+	},
 });

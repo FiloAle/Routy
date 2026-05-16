@@ -216,7 +216,7 @@ export default function SettingsScreen() {
 					showsVerticalScrollIndicator={false}
 				>
 					{/* Router section */}
-					<View style={[globalStyles.section, { marginTop: 12 }]}>
+					<View style={[globalStyles.section, globalStyles.firstSection]}>
 						<SectionLabel>{t("settings.router")}</SectionLabel>
 						<View style={globalStyles.card}>
 							<View style={globalStyles.field}>
@@ -309,17 +309,9 @@ export default function SettingsScreen() {
 								<Text style={globalStyles.fieldLabel}>
 									{t("settings.data_limit")}
 								</Text>
-								<View style={{ flexDirection: "row", alignItems: "center" }}>
+								<View style={settingsStyles.fieldRow}>
 									<TextInput
-										style={[
-											globalStyles.fieldInput,
-											{
-												textAlign: "right",
-												marginRight: 12,
-												flex: 0,
-												minWidth: 60,
-											},
-										]}
+										style={[globalStyles.fieldInput, settingsStyles.dataLimitInput]}
 										value={dataLimitValue}
 										onChangeText={(val) => {
 											const clean = val.replace(/[^0-9]/g, "");

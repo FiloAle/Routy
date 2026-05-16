@@ -129,7 +129,7 @@ export default function HomeScreen() {
 					/>
 				}
 			>
-				<View style={[globalStyles.section, { marginTop: 12 }]}>
+				<View style={[globalStyles.section, globalStyles.firstSection]}>
 					<SectionLabel>{t("dashboard.usage")}</SectionLabel>
 
 					<View style={dashboardStyles.usageCard}>
@@ -246,13 +246,7 @@ export default function HomeScreen() {
 							style={{ flex: 1 }}
 						>
 							<DashboardCard label={t("dashboard.speed", { unit: speedUnit })}>
-								<View
-									style={{
-										flexDirection: "row",
-										justifyContent: "space-between",
-										alignItems: "center",
-									}}
-								>
+								<View style={dashboardStyles.speedValueContainer}>
 									<Text style={dashboardStyles.infoValueSmall}>
 										<Text style={{ color: Colors.routyRose }}>↓</Text>{" "}
 										{formatSpeed(dataUsage?.realtimeRxThrpt)}

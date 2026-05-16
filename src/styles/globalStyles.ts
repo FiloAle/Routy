@@ -102,6 +102,12 @@ export const globalStyles = StyleSheet.create({
 	section: {
 		gap: 8,
 	},
+	firstSection: {
+		marginTop: 12,
+	},
+	scrollNoTab: {
+		paddingBottom: 20,
+	},
 });
 
 export default globalStyles;

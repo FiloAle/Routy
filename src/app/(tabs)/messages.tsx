@@ -451,7 +451,7 @@ export default function MessagesScreen() {
 							size={22}
 							tintColor={Colors.routyWhite}
 							weight="regular"
-							style={{ marginTop: -2 }}
+							style={messageStyles.headerComposeIcon}
 						/>
 					</GlassView>
 				</TouchableOpacity>
@@ -492,12 +492,7 @@ export default function MessagesScreen() {
 							tintColor={Colors.routyGray}
 						/>
 					}
-					contentContainerStyle={{
-						minHeight:
-							Dimensions.get("window").height - Layout.headerOffset - 90,
-						paddingBottom: 100,
-						paddingHorizontal: 0,
-					}}
+					contentContainerStyle={messageStyles.listContainer}
 					alwaysBounceVertical={true}
 					ListEmptyComponent={
 						<View style={messageStyles.emptyContent}>
