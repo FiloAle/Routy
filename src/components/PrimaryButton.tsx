@@ -7,6 +7,9 @@ import {
 	ViewStyle,
 } from "react-native";
 
+import { Colors } from "../constants/Colors";
+import { Layout } from "../styles/globalStyles";
+
 interface PrimaryButtonProps {
 	label: string;
 	onPress: () => void;
@@ -21,7 +24,7 @@ export function PrimaryButton({
 	onPress,
 	isLoading = false,
 	disabled = false,
-	color = "#3B82F6",
+	color = Colors.routyBlue,
 	style,
 }: PrimaryButtonProps) {
 	return (
@@ -36,7 +39,7 @@ export function PrimaryButton({
 			disabled={disabled || isLoading}
 		>
 			{isLoading ? (
-				<ActivityIndicator color="#fff" />
+				<ActivityIndicator color={Colors.routyWhite} />
 			) : (
 				<Text style={styles.buttonText}>{label}</Text>
 			)}
@@ -46,7 +49,7 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
 	button: {
-		borderRadius: 12,
+		borderRadius: Layout.borderRadius + 4,
 		paddingVertical: 14,
 		alignItems: "center",
 		justifyContent: "center",
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
 		opacity: 0.6,
 	},
 	buttonText: {
-		color: "#fff",
+		color: Colors.routyWhite,
 		fontSize: 16,
 		fontWeight: "600",
 	},

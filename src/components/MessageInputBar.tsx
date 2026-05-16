@@ -16,6 +16,9 @@ import Reanimated, {
 
 import { t } from "@/i18n";
 
+import { Colors } from "../constants/Colors";
+import { Layout } from "../styles/globalStyles";
+
 const AnimatedGlassView = Reanimated.createAnimatedComponent(GlassView);
 
 interface MessageInputBarProps {
@@ -88,7 +91,7 @@ export function MessageInputBar({
 					value={value}
 					onChangeText={onChangeText}
 					placeholder={placeholder}
-					placeholderTextColor="#636366"
+					placeholderTextColor={Colors.routyGray}
 					multiline
 					maxLength={160}
 				/>
@@ -122,7 +125,7 @@ export function MessageInputBar({
 						<SymbolView
 							name="arrow.up"
 							size={18}
-							tintColor="#fff"
+							tintColor={Colors.routyWhite}
 							weight="bold"
 						/>
 					</View>
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
 	},
 	inputGlass: {
 		flex: 1,
-		borderRadius: 22,
+		borderRadius: Layout.borderRadius + 10, // Keeping this more rounded as it's a pill shape
 		overflow: "hidden",
 	},
 	input: {
@@ -151,14 +154,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 10,
 		paddingBottom: 10,
-		color: "#fff",
+		color: Colors.routyWhite,
 		fontSize: 16,
 	},
 	sendButton: {
 		width: 40,
 		height: 40,
 		borderRadius: 20,
-		backgroundColor: "#208AEF",
+		backgroundColor: Colors.routyBlue,
 		justifyContent: "center",
 		alignItems: "center",
 		overflow: "hidden",

@@ -1,13 +1,12 @@
 import React, { useEffect } from "react";
 import {
-	ActivityIndicator,
 	RefreshControl,
-	StyleSheet,
 	Text,
 	View,
 	Dimensions,
 	Animated,
 	Platform,
+	TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle } from "react-native-svg";
@@ -15,24 +14,34 @@ import { Link, Stack } from "expo-router";
 
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
+import { Colors } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
+import { dashboardStyles } from "@/styles/dashboardStyles";
+import { SectionLabel } from "@/components/SectionLabel";
+import { DashboardCard } from "@/components/DashboardCard";
 
-const { width } = Dimensions.get("window");
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const CIRCLE_SIZE = 120;
 const STROKE_WIDTH = 12;
 const RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const TARGET_GB = 1000; // 1TB Target
 
 function formatGB(bytes: number) {
 	return bytes / (1024 * 1024 * 1024);
 }
 
-import { SectionLabel } from "@/components/SectionLabel";
-import { DashboardCard } from "@/components/DashboardCard";
-
 export default function HomeScreen() {
-	const { authStatus, dataUsage, devices, isLoadingData, loadDataUsage } =
-		useRouter();
+	const {
+		authStatus,
+		dataUsage,
+		devices,
+		isLoadingData,
+		loadDataUsage,
+		dataLimitValue,
+		dataLimitUnit,
+	} = useRouter();
+
+	const [speedUnit, setSpeedUnit] = React.useState<"Kbps" | "Mbps">("Kbps");
 
 	useEffect(() => {
 		if (authStatus === "logged_in" && !dataUsage) {
@@ -44,8 +53,32 @@ export default function HomeScreen() {
 	const receivedGB = dataUsage ? formatGB(dataUsage.monthlyRxBytes) : 0;
 	const sentGB = dataUsage ? formatGB(dataUsage.monthlyTxBytes) : 0;
 
-	const percentage = Math.min(consumedGB / TARGET_GB, 1);
-	const strokeDashoffset = CIRCUMFERENCE - CIRCUMFERENCE * percentage;
+	// Calculate target in GB
+	const limitVal = parseFloat(dataLimitValue) || 1000;
+	const targetGB = dataLimitUnit === "TB" ? limitVal * 1024 : limitVal;
+
+	const percentage = Math.min(consumedGB / targetGB, 1);
+
+	const formatSpeed = (valStr: string | undefined) => {
+		if (!valStr) return "0";
+		const val = parseFloat(valStr.replace(/[^0-9.]/g, "")) || 0;
+		if (speedUnit === "Mbps") {
+			return (val / 1024).toFixed(1);
+		}
+		return Math.round(val).toString();
+	};
+
+	const animatedStrokeOffset = React.useRef(
+		new Animated.Value(CIRCUMFERENCE),
+	).current;
+
+	useEffect(() => {
+		Animated.timing(animatedStrokeOffset, {
+			toValue: CIRCUMFERENCE - CIRCUMFERENCE * percentage,
+			duration: 1000,
+			useNativeDriver: true,
+		}).start();
+	}, [percentage]);
 
 	const scrollY = React.useRef(new Animated.Value(0)).current;
 
@@ -55,43 +88,32 @@ export default function HomeScreen() {
 		extrapolate: "clamp",
 	});
 
-
 	return (
-		<View style={styles.container}>
+		<View style={globalStyles.container}>
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
 				colors={["rgba(0,0,0,0.8)", "transparent"]}
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					height: 120,
-					zIndex: 10,
-				}}
+				style={dashboardStyles.headerGradient}
 				pointerEvents="none"
 			/>
 
 			<Animated.View
 				style={[
-					styles.header,
+					dashboardStyles.header,
 					{
-						position: "absolute",
-						top: 0,
-						left: 0,
-						right: 0,
-						zIndex: 11,
 						opacity: titleOpacity,
-						backgroundColor: "transparent",
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>{t("tabs.home")}</Text>
+				<Text style={dashboardStyles.headerTitle}>{t("tabs.home")}</Text>
 			</Animated.View>
 
 			<Animated.ScrollView
-				contentContainerStyle={styles.scroll}
+				contentContainerStyle={[
+					globalStyles.scroll,
+					{ paddingTop: Platform.OS === "ios" ? 0 : 112 },
+				]}
 				onScroll={Animated.event(
 					[{ nativeEvent: { contentOffset: { y: scrollY } } }],
 					{ useNativeDriver: true },
@@ -103,229 +125,173 @@ export default function HomeScreen() {
 					<RefreshControl
 						refreshing={isLoadingData}
 						onRefresh={loadDataUsage}
+						tintColor={Colors.routyGray}
 					/>
 				}
 			>
-				<SectionLabel style={{ marginTop: 0 }}>
-					{t("dashboard.usage")}
-				</SectionLabel>
+				<View style={[globalStyles.section, { marginTop: 12 }]}>
+					<SectionLabel>{t("dashboard.usage")}</SectionLabel>
 
-				<View style={styles.usageCard}>
-					{/* Progress Section */}
-					<View style={styles.chartSection}>
-						<Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
-							<Circle
-								cx={CIRCLE_SIZE / 2}
-								cy={CIRCLE_SIZE / 2}
-								r={RADIUS}
-								stroke="#208AEF"
-								strokeWidth={STROKE_WIDTH}
-								fill="transparent"
-								opacity={0.2}
-							/>
-							<Circle
-								cx={CIRCLE_SIZE / 2}
-								cy={CIRCLE_SIZE / 2}
-								r={RADIUS}
-								stroke="#208AEF"
-								strokeWidth={STROKE_WIDTH}
-								fill="transparent"
-								strokeDasharray={CIRCUMFERENCE}
-								strokeDashoffset={strokeDashoffset}
-								strokeLinecap="round"
-								transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${CIRCLE_SIZE / 2})`}
-							/>
-						</Svg>
-						<View style={styles.chartTextContainer}>
-							<Text style={styles.chartValue}>{Math.round(consumedGB)}</Text>
-							<Text style={styles.chartSubtext}>
-								{t("dashboard.usage_limit", { limit: "1TB" })}
-							</Text>
-						</View>
-					</View>
-
-					{/* Stats Section */}
-					<View style={styles.statsSection}>
-						<View style={styles.statGroup}>
-							<Text style={styles.statLabel}>{t("dashboard.received")}</Text>
-							<View style={styles.valueRow}>
-								<Text style={[styles.statValueMain, { color: "#FF2D55" }]}>
-									{receivedGB.toFixed(1)}
+					<View style={dashboardStyles.usageCard}>
+						{/* Progress Section */}
+						<View style={dashboardStyles.chartSection}>
+							<Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
+								<Circle
+									cx={CIRCLE_SIZE / 2}
+									cy={CIRCLE_SIZE / 2}
+									r={RADIUS}
+									stroke={Colors.routyBlue}
+									strokeWidth={STROKE_WIDTH}
+									fill="transparent"
+									opacity={0.2}
+								/>
+								<AnimatedCircle
+									cx={CIRCLE_SIZE / 2}
+									cy={CIRCLE_SIZE / 2}
+									r={RADIUS}
+									stroke={Colors.routyBlue}
+									strokeWidth={STROKE_WIDTH}
+									fill="transparent"
+									strokeDasharray={CIRCUMFERENCE}
+									strokeDashoffset={animatedStrokeOffset}
+									strokeLinecap="round"
+									transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${CIRCLE_SIZE / 2})`}
+								/>
+							</Svg>
+							<View style={dashboardStyles.chartTextContainer}>
+								<Text style={dashboardStyles.chartValue}>
+									{Math.round(consumedGB)}
 								</Text>
-								<Text style={[styles.unitText, { color: "#FF2D55" }]}>GB</Text>
+								<Text style={dashboardStyles.chartSubtext}>
+									{t("dashboard.usage_limit", {
+										limit: `${dataLimitValue}${dataLimitUnit}`,
+									})}
+								</Text>
 							</View>
 						</View>
 
-						<View style={styles.statGroup}>
-							<Text style={styles.statLabel}>{t("dashboard.sent")}</Text>
-							<View style={styles.valueRow}>
-								<Text style={[styles.statValueMain, { color: "#A7FF00" }]}>
-									{sentGB.toFixed(1)}
+						{/* Stats Section */}
+						<View style={dashboardStyles.statsSection}>
+							<View style={dashboardStyles.statGroup}>
+								<Text style={dashboardStyles.statLabel}>
+									{t("dashboard.received")}
 								</Text>
-								<Text style={[styles.unitText, { color: "#A7FF00" }]}>GB</Text>
+								<View style={dashboardStyles.valueRow}>
+									<Text
+										style={[
+											dashboardStyles.statValueMain,
+											{ color: Colors.routyRose },
+										]}
+									>
+										{receivedGB.toFixed(1)}
+									</Text>
+									<Text
+										style={[
+											dashboardStyles.unitText,
+											{ color: Colors.routyRose },
+										]}
+									>
+										GB
+									</Text>
+								</View>
+							</View>
+
+							<View style={dashboardStyles.statGroup}>
+								<Text style={dashboardStyles.statLabel}>
+									{t("dashboard.sent")}
+								</Text>
+								<View style={dashboardStyles.valueRow}>
+									<Text
+										style={[
+											dashboardStyles.statValueMain,
+											{ color: Colors.routyLime },
+										]}
+									>
+										{sentGB.toFixed(1)}
+									</Text>
+									<Text
+										style={[
+											dashboardStyles.unitText,
+											{ color: Colors.routyLime },
+										]}
+									>
+										GB
+									</Text>
+								</View>
 							</View>
 						</View>
 					</View>
 				</View>
 
-				{/* Info Cards Row 1 */}
-				<SectionLabel>{t("dashboard.network")}</SectionLabel>
-				<View style={styles.infoRow}>
-					<DashboardCard
-						label={t("dashboard.operator")}
-						value={`${dataUsage?.networkProvider} ${dataUsage?.networkType}${dataUsage?.isCA ? "+" : ""}`}
-					/>
-
-					<DashboardCard
-						label={t("dashboard.bands")}
-						value={dataUsage?.bands}
-					/>
-				</View>
-
-				{/* Info Cards Row 2 */}
-				<View style={styles.infoRow}>
-					<DashboardCard label={t("dashboard.speed")}>
-						<View
-							style={{
-								flexDirection: "row",
-								justifyContent: "space-between",
-								alignItems: "center",
-							}}
-						>
-							<Text style={styles.infoValueSmall}>
-								<Text style={{ color: "#FF2D55" }}>↓</Text>{" "}
-								{dataUsage?.realtimeRxThrpt}
-							</Text>
-							<Text style={[styles.infoValueSmall, { marginRight: 4 }]}>
-								<Text style={{ color: "#A7FF00" }}>↑</Text>{" "}
-								{dataUsage?.realtimeTxThrpt}
-							</Text>
-						</View>
-					</DashboardCard>
-
-					<Link href="/devices" asChild>
+				<View style={globalStyles.section}>
+					<SectionLabel>{t("dashboard.network")}</SectionLabel>
+					<View style={dashboardStyles.infoRow}>
 						<DashboardCard
-							label={t("dashboard.devices")}
-							value={devices.filter((d) => d.ip && d.ip !== "-").length}
-							showChevron
+							label={t("dashboard.operator")}
+							value={`${dataUsage?.networkProvider} ${dataUsage?.networkType}${dataUsage?.isCA ? "+" : ""}`}
 						/>
-					</Link>
+
+						<DashboardCard
+							label={t("dashboard.bands")}
+							value={dataUsage?.bands}
+						/>
+					</View>
+
+					<View style={dashboardStyles.infoRow}>
+						<TouchableOpacity
+							activeOpacity={0.7}
+							onPress={() =>
+								setSpeedUnit((prev) => (prev === "Kbps" ? "Mbps" : "Kbps"))
+							}
+							style={{ flex: 1 }}
+						>
+							<DashboardCard label={t("dashboard.speed", { unit: speedUnit })}>
+								<View
+									style={{
+										flexDirection: "row",
+										justifyContent: "space-between",
+										alignItems: "center",
+									}}
+								>
+									<Text style={dashboardStyles.infoValueSmall}>
+										<Text style={{ color: Colors.routyRose }}>↓</Text>{" "}
+										{formatSpeed(dataUsage?.realtimeRxThrpt)}
+									</Text>
+									<Text
+										style={[dashboardStyles.infoValueSmall, { marginRight: 4 }]}
+									>
+										<Text style={{ color: Colors.routyLime }}>↑</Text>{" "}
+										{formatSpeed(dataUsage?.realtimeTxThrpt)}
+									</Text>
+								</View>
+							</DashboardCard>
+						</TouchableOpacity>
+
+						<Link href="/devices" asChild>
+							<DashboardCard
+								label={t("dashboard.devices")}
+								value={devices.filter((d) => d.ip && d.ip !== "-").length}
+								showChevron
+							/>
+						</Link>
+					</View>
 				</View>
 
-				<SectionLabel>{t("dashboard.signal")}</SectionLabel>
-				<View style={styles.infoRow}>
-					<DashboardCard
-						label={t("dashboard.rsrp")}
-						value={`${dataUsage?.rsrp} dBm`}
-					/>
+				<View style={globalStyles.section}>
+					<SectionLabel>{t("dashboard.signal")}</SectionLabel>
+					<View style={dashboardStyles.infoRow}>
+						<DashboardCard
+							label={t("dashboard.rsrp")}
+							value={`${dataUsage?.rsrp} dBm`}
+						/>
 
-					<DashboardCard
-						label={t("dashboard.sinr")}
-						value={`${dataUsage?.sinr} dB`}
-					/>
+						<DashboardCard
+							label={t("dashboard.sinr")}
+							value={`${dataUsage?.sinr} dB`}
+						/>
+					</View>
 				</View>
 			</Animated.ScrollView>
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingBottom: 8,
-		paddingTop: 60,
-	},
-	headerTitle: {
-		fontSize: 34,
-		fontWeight: "700",
-		color: "#fff",
-		letterSpacing: 0.4,
-	},
-	scroll: {
-		paddingHorizontal: 16,
-		paddingBottom: 48,
-		paddingTop: Platform.OS === "android" ? 112 : 0,
-	},
-	centerContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "#000",
-	},
-	usageCard: {
-		flexDirection: "row",
-		backgroundColor: "#1C1C1E",
-		borderRadius: 12,
-		padding: 20,
-		alignItems: "center",
-		gap: 24,
-	},
-	chartSection: {
-		width: CIRCLE_SIZE,
-		height: CIRCLE_SIZE,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	chartTextContainer: {
-		position: "absolute",
-		alignItems: "center",
-	},
-	chartValue: {
-		fontSize: 24,
-		fontWeight: "800",
-		color: "#fff",
-		fontFamily: "ui-rounded",
-	},
-	chartSubtext: {
-		fontSize: 10,
-		color: "#8E8E93",
-		fontWeight: "600",
-	},
-	statsSection: {
-		flex: 1,
-		gap: 16,
-	},
-	statGroup: {
-		gap: 0,
-	},
-	statLabel: {
-		fontSize: 15,
-		fontWeight: "400",
-		color: "#fff",
-	},
-	statValueMain: {
-		fontSize: 26,
-		fontWeight: "700",
-		fontFamily: "ui-rounded",
-	},
-	valueRow: {
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	unitText: {
-		fontSize: 14,
-		fontWeight: "800",
-		marginLeft: 2,
-		fontFamily: "ui-rounded",
-	},
-	infoRow: {
-		flexDirection: "row",
-		gap: 8,
-	},
-	infoValueSmall: {
-		fontSize: 17,
-		color: "#fff",
-		fontWeight: "600",
-		fontFamily: "ui-rounded",
-	},
-	infoUnit: {
-		fontSize: 10,
-		color: "#8E8E93",
-		fontWeight: "400",
-		fontFamily: "ui-rounded",
-	},
-});

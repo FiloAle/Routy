@@ -3,12 +3,14 @@ import React from "react";
 import { useColorScheme } from "react-native";
 import { t } from "@/i18n";
 
+import { Colors } from "@/constants/Colors";
+
 export default function TabsLayout() {
 	const scheme = useColorScheme();
-	const bg = scheme === "dark" ? "#000000" : "#ffffff";
+	const bg = scheme === "dark" ? Colors.routyBlack : Colors.routyWhite;
 
 	return (
-		<NativeTabs backgroundColor={bg} tintColor="#208AEF">
+		<NativeTabs backgroundColor={bg} tintColor={Colors.routyBlue}>
 			<NativeTabs.Trigger name="index">
 				<NativeTabs.Trigger.Label>{t("tabs.home")}</NativeTabs.Trigger.Label>
 				<NativeTabs.Trigger.Icon sf="house.fill" md="home" />

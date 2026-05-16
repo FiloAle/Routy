@@ -88,7 +88,7 @@ export async function registerBackgroundFetchAsync() {
     }
 
     return BackgroundTask.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-      minimumInterval: 15, // 15 minutes
+      minimumInterval: 15 * 60, // 15 minutes
     });
   } catch (err) {
     console.error('[BackgroundTask] Registration failed:', err);

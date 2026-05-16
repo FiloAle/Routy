@@ -9,21 +9,47 @@ import React from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import * as SplashScreen from "expo-splash-screen";
 import { RouterProvider } from "@/context/router-context";
 import { registerBackgroundFetchAsync } from "@/services/background-fetch-service";
+
+import { Colors } from "@/constants/Colors";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+
+// Set the animation options.
+SplashScreen.setOptions({
+	duration: 400,
+	fade: true,
+});
 
 export default function RootLayout() {
 	const colorScheme = useColorScheme();
 
 	React.useEffect(() => {
-		registerBackgroundFetchAsync();
+		async function prepare() {
+			try {
+				await registerBackgroundFetchAsync();
+			} catch (e) {
+				console.warn(e);
+			} finally {
+				// Add a small delay to ensure the splash screen is visible
+				await new Promise((resolve) => setTimeout(resolve, 700));
+
+				// Hide the splash screen
+				await SplashScreen.hideAsync();
+			}
+		}
+
+		prepare();
 	}, []);
 
 	const customDarkTheme = {
 		...DarkTheme,
 		colors: {
 			...DarkTheme.colors,
-			primary: "#208AEF",
+			primary: Colors.routyBlue,
 		},
 	};
 
@@ -31,7 +57,7 @@ export default function RootLayout() {
 		...DefaultTheme,
 		colors: {
 			...DefaultTheme.colors,
-			primary: "#208AEF",
+			primary: Colors.routyBlue,
 		},
 	};
 
@@ -53,9 +79,9 @@ export default function RootLayout() {
 							options={{
 								headerShown: true,
 								headerTransparent: true,
-								headerStyle: { backgroundColor: "transparent" },
+								headerStyle: { backgroundColor: Colors.routyTransparent },
 								headerShadowVisible: false,
-								headerTintColor: "#fff",
+								headerTintColor: Colors.routyWhite,
 								headerBackTitle: "Tutti",
 							}}
 						/>

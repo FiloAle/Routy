@@ -1,13 +1,9 @@
 import React from "react";
-import {
-	Pressable,
-	StyleSheet,
-	Text,
-	View,
-	ViewStyle,
-	TextStyle,
-} from "react-native";
+import { Pressable, Text, View, ViewStyle, TextStyle } from "react-native";
 import { NavArrowRight } from "iconoir-react-native";
+
+import { Colors } from "../constants/Colors";
+import { cardStyles } from "@/styles/cardStyles";
 
 interface DashboardCardProps {
 	label?: string;
@@ -31,34 +27,35 @@ export function DashboardCard({
 	valueStyle,
 }: DashboardCardProps) {
 	const Content = (
-		<View style={[styles.card, containerStyle]}>
-			<View style={styles.headerRow}>
-				{label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
+		<View style={[cardStyles.card, containerStyle]}>
+			<View style={cardStyles.headerRow}>
+				{label && <Text style={[cardStyles.label, labelStyle]}>{label}</Text>}
 				{showChevron && (
 					<NavArrowRight
 						width={14}
 						height={14}
 						strokeWidth={2.5}
-						color="#8E8E93"
-						style={styles.chevron}
+						color={Colors.routyGray}
+						style={cardStyles.chevron}
 					/>
 				)}
 			</View>
-			
+
 			{value !== undefined && (
-				<Text style={[styles.value, valueStyle]}>{value}</Text>
+				<Text style={[cardStyles.value, valueStyle]}>{value}</Text>
 			)}
-			
+
 			{children}
 		</View>
 	);
 
 	if (onPress) {
 		return (
-			<Pressable 
-				onPress={onPress} 
+			<Pressable
+				onPress={onPress}
 				style={({ pressed }) => [
-					{ flex: 1, opacity: pressed ? 0.7 : 1 }
+					cardStyles.pressable,
+					{ opacity: pressed ? 0.7 : 1 },
 				]}
 			>
 				{Content}
@@ -66,38 +63,5 @@ export function DashboardCard({
 		);
 	}
 
-	return <View style={{ flex: 1 }}>{Content}</View>;
+	return <View style={cardStyles.flex1}>{Content}</View>;
 }
-
-const styles = StyleSheet.create({
-	card: {
-		flex: 1,
-		backgroundColor: "#1C1C1E",
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		paddingTop: 13,
-		paddingBottom: 16,
-		gap: 7,
-		marginBottom: 8,
-	},
-	headerRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	label: {
-		fontSize: 13,
-		color: "#8E8E93",
-		fontWeight: "500",
-	},
-	value: {
-		fontSize: 17,
-		color: "#fff",
-		fontWeight: "600",
-		fontFamily: "ui-rounded",
-	},
-	chevron: {
-		marginRight: -6,
-		marginBottom: -2,
-	},
-});

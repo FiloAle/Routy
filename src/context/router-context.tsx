@@ -21,6 +21,8 @@ const STORAGE_KEY_URL = '@routy/router_url';
 const STORAGE_KEY_PASSWORD = '@routy/password';
 const STORAGE_KEY_KNOWN_IDS = '@routy/known_sms_ids';
 const STORAGE_KEY_READ_IDS = '@routy/read_ids';
+const STORAGE_KEY_DATA_LIMIT_VALUE = '@routy/data_limit_value';
+const STORAGE_KEY_DATA_LIMIT_UNIT = '@routy/data_limit_unit';
 const DEFAULT_URL = 'http://192.168.0.1';
 const POLL_INTERVAL_MS = 3_000;
 
@@ -52,6 +54,10 @@ interface RouterContextValue {
   nightMode: { enabled: boolean; start: string; end: string } | null;
   fetchNightMode: () => Promise<void>;
   setNightMode: (enabled: boolean, start: string, end: string) => Promise<void>;
+
+  dataLimitValue: string;
+  dataLimitUnit: "GB" | "TB";
+  setDataLimit: (value: string, unit: "GB" | "TB") => Promise<void>;
 
   saveSettings: (url: string, pw: string) => Promise<void>;
   login: () => Promise<void>;
@@ -102,6 +108,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     start: string;
     end: string;
   } | null>(null);
+  const [dataLimitValue, setDataLimitValueState] = useState('1');
+  const [dataLimitUnit, setDataLimitUnitState] = useState<'GB' | 'TB'>('TB');
   const expoRouter = useExpoRouter();
 
   const apiRef = useRef<RouterApi>(new RouterApi(DEFAULT_URL));
@@ -247,6 +255,18 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
             const ids = JSON.parse(knownRaw);
             knownIdsRef.current = new Set(Array.isArray(ids) ? ids : []);
           } catch { knownIdsRef.current = new Set(); }
+        }
+
+        const [savedLimitValue, savedLimitUnit] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY_DATA_LIMIT_VALUE),
+          AsyncStorage.getItem(STORAGE_KEY_DATA_LIMIT_UNIT),
+        ]);
+
+        if (mountedRef.current) {
+          if (savedLimitValue) setDataLimitValueState(savedLimitValue);
+          if (savedLimitUnit === 'GB' || savedLimitUnit === 'TB') {
+            setDataLimitUnitState(savedLimitUnit);
+          }
         }
         
         if (readRaw) {
@@ -522,6 +542,15 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     knownIdsRef.current.add(msg.id);
   }, [getDisplayName]);
 
+  const setDataLimit = useCallback(async (value: string, unit: "GB" | "TB") => {
+    setDataLimitValueState(value);
+    setDataLimitUnitState(unit);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_DATA_LIMIT_VALUE, value),
+      AsyncStorage.setItem(STORAGE_KEY_DATA_LIMIT_UNIT, unit),
+    ]);
+  }, []);
+
   return (
     <RouterContext.Provider
       value={{
@@ -544,6 +573,9 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         nightMode,
         fetchNightMode,
         setNightMode,
+        dataLimitValue,
+        dataLimitUnit,
+        setDataLimit,
         saveSettings,
         login,
         loadSms,

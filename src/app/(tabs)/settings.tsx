@@ -3,14 +3,14 @@ import React, { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	KeyboardAvoidingView,
 	Platform,
-	StyleSheet,
 	Text,
 	TextInput,
 	View,
 	Animated,
 	Switch,
+	TouchableOpacity,
+	Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -18,6 +18,9 @@ import { useRouter } from "@/context/router-context";
 import { SectionLabel } from "@/components/SectionLabel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { t } from "@/i18n";
+import { Colors } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
+import { settingsStyles } from "@/styles/settingsStyles";
 
 export default function SettingsScreen() {
 	const {
@@ -37,15 +40,15 @@ export default function SettingsScreen() {
 		fetchNightMode,
 		setNightMode,
 		loadDataUsage,
+		dataLimitValue,
+		dataLimitUnit,
+		setDataLimit,
 	} = useRouter();
 
 	const [urlInput, setUrlInput] = useState(routerUrl);
 	const [passwordInput, setPasswordInput] = useState(password);
 	const [isSaving, setIsSaving] = useState(false);
-
-	// Picker states
-	const [showStartPicker, setShowStartPicker] = useState(false);
-	const [showEndPicker, setShowEndPicker] = useState(false);
+	const [limitSelection, setLimitSelection] = useState({ start: 0, end: 0 });
 
 	useEffect(() => {
 		if (authStatus === "logged_in") {
@@ -97,361 +100,408 @@ export default function SettingsScreen() {
 			} else {
 				await connectNetwork();
 			}
-		} catch (e) {
-			Alert.alert("Errore", "Impossibile cambiare lo stato della rete.");
+		} catch (error) {
+			Alert.alert(t("common.error"), t("settings.error_conn"));
 		}
 	};
 
-	const toggleNightMode = async (val: boolean) => {
+	const toggleNightMode = async (enabled: boolean) => {
+		if (!nightMode) return;
 		try {
-			await setNightMode(
-				val,
-				nightMode?.start || "22:00",
-				nightMode?.end || "07:00",
-			);
-		} catch (e) {
-			Alert.alert("Errore", "Impossibile aggiornare la modalità notturna.");
+			await setNightMode(enabled, nightMode.start, nightMode.end);
+		} catch (error) {
+			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
+
+	const handleNightModeStartChange = async (event: any, date?: Date) => {
+		if (!nightMode || !date) return;
+		const newStart = dateToTimeString(date);
+		try {
+			await setNightMode(nightMode.enabled, newStart, nightMode.end);
+		} catch (error) {
+			Alert.alert(t("common.error"), t("common.error_generic"));
+		}
+	};
+
+	const handleNightModeEndChange = async (event: any, date?: Date) => {
+		if (!nightMode || !date) return;
+		const newEnd = dateToTimeString(date);
+		try {
+			await setNightMode(nightMode.enabled, nightMode.start, newEnd);
+		} catch (error) {
+			Alert.alert(t("common.error"), t("common.error_generic"));
+		}
+	};
+
+	const handleReboot = () => {
+		Alert.alert(t("settings.reboot"), t("common.confirm_reboot"), [
+			{ text: t("common.cancel"), style: "cancel" },
+			{
+				text: t("settings.reboot"),
+				style: "destructive",
+				onPress: async () => {
+					try {
+						await reboot();
+						Alert.alert(t("common.success"), t("settings.reboot_success"));
+					} catch (error) {
+						Alert.alert(t("common.error"), t("settings.reboot_error"));
+					}
+				},
+			},
+		]);
+	};
+
+	const unitAnim = React.useRef(
+		new Animated.Value(dataLimitUnit === "GB" ? 0 : 1),
+	).current;
+
+	useEffect(() => {
+		Animated.spring(unitAnim, {
+			toValue: dataLimitUnit === "GB" ? 0 : 1,
+			useNativeDriver: true,
+			friction: 8,
+			tension: 50,
+		}).start();
+	}, [dataLimitUnit, unitAnim]);
+
+	const sliderTranslateX = unitAnim.interpolate({
+		inputRange: [0, 1],
+		outputRange: [2, 42], // Adjust based on button width
+	});
 
 	const scrollY = React.useRef(new Animated.Value(0)).current;
 
 	const titleOpacity = scrollY.interpolate({
-		inputRange: [0, 40],
+		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
 		outputRange: [1, 0],
 		extrapolate: "clamp",
 	});
 
 	return (
-		<View style={styles.container}>
+		<View style={globalStyles.container}>
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
 				colors={["rgba(0,0,0,0.8)", "transparent"]}
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					height: 120,
-					zIndex: 10,
-				}}
+				style={settingsStyles.headerGradient}
 				pointerEvents="none"
 			/>
 
 			<Animated.View
 				style={[
-					styles.header,
+					settingsStyles.header,
 					{
-						position: "absolute",
-						top: 0,
-						left: 0,
-						right: 0,
-						zIndex: 11,
 						opacity: titleOpacity,
-						backgroundColor: "transparent",
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>{t("settings.title")}</Text>
+				<Text style={settingsStyles.headerTitle}>{t("settings.title")}</Text>
 			</Animated.View>
 
-			<KeyboardAvoidingView
-				style={{ flex: 1 }}
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-			>
+			<View style={{ flex: 1 }}>
 				<Animated.ScrollView
-					contentContainerStyle={styles.scroll}
+					contentContainerStyle={[
+						globalStyles.scroll,
+						{ paddingTop: Platform.OS === "ios" ? 0 : 112 },
+					]}
 					onScroll={Animated.event(
 						[{ nativeEvent: { contentOffset: { y: scrollY } } }],
 						{ useNativeDriver: true },
 					)}
 					scrollEventThrottle={16}
+					contentInset={{ top: 112 }}
+					contentOffset={{ x: 0, y: -112 }}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>
 					{/* Router section */}
-					<SectionLabel style={{ marginTop: 0 }}>
-						{t("settings.router")}
-					</SectionLabel>
-					<View style={styles.card}>
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>{t("settings.address")}</Text>
-							<TextInput
-								style={styles.fieldInput}
-								value={urlInput}
-								onChangeText={setUrlInput}
-								placeholder="http://192.168.0.1"
-								placeholderTextColor="#636366"
-								autoCapitalize="none"
-								autoCorrect={false}
-								keyboardType="url"
-							/>
+					<View style={[globalStyles.section, { marginTop: 12 }]}>
+						<SectionLabel>{t("settings.router")}</SectionLabel>
+						<View style={globalStyles.card}>
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.address")}
+								</Text>
+								<TextInput
+									style={globalStyles.fieldInput}
+									value={urlInput}
+									onChangeText={setUrlInput}
+									placeholder="http://192.168.0.1"
+									placeholderTextColor={Colors.routyGray}
+									autoCapitalize="none"
+									autoCorrect={false}
+									keyboardType="url"
+								/>
+							</View>
+							<View style={globalStyles.divider} />
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.password")}
+								</Text>
+								<TextInput
+									style={globalStyles.fieldInput}
+									value={passwordInput}
+									onChangeText={setPasswordInput}
+									placeholder="••••••••"
+									placeholderTextColor={Colors.routyGray}
+									secureTextEntry
+									autoCapitalize="none"
+									autoCorrect={false}
+								/>
+							</View>
 						</View>
-						<View style={styles.divider} />
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>{t("settings.password")}</Text>
-							<TextInput
-								style={styles.fieldInput}
-								value={passwordInput}
-								onChangeText={setPasswordInput}
-								placeholder="••••••••"
-								placeholderTextColor="#636366"
-								secureTextEntry
-								autoCapitalize="none"
-								autoCorrect={false}
-							/>
-						</View>
+						<PrimaryButton
+							label={t("settings.save_and_connect")}
+							onPress={handleSave}
+							isLoading={isSaving}
+						/>
 					</View>
 
-					<PrimaryButton
-						label={t("settings.save_and_connect")}
-						onPress={handleSave}
-						isLoading={isSaving}
-						style={{ marginTop: 4, marginBottom: 8 }}
-					/>
-
 					{/* Network section */}
-					<SectionLabel>{t("settings.network")}</SectionLabel>
-					<View style={styles.card}>
-						{dataUsage?.ssid && (
-							<>
-								<View style={styles.infoRow}>
-									<Text style={styles.infoLabel}>SSID</Text>
-									<Text style={styles.infoValue}>{dataUsage.ssid}</Text>
+					<View style={globalStyles.section}>
+						<SectionLabel>{t("settings.network")}</SectionLabel>
+						<View style={globalStyles.card}>
+							{dataUsage?.ssid && (
+								<>
+									<View style={globalStyles.infoRow}>
+										<Text style={globalStyles.infoLabel}>SSID</Text>
+										<Text style={globalStyles.infoValue}>{dataUsage.ssid}</Text>
+									</View>
+									<View style={globalStyles.divider} />
+								</>
+							)}
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.data_network")}
+								</Text>
+								<Switch
+									value={
+										networkStatus === "connected" ||
+										networkStatus === "connecting"
+									}
+									onValueChange={toggleNetwork}
+									trackColor={{
+										false: Colors.routyLightGray,
+										true: Colors.routyBlue,
+									}}
+									disabled={
+										networkStatus === "connecting" ||
+										networkStatus === "disconnecting"
+									}
+								/>
+							</View>
+							{dataUsage?.wanIp && (
+								<>
+									<View style={globalStyles.divider} />
+									<View style={globalStyles.infoRow}>
+										<Text style={globalStyles.infoLabel}>
+											{t("settings.public_ip")}
+										</Text>
+										<Text style={globalStyles.infoValue}>
+											{dataUsage.wanIp}
+										</Text>
+									</View>
+								</>
+							)}
+							<View style={globalStyles.divider} />
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.data_limit")}
+								</Text>
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<TextInput
+										style={[
+											globalStyles.fieldInput,
+											{
+												textAlign: "right",
+												marginRight: 12,
+												flex: 0,
+												minWidth: 60,
+											},
+										]}
+										value={dataLimitValue}
+										onChangeText={(val) => {
+											const clean = val.replace(/[^0-9]/g, "");
+											setDataLimit(clean, dataLimitUnit);
+											setLimitSelection({
+												start: clean.length,
+												end: clean.length,
+											});
+										}}
+										onFocus={() => {
+											setTimeout(() => {
+												setLimitSelection({
+													start: dataLimitValue.length,
+													end: dataLimitValue.length,
+												});
+											}, 50);
+										}}
+										selection={limitSelection}
+										onSelectionChange={(e) =>
+											setLimitSelection(e.nativeEvent.selection)
+										}
+										keyboardType="numeric"
+										placeholder="0"
+										placeholderTextColor={Colors.routyGray}
+									/>
+									<View style={settingsStyles.unitSelector}>
+										<Animated.View
+											style={[
+												settingsStyles.unitButtonActive,
+												{
+													position: "absolute",
+													left: 0,
+													top: 2,
+													bottom: 2,
+													width: 40,
+													transform: [{ translateX: sliderTranslateX }],
+												},
+											]}
+										/>
+										<TouchableOpacity
+											style={settingsStyles.unitButton}
+											onPress={() => setDataLimit(dataLimitValue, "GB")}
+										>
+											<Text
+												style={[
+													settingsStyles.unitText,
+													dataLimitUnit === "GB" &&
+														settingsStyles.unitTextActive,
+												]}
+											>
+												{t("settings.gb")}
+											</Text>
+										</TouchableOpacity>
+										<TouchableOpacity
+											style={settingsStyles.unitButton}
+											onPress={() => setDataLimit(dataLimitValue, "TB")}
+										>
+											<Text
+												style={[
+													settingsStyles.unitText,
+													dataLimitUnit === "TB" &&
+														settingsStyles.unitTextActive,
+												]}
+											>
+												{t("settings.tb")}
+											</Text>
+										</TouchableOpacity>
+									</View>
 								</View>
-								<View style={styles.divider} />
-							</>
-						)}
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>
-								{t("settings.data_network")}
-							</Text>
-							<Switch
-								value={
-									networkStatus === "connected" ||
-									networkStatus === "connecting"
-								}
-								onValueChange={toggleNetwork}
-								trackColor={{ false: "#3A3A3C", true: "#3B82F6" }}
-								disabled={
-									networkStatus === "connecting" ||
-									networkStatus === "disconnecting"
-								}
-							/>
+							</View>
 						</View>
-						{dataUsage?.wanIp && (
-							<>
-								<View style={styles.divider} />
-								<View style={styles.infoRow}>
-									<Text style={styles.infoLabel}>
-										{t("settings.public_ip")}
-									</Text>
-									<Text style={styles.infoValue}>{dataUsage.wanIp}</Text>
-								</View>
-							</>
-						)}
 					</View>
 
 					{/* Night Mode section */}
-					<SectionLabel>{t("settings.night_mode")}</SectionLabel>
-					<View style={styles.card}>
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>
-								{t("settings.night_mode_on")}
-							</Text>
-							<Switch
-								value={nightMode?.enabled || false}
-								onValueChange={toggleNightMode}
-								trackColor={{ false: "#3A3A3C", true: "#3B82F6" }}
-							/>
-						</View>
-						<View style={styles.divider} />
+					<View style={globalStyles.section}>
+						<SectionLabel>{t("settings.night_mode")}</SectionLabel>
+						<View style={globalStyles.card}>
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.night_mode")}
+								</Text>
+								<Switch
+									value={nightMode?.enabled || false}
+									onValueChange={toggleNightMode}
+									trackColor={{
+										false: Colors.routyLightGray,
+										true: Colors.routyBlue,
+									}}
+								/>
+							</View>
+							<View style={globalStyles.divider} />
 
-						{/* Start Time Picker */}
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>
-								{t("settings.night_mode_start")}
-							</Text>
-							<DateTimePicker
-								value={timeStringToDate(nightMode?.start || "22:00")}
-								mode="time"
-								is24Hour={true}
-								display="default"
-								onChange={(event, date) => {
-									if (date) {
-										setNightMode(
-											nightMode?.enabled || false,
-											dateToTimeString(date),
-											nightMode?.end || "07:00",
-										);
-									}
-								}}
-								themeVariant="dark"
-							/>
-						</View>
+							{/* Start Time Picker */}
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.night_mode_start")}
+								</Text>
+								<DateTimePicker
+									value={timeStringToDate(nightMode?.start || "00:00")}
+									mode="time"
+									display="default"
+									onChange={handleNightModeStartChange}
+									themeVariant="dark"
+								/>
+							</View>
 
-						<View style={styles.divider} />
+							<View style={globalStyles.divider} />
 
-						{/* End Time Picker */}
-						<View style={styles.field}>
-							<Text style={styles.fieldLabel}>
-								{t("settings.night_mode_end")}
-							</Text>
-							<DateTimePicker
-								value={timeStringToDate(nightMode?.end || "07:00")}
-								mode="time"
-								is24Hour={true}
-								display="default"
-								onChange={(event, date) => {
-									if (date) {
-										setNightMode(
-											nightMode?.enabled || false,
-											nightMode?.start || "22:00",
-											dateToTimeString(date),
-										);
-									}
-								}}
-								themeVariant="dark"
-							/>
+							{/* End Time Picker */}
+							<View style={globalStyles.field}>
+								<Text style={globalStyles.fieldLabel}>
+									{t("settings.night_mode_end")}
+								</Text>
+								<DateTimePicker
+									value={timeStringToDate(nightMode?.end || "00:00")}
+									mode="time"
+									display="default"
+									onChange={handleNightModeEndChange}
+									themeVariant="dark"
+								/>
+							</View>
 						</View>
 					</View>
 
 					{/* Info section */}
-					<SectionLabel>{t("settings.info")}</SectionLabel>
-					<View style={styles.card}>
-						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>{t("settings.model")}</Text>
-							<Text style={styles.infoValue}>{softwareModel || "..."}</Text>
-						</View>
-						<View style={styles.divider} />
-						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>
-								{t("settings.info_connection")}
-							</Text>
-							<View style={styles.statusRow}>
-								<View
-									style={[
-										styles.statusDot,
-										authStatus === "logged_in" && styles.statusDotOnline,
-										authStatus === "error" && styles.statusDotError,
-										authStatus === "loading" && styles.statusDotLoading,
-									]}
-								/>
-								<Text style={styles.infoValue}>
-									{authStatus === "idle" && t("settings.status_idle")}
-									{authStatus === "loading" && t("settings.status_connecting")}
-									{authStatus === "logged_in" && t("settings.status_connected")}
-									{authStatus === "error" && t("settings.status_error")}
+					<View style={globalStyles.section}>
+						<SectionLabel>{t("settings.info")}</SectionLabel>
+						<View style={globalStyles.card}>
+							<View style={globalStyles.infoRow}>
+								<Text style={globalStyles.infoLabel}>
+									{t("settings.model")}
 								</Text>
-								{authStatus === "loading" && (
-									<ActivityIndicator size="small" color="#8E8E93" />
-								)}
+								<Text style={globalStyles.infoValue}>
+									{softwareModel || "..."}
+								</Text>
+							</View>
+							<View style={globalStyles.divider} />
+							<View style={globalStyles.infoRow}>
+								<Text style={globalStyles.infoLabel}>
+									{t("settings.info_connection")}
+								</Text>
+								<View style={globalStyles.statusRow}>
+									<View
+										style={[
+											globalStyles.statusDot,
+											authStatus === "logged_in" &&
+												globalStyles.statusDotOnline,
+											authStatus === "error" && globalStyles.statusDotError,
+											authStatus === "loading" && globalStyles.statusDotLoading,
+										]}
+									/>
+									<Text style={globalStyles.infoValue}>
+										{authStatus === "idle" && t("settings.status_idle")}
+										{authStatus === "loading" &&
+											t("settings.status_connecting")}
+										{authStatus === "logged_in" &&
+											t("settings.status_connected")}
+										{authStatus === "error" && t("settings.status_error")}
+									</Text>
+									{authStatus === "loading" && (
+										<ActivityIndicator size="small" color={Colors.routyGray} />
+									)}
+								</View>
+							</View>
+							<View style={globalStyles.divider} />
+							<View style={globalStyles.infoRow}>
+								<Text style={globalStyles.infoLabel}>
+									{t("settings.software_version")}
+								</Text>
+								<Text style={globalStyles.infoValue}>
+									{softwareVersion || "..."}
+								</Text>
 							</View>
 						</View>
-						<View style={styles.divider} />
-						<View style={styles.infoRow}>
-							<Text style={styles.infoLabel}>
-								{t("settings.software_version")}
+						<Pressable style={globalStyles.dangerButton} onPress={handleReboot}>
+							<Text style={globalStyles.dangerButtonText}>
+								{t("settings.reboot")}
 							</Text>
-							<Text style={styles.infoValue}>{softwareVersion || "..."}</Text>
-						</View>
+						</Pressable>
 					</View>
-
-					<PrimaryButton
-						label={t("settings.reboot")}
-						onPress={reboot}
-						color="#FF2D55"
-						style={{ marginTop: 4, marginBottom: 48 }}
-					/>
 				</Animated.ScrollView>
-			</KeyboardAvoidingView>
+			</View>
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	scroll: {
-		paddingHorizontal: 16,
-		paddingBottom: 100,
-		paddingTop: 112,
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingBottom: 8,
-		paddingTop: 60,
-	},
-	headerTitle: {
-		fontSize: 34,
-		fontWeight: "700",
-		color: "#fff",
-		letterSpacing: 0.4,
-	},
-	card: {
-		backgroundColor: "#1C1C1E",
-		borderRadius: 12,
-		overflow: "hidden",
-		marginBottom: 8,
-	},
-	field: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-	},
-	fieldLabel: {
-		fontSize: 16,
-		color: "#fff",
-	},
-	fieldInput: {
-		fontSize: 16,
-		color: "#8E8E93",
-		flex: 1,
-		textAlign: "right",
-	},
-	divider: {
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: "#3A3A3C",
-		marginLeft: 16,
-	},
-	statusRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	statusDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#636366",
-	},
-	statusDotOnline: {
-		backgroundColor: "#30D158",
-	},
-	statusDotError: {
-		backgroundColor: "#FF3B30",
-	},
-	statusDotLoading: {
-		backgroundColor: "#FF9F0A",
-	},
-	infoRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-	},
-	infoLabel: {
-		fontSize: 16,
-		color: "#fff",
-	},
-	infoValue: {
-		fontSize: 16,
-		color: "#8E8E93",
-	},
-});

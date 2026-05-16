@@ -8,20 +8,18 @@
 		"scheme": "routy",
 		"userInterfaceStyle": "automatic",
 		"splash": {
-			"image": "./assets/images/icon.png",
+			"image": "./assets/images/splash-icon.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#000000"
+			"backgroundColor": "#208AEF"
 		},
 		"ios": {
-			"icon": "./assets/expo.icon",
+			"icon": "./assets/routy.icon",
 			"bundleIdentifier": "com.filippoalessandrini.routy",
 			"infoPlist": {
 				"CFBundleAllowMixedLocalizations": true,
 				"NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
 				"NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
-				"UIBackgroundModes": [
-					"processing"
-				],
+				"UIBackgroundModes": ["processing", "fetch"],
 				"BGTaskSchedulerPermittedIdentifiers": [
 					"com.expo.modules.backgroundtask.processing"
 				]
@@ -52,13 +50,22 @@
 			[
 				"expo-splash-screen",
 				{
-					"backgroundColor": "#208AEF"
+					"backgroundColor": "#208AEF",
+					"image": "./assets/images/splash-icon.png",
+					"imageWidth": 240
 				}
 			]
 		],
 		"experiments": {
 			"typedRoutes": true,
 			"reactCompiler": true
+		},
+		"android": {
+			"permissions": [
+				"android.permission.READ_CONTACTS",
+				"android.permission.WRITE_CONTACTS"
+			],
+			"package": "com.filippoalessandrini.routy"
 		}
 	}
 }

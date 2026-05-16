@@ -34,11 +34,14 @@ import Reanimated, {
 	type SharedValue,
 } from "react-native-reanimated";
 
-const AnimatedGlassView = Reanimated.createAnimatedComponent(GlassView);
-
 import { useRouter } from "@/context/router-context";
 import { Conversation, formatMessageDate } from "@/utils/sms";
 import { t } from "@/i18n";
+import { Colors } from "@/constants/Colors";
+import { globalStyles, Layout } from "@/styles/globalStyles";
+import { messageStyles } from "@/styles/messageStyles";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function ConversationAvatar({ name }: { name: string }) {
 	const isNumeric = /^\+?\d+$/.test(name);
@@ -56,13 +59,16 @@ function ConversationAvatar({ name }: { name: string }) {
 	}
 
 	return (
-		<LinearGradient colors={["#3A3A3C", "#1C1C1E"]} style={styles.avatar}>
-			<Text style={styles.avatarText}>{isNumeric ? "👤" : initials}</Text>
+		<LinearGradient
+			colors={[Colors.routyLightGray, Colors.routyDarkGray]}
+			style={messageStyles.avatar}
+		>
+			<Text style={messageStyles.avatarText}>
+				{isNumeric ? "👤" : initials}
+			</Text>
 		</LinearGradient>
 	);
 }
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function ConversationRow({
 	conversation,
@@ -86,7 +92,7 @@ function ConversationRow({
 		const backgroundColor = interpolateColor(
 			drag,
 			[0, 80],
-			["#000000", "#1C1C1E"],
+			[Colors.routyBlack, Colors.routyDarkGray],
 		);
 		const borderRadius = interpolate(
 			drag,
@@ -158,10 +164,10 @@ function ConversationRow({
 		});
 
 		return (
-			<View style={styles.deleteActionWrapper}>
-				<Reanimated.View style={[styles.deleteAction, animatedStyles]}>
+			<View style={messageStyles.deleteActionWrapper}>
+				<Reanimated.View style={[messageStyles.deleteAction, animatedStyles]}>
 					<RectButton
-						style={styles.deleteActionButton}
+						style={messageStyles.deleteActionButton}
 						onPress={() => {
 							onDelete(conversation.number, () => {
 								swipeableRef.current?.close();
@@ -169,7 +175,7 @@ function ConversationRow({
 						}}
 					>
 						<Reanimated.View style={iconStyles}>
-							<Trash color="#fff" width={24} height={24} />
+							<Trash color={Colors.routyWhite} width={24} height={24} />
 						</Reanimated.View>
 					</RectButton>
 				</Reanimated.View>
@@ -192,8 +198,11 @@ function ConversationRow({
 			rightThreshold={40}
 		>
 			<RectButton
-				style={[styles.row, { backgroundColor: "transparent" }]}
-				underlayColor="#1C1C1E"
+				style={[
+					messageStyles.row,
+					{ backgroundColor: Colors.routyTransparent },
+				]}
+				underlayColor={Colors.routyDarkGray}
 				onPress={onPress}
 			>
 				<Reanimated.View
@@ -201,33 +210,33 @@ function ConversationRow({
 					pointerEvents="none"
 				/>
 				<ConversationAvatar name={conversation.displayName} />
-				<View style={styles.rowContent}>
-					<View style={styles.rowHeader}>
-						<Text style={styles.rowName} numberOfLines={1}>
+				<View style={messageStyles.rowContent}>
+					<View style={messageStyles.rowHeader}>
+						<Text style={messageStyles.rowName} numberOfLines={1}>
 							{conversation.displayName}
 						</Text>
-						<Text style={styles.rowDate}>{dateStr}</Text>
+						<Text style={messageStyles.rowDate}>{dateStr}</Text>
 					</View>
-					<View style={styles.rowFooter}>
+					<View style={messageStyles.rowFooter}>
 						<Text
 							style={[
-								styles.rowPreview,
-								conversation.unreadCount > 0 && styles.rowPreviewUnread,
+								messageStyles.rowPreview,
+								conversation.unreadCount > 0 && messageStyles.rowPreviewUnread,
 							]}
 							numberOfLines={1}
 						>
 							{preview}
 						</Text>
-						<View style={styles.rowRightSide}>
+						<View style={messageStyles.rowRightSide}>
 							{conversation.unreadCount > 0 && (
-								<View style={styles.unreadDot} />
+								<View style={messageStyles.unreadDot} />
 							)}
 							<NavArrowRight
 								width={14}
 								height={14}
 								strokeWidth={2.5}
 								style={{ marginBottom: -2 }}
-								color="#3C3C3C"
+								color={Colors.routyLightGray}
 							/>
 						</View>
 					</View>
@@ -249,6 +258,7 @@ export default function MessagesScreen() {
 		deleteConversation,
 	} = useRouter();
 	const expoRouter = useExpoRouter();
+	const inputRef = React.useRef<TextInput>(null);
 
 	useEffect(() => {
 		if (authStatus === "logged_in" && conversations.length === 0) {
@@ -318,6 +328,10 @@ export default function MessagesScreen() {
 	const [suggestions, setSuggestions] = React.useState<
 		{ name: string; number: string }[]
 	>([]);
+	const [selectedContact, setSelectedContact] = React.useState<{
+		name: string;
+		number: string;
+	} | null>(null);
 
 	const handleRecipientChange = (text: string) => {
 		setRecipient(text);
@@ -337,18 +351,30 @@ export default function MessagesScreen() {
 	};
 
 	const selectRecipient = (contact: { name: string; number: string }) => {
-		setRecipient(`${contact.name} (${contact.number})`);
+		setSelectedContact(contact);
+		setRecipient(contact.number);
 		setSuggestions([]);
 	};
 
-	const handleSendMessage = async () => {
-		if (!recipient || !messageText.trim() || isSending) return;
+	const removeSelectedContact = () => {
+		setSelectedContact(null);
+		setRecipient("");
+	};
 
-		let finalNumber = recipient;
-		// Extract number from parentheses if present: "Name (Number)"
-		const match = recipient.match(/\(([^)]+)\)/);
-		if (match && match[1]) {
-			finalNumber = match[1];
+	const handleSendMessage = async () => {
+		if (!recipient.trim() || !messageText.trim() || isSending) return;
+
+		// 1. Clean the number (remove spaces, parentheses, dashes)
+		let finalNumber = recipient.trim().replace(/[\s\(\)\-\.]/g, "");
+
+		// 2. Handle international prefix
+		if (finalNumber.startsWith("00")) {
+			finalNumber = "+" + finalNumber.slice(2);
+		} else if (!finalNumber.startsWith("+")) {
+			// If it's a standard 10-digit Italian mobile number starting with 3
+			if (finalNumber.length === 10 && finalNumber.startsWith("3")) {
+				finalNumber = "+39" + finalNumber;
+			}
 		}
 
 		setIsSending(true);
@@ -356,6 +382,7 @@ export default function MessagesScreen() {
 			await sendSms(finalNumber, messageText.trim());
 			setIsModalVisible(false);
 			setRecipient("");
+			setSelectedContact(null);
 			setMessageText("");
 			loadSms();
 		} catch (error) {
@@ -367,62 +394,62 @@ export default function MessagesScreen() {
 
 	if (authStatus === "loading") {
 		return (
-			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" />
-				<Text style={styles.statusText}>{t("settings.status_connecting")}</Text>
+			<View style={messageStyles.centerContainer}>
+				<ActivityIndicator size="large" color={Colors.routyBlue} />
+				<Text style={messageStyles.statusText}>
+					{t("settings.status_connecting")}
+				</Text>
 			</View>
 		);
 	}
 
 	if (authStatus === "error") {
 		return (
-			<View style={styles.centerContainer}>
-				<Text style={styles.errorIcon}>⚠️</Text>
-				<Text style={styles.errorText}>{authError}</Text>
-				<Text style={styles.errorHint}>{t("settings.error_hint")}</Text>
-				<Pressable style={styles.retryButton} onPress={login}>
-					<Text style={styles.retryButtonText}>{t("settings.retry")}</Text>
+			<View style={messageStyles.centerContainer}>
+				<Text style={messageStyles.errorIcon}>⚠️</Text>
+				<Text style={messageStyles.errorText}>{authError}</Text>
+				<Text style={messageStyles.errorHint}>{t("settings.error_hint")}</Text>
+				<Pressable style={messageStyles.retryButton} onPress={login}>
+					<Text style={messageStyles.retryButtonText}>
+						{t("settings.retry")}
+					</Text>
 				</Pressable>
 			</View>
 		);
 	}
 
 	return (
-		<View style={styles.container}>
+		<View style={messageStyles.container}>
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
 				colors={["rgba(0,0,0,0.8)", "transparent"]}
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					height: 120,
-					zIndex: 10,
-				}}
+				style={localStyles.headerGradient}
 				pointerEvents="none"
 			/>
 
 			<Animated.View
 				style={[
-					styles.header,
+					messageStyles.header,
 					{
 						opacity: titleOpacity,
 						transform: [{ translateY: titleTranslateY }],
 					},
 				]}
 			>
-				<Text style={styles.headerTitle}>{t("messages.title")}</Text>
+				<Text style={messageStyles.headerTitle}>{t("messages.title")}</Text>
 				<TouchableOpacity
 					onPress={() => setIsModalVisible(true)}
 					activeOpacity={0.7}
 				>
-					<GlassView style={styles.composeButton} glassEffectStyle="regular">
+					<GlassView
+						style={messageStyles.composeButton}
+						glassEffectStyle="regular"
+					>
 						<SymbolView
 							name="square.and.pencil"
 							size={22}
-							tintColor="#fff"
+							tintColor={Colors.routyWhite}
 							weight="regular"
 							style={{ marginTop: -2 }}
 						/>
@@ -431,9 +458,8 @@ export default function MessagesScreen() {
 			</Animated.View>
 
 			{isLoadingSms && conversations.length === 0 ? (
-				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" />
-					<Text style={styles.statusText}>{t("messages.loading")}</Text>
+				<View style={messageStyles.centerContainer}>
+					<Text style={messageStyles.statusText}>{t("messages.loading")}</Text>
 				</View>
 			) : (
 				<Animated.FlatList
@@ -445,8 +471,8 @@ export default function MessagesScreen() {
 						{ useNativeDriver: true },
 					)}
 					scrollEventThrottle={16}
-					contentInset={{ top: 112 }}
-					contentOffset={{ x: 0, y: -112 }}
+					contentInset={{ top: Layout.headerOffset }}
+					contentOffset={{ x: 0, y: -Layout.headerOffset }}
 					ListHeaderComponent={() => <View style={{ height: 0 }} />}
 					keyExtractor={(item) => item.number}
 					renderItem={({ item }) => (
@@ -456,22 +482,27 @@ export default function MessagesScreen() {
 							onDelete={handleDelete}
 						/>
 					)}
-					ItemSeparatorComponent={() => <View style={styles.separator} />}
+					ItemSeparatorComponent={() => (
+						<View style={messageStyles.separator} />
+					)}
 					refreshControl={
 						<RefreshControl
 							refreshing={isLoadingSms}
 							onRefresh={handleRefresh}
+							tintColor={Colors.routyGray}
 						/>
 					}
-					contentContainerStyle={[
-						styles.listContent,
-						{ minHeight: Dimensions.get("window").height - 112 - 90 },
-					]}
+					contentContainerStyle={{
+						minHeight:
+							Dimensions.get("window").height - Layout.headerOffset - 90,
+						paddingBottom: 100,
+						paddingHorizontal: 0,
+					}}
 					alwaysBounceVertical={true}
 					ListEmptyComponent={
-						<View style={styles.emptyContent}>
-							<Text style={styles.emptyIcon}>💬</Text>
-							<Text style={styles.emptyText}>{t("messages.empty")}</Text>
+						<View style={messageStyles.emptyContent}>
+							<Text style={messageStyles.emptyIcon}>💬</Text>
+							<Text style={messageStyles.emptyText}>{t("messages.empty")}</Text>
 						</View>
 					}
 				/>
@@ -483,19 +514,22 @@ export default function MessagesScreen() {
 				presentationStyle="pageSheet"
 				onRequestClose={() => setIsModalVisible(false)}
 			>
-				<View style={styles.modalContainer}>
-					<View style={styles.modalHeader}>
-						<Text style={styles.modalTitle}>{t("messages.new")}</Text>
+				<View style={messageStyles.modalContainer}>
+					<View style={messageStyles.modalHeader}>
+						<Text style={messageStyles.modalTitle}>{t("messages.new")}</Text>
 						<TouchableOpacity
-							style={styles.closeButtonContainer}
+							style={messageStyles.closeButtonContainer}
 							onPress={() => setIsModalVisible(false)}
 							activeOpacity={0.7}
 						>
-							<GlassView style={styles.closeButton} glassEffectStyle="regular">
+							<GlassView
+								style={messageStyles.closeButton}
+								glassEffectStyle="regular"
+							>
 								<SymbolView
 									name="xmark"
 									size={20}
-									tintColor="#fff"
+									tintColor={Colors.routyWhite}
 									weight="regular"
 								/>
 							</GlassView>
@@ -503,33 +537,63 @@ export default function MessagesScreen() {
 					</View>
 
 					<GlassView
-						style={styles.recipientGlassContainer}
+						style={messageStyles.recipientGlassContainer}
 						glassEffectStyle="regular"
 					>
-						<View style={styles.recipientField}>
-							<Text style={styles.recipientLabel}>{t('messages.to')}</Text>
-							<TextInput
-								style={styles.recipientInput}
-								value={recipient}
-								onChangeText={handleRecipientChange}
-								placeholder={t("messages.recipient_placeholder")}
-								placeholderTextColor="#636366"
-								autoFocus
-								keyboardType="default"
-							/>
-						</View>
+						<Pressable
+							style={messageStyles.recipientField}
+							onPress={() => {
+								// Always focus input when tapping the field
+								inputRef.current?.focus();
+							}}
+						>
+							<Text style={messageStyles.recipientLabel}>
+								{t("messages.to")}
+							</Text>
+							<View
+								style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+							>
+								{selectedContact && (
+									<View style={messageStyles.selectedRecipientWrapper}>
+										<Text style={messageStyles.selectedRecipientName}>
+											{selectedContact.name}
+										</Text>
+										<Text style={messageStyles.selectedRecipientNumber}>
+											{selectedContact.number}
+										</Text>
+									</View>
+								)}
+								<TextInput
+									ref={inputRef}
+									style={[messageStyles.recipientInput, { flex: 1 }]}
+									value={selectedContact ? "" : recipient}
+									onChangeText={handleRecipientChange}
+									onKeyPress={({ nativeEvent }) => {
+										if (nativeEvent.key === "Backspace" && selectedContact) {
+											removeSelectedContact();
+										}
+									}}
+									placeholder={
+										selectedContact ? "" : t("messages.recipient_placeholder")
+									}
+									placeholderTextColor={Colors.routyGray}
+									autoFocus
+									keyboardType="default"
+								/>
+							</View>
+						</Pressable>
 					</GlassView>
 
 					{suggestions.length > 0 && (
-						<View style={styles.suggestionsContainer}>
+						<View style={messageStyles.suggestionsContainer}>
 							{suggestions.map((s, i) => (
 								<TouchableOpacity
 									key={i}
-									style={styles.suggestionItem}
+									style={messageStyles.suggestionItem}
 									onPress={() => selectRecipient(s)}
 								>
-									<Text style={styles.suggestionName}>{s.name}</Text>
-									<Text style={styles.suggestionNumber}>{s.number}</Text>
+									<Text style={messageStyles.suggestionName}>{s.name}</Text>
+									<Text style={messageStyles.suggestionNumber}>{s.number}</Text>
 								</TouchableOpacity>
 							))}
 						</View>
@@ -555,272 +619,12 @@ export default function MessagesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	header: {
+const localStyles = StyleSheet.create({
+	headerGradient: {
 		position: "absolute",
 		top: 0,
 		left: 0,
 		right: 0,
-		zIndex: 11,
-		paddingTop: 60,
-		paddingBottom: 8,
-		paddingHorizontal: 16,
-		backgroundColor: "transparent",
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	headerTitle: {
-		fontSize: 34,
-		fontWeight: "700",
-		color: "#fff",
-		letterSpacing: 0.4,
-	},
-	composeButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		overflow: "hidden",
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: -2,
-	},
-	modalContainer: {
-		flex: 1,
-		backgroundColor: "#1C1C1E",
-	},
-	modalHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 30,
-		paddingVertical: 30,
-	},
-	modalTitle: {
-		fontSize: 17,
-		fontWeight: "600",
-		color: "#fff",
-	},
-	closeButtonContainer: {
-		position: "absolute",
-		right: 20,
-	},
-	closeButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		overflow: "hidden",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	recipientGlassContainer: {
-		marginHorizontal: 20,
-		marginTop: 4,
-		borderRadius: 99,
-		overflow: "hidden",
-	},
-	recipientField: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	recipientLabel: {
-		fontSize: 16,
-		color: "#8E8E93",
-		marginRight: 8,
-	},
-	recipientInput: {
-		flex: 1,
-		fontSize: 16,
-		color: "#fff",
-		paddingVertical: 4,
-	},
-	addContactButton: {
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: "rgba(255, 255, 255, 0.1)",
-		justifyContent: "center",
-		alignItems: "center",
-		marginLeft: 8,
-	},
-	suggestionsContainer: {
-		backgroundColor: "#1C1C1E",
-		maxHeight: 200,
-	},
-	suggestionItem: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#38383A",
-	},
-	suggestionName: {
-		fontSize: 16,
-		color: "#fff",
-		fontWeight: "500",
-	},
-	suggestionNumber: {
-		fontSize: 13,
-		color: "#8E8E93",
-		marginTop: 2,
-	},
-	centerContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "#000",
-		gap: 12,
-		padding: 24,
-	},
-	statusText: {
-		color: "#8E8E93",
-		fontSize: 15,
-	},
-	errorIcon: { fontSize: 40 },
-	errorText: {
-		color: "#FF3B30",
-		fontSize: 16,
-		fontWeight: "600",
-		textAlign: "center",
-	},
-	errorHint: {
-		color: "#8E8E93",
-		fontSize: 13,
-		textAlign: "center",
-		lineHeight: 18,
-	},
-	retryButton: {
-		marginTop: 8,
-		paddingHorizontal: 24,
-		paddingVertical: 12,
-		backgroundColor: "#208AEF",
-		borderRadius: 12,
-	},
-	retryButtonText: {
-		color: "#fff",
-		fontWeight: "600",
-		fontSize: 15,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		gap: 12,
-		backgroundColor: "#000",
-	},
-	rowPressed: {
-		backgroundColor: "#1C1C1E",
-	},
-	deleteActionWrapper: {
-		justifyContent: "center",
-		alignItems: "flex-end",
-		paddingHorizontal: 12,
-		backgroundColor: "transparent",
-		overflow: "hidden",
-	},
-	deleteAction: {
-		backgroundColor: "#FF3B30",
-		height: 50,
-		justifyContent: "center",
-		alignItems: "center",
-		overflow: "hidden",
-	},
-	deleteActionButton: {
-		flex: 1,
-		width: "100%",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	avatar: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	avatarText: {
-		fontSize: 24,
-		color: "#fff",
-		fontWeight: "700",
-		fontFamily: "ui-rounded",
-		marginTop: -2,
-		textAlign: "center",
-	},
-	rowContent: {
-		flex: 1,
-		gap: 2,
-	},
-	rowHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	rowName: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#fff",
-		flex: 1,
-		marginRight: 8,
-	},
-	rowDate: {
-		fontSize: 13,
-		color: "#8E8E93",
-	},
-	rowFooter: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	rowPreview: {
-		fontSize: 14,
-		color: "#8E8E93",
-		flex: 1,
-		marginRight: 4,
-	},
-	rowPreviewUnread: {
-		color: "#FFFFFF",
-		fontWeight: "600",
-	},
-	rowRightSide: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	unreadDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		backgroundColor: "#208AEF",
-		marginTop: 1,
-	},
-	separator: {
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: "#2C2C2E",
-		marginLeft: 78,
-	},
-	listContent: {
-		paddingTop: Platform.OS === "android" ? 112 : 0,
-		paddingBottom: 20,
-	},
-	emptyContainer: {
-		flex: 1,
-	},
-	emptyContent: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 12,
-		paddingTop: 80,
-	},
-	emptyIcon: { fontSize: 48 },
-	emptyText: {
-		color: "#8E8E93",
 		fontSize: 16,
 	},
 });

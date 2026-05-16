@@ -4,16 +4,15 @@ import {
 	FlatList,
 	KeyboardAvoidingView,
 	Platform,
-	StyleSheet,
 	Text,
 	View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useRouter } from "@/context/router-context";
 import { SmsMessage } from "@/utils/sms";
 import { MessageInputBar } from "@/components/MessageInputBar";
 import i18n, { t } from "@/i18n";
+import { messageStyles } from "@/styles/messageStyles";
 
 // ── Day label separator ───────────────────────────────────────────────────────
 
@@ -49,8 +48,8 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 
 function DaySeparator({ date }: { date: Date }) {
 	return (
-		<View style={styles.dateSeparator}>
-			<Text style={styles.dateSeparatorText}>{dayLabel(date)}</Text>
+		<View style={messageStyles.dateSeparator}>
+			<Text style={messageStyles.dateSeparatorText}>{dayLabel(date)}</Text>
 		</View>
 	);
 }
@@ -67,14 +66,21 @@ function MessageBubble({
 	return (
 		<>
 			{showDay && <DaySeparator date={message.date} />}
-			<View style={[styles.bubbleRow, message.isSent && styles.bubbleRowSent]}>
+			<View
+				style={[
+					messageStyles.bubbleRow,
+					message.isSent && messageStyles.bubbleRowSent,
+				]}
+			>
 				<View
 					style={[
-						styles.bubble,
-						message.isSent ? styles.bubbleSent : styles.bubbleReceived,
+						messageStyles.bubble,
+						message.isSent
+							? messageStyles.bubbleSent
+							: messageStyles.bubbleReceived,
 					]}
 				>
-					<Text style={styles.bubbleText}>{message.content}</Text>
+					<Text style={messageStyles.bubbleText}>{message.content}</Text>
 				</View>
 			</View>
 		</>
@@ -134,7 +140,6 @@ export default function ChatScreen() {
 		}
 	}, [text, isSending, number, sendSms, addOptimisticMessage]);
 
-	// Show day label only on the first message of each calendar day
 	const shouldShowDay = (index: number) => {
 		if (index === 0) return true;
 		const prev = messages[index - 1];
@@ -144,8 +149,7 @@ export default function ChatScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
-			{/* Dynamic title in native header - Only first name */}
+		<View style={messageStyles.container}>
 			<Stack.Screen
 				options={{
 					title: getDisplayName(number ?? "").split(" ")[0] ?? "",
@@ -153,23 +157,23 @@ export default function ChatScreen() {
 				}}
 			/>
 
-			{/* Message list + gradient overlay */}
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				keyboardVerticalOffset={-6}
+				keyboardVerticalOffset={Platform.OS === "ios" ? -6 : 0}
 			>
 				<FlatList
 					ref={listRef}
+					style={{ flex: 1, marginBottom: -90 }}
 					showsVerticalScrollIndicator={false}
 					data={messages}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item, index }) => (
 						<MessageBubble message={item} showDay={shouldShowDay(index)} />
 					)}
-					contentContainerStyle={styles.listContent}
+					contentContainerStyle={messageStyles.listContent}
 					onContentSizeChange={() =>
-						listRef.current?.scrollToEnd({ animated: false })
+						listRef.current?.scrollToEnd({ animated: true })
 					}
 				/>
 
@@ -184,52 +188,3 @@ export default function ChatScreen() {
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	listContent: {
-		paddingHorizontal: 8,
-		paddingVertical: 12,
-		flexGrow: 1,
-		justifyContent: "flex-end",
-	},
-	dateSeparator: {
-		alignItems: "center",
-		marginVertical: 12,
-	},
-	dateSeparatorText: {
-		fontSize: 12,
-		color: "#8E8E93",
-	},
-	bubbleRow: {
-		flexDirection: "row",
-		justifyContent: "flex-start",
-		marginVertical: 2,
-		paddingHorizontal: 8,
-	},
-	bubbleRowSent: {
-		justifyContent: "flex-end",
-	},
-	bubble: {
-		maxWidth: "75%",
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: 18,
-	},
-	bubbleReceived: {
-		backgroundColor: "#1C1C1E",
-		borderBottomLeftRadius: 4,
-	},
-	bubbleSent: {
-		backgroundColor: "#208AEF",
-		borderBottomRightRadius: 4,
-	},
-	bubbleText: {
-		fontSize: 16,
-		color: "#fff",
-		lineHeight: 22,
-	},
-});
