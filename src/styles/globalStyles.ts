@@ -85,7 +85,6 @@ export const globalStyles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: "600",
 		color: Colors.routyGray,
-		letterSpacing: 0.5,
 		marginLeft: 4,
 	},
 	dangerButton: {

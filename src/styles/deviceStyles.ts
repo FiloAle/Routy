@@ -12,7 +12,6 @@ export const deviceStyles = StyleSheet.create({
 		backgroundColor: Colors.routyDarkGray,
 		padding: 16,
 		borderRadius: Layout.borderRadius,
-		marginBottom: 8,
 	},
 	iconContainer: {
 		width: 40,

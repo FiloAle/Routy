@@ -20,7 +20,7 @@ SplashScreen.preventAutoHideAsync();
 
 // Set the animation options.
 SplashScreen.setOptions({
-	duration: 400,
+	duration: 300,
 	fade: true,
 });
 
@@ -35,7 +35,7 @@ export default function RootLayout() {
 				console.warn(e);
 			} finally {
 				// Add a small delay to ensure the splash screen is visible
-				await new Promise((resolve) => setTimeout(resolve, 700));
+				await new Promise((resolve) => setTimeout(resolve, 800));
 
 				// Hide the splash screen
 				await SplashScreen.hideAsync();

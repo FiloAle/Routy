@@ -91,10 +91,13 @@ export default function DevicesScreen() {
 				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
+					{
+						paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0,
+						paddingBottom: 20,
+					},
 				]}
 				ListHeaderComponent={() => (
-					<>
+					<View style={{ gap: 32 }}>
 						{sections.map((section, index) => (
 							<View
 								key={section.title}
@@ -110,7 +113,7 @@ export default function DevicesScreen() {
 								</View>
 							</View>
 						))}
-					</>
+					</View>
 				)}
 				refreshControl={
 					<RefreshControl

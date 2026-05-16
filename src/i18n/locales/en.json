@@ -61,7 +61,7 @@
 		"info_connection": "Connection",
 		"wrong_password": "Wrong password",
 		"login_failed": "Login failed",
-		"network": "Network",
+		"network": "Network and usage",
 		"data_network": "Data network",
 		"public_ip": "Public IP",
 		"reboot": "Reboot",
