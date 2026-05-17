@@ -6,6 +6,7 @@ import {
 	Platform,
 	Text,
 	View,
+	Keyboard,
 } from "react-native";
 
 import { useRouter } from "@/context/router-context";
@@ -106,15 +107,26 @@ export default function ChatScreen() {
 	const conversation = conversations.find((c) => c.number === number);
 	const messages = conversation?.messages ?? [];
 
+	const isInitialLoad = useRef(true);
+	const contentHeightRef = useRef(0);
+
+	useEffect(() => {
+		const keyboardEvent =
+			Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+		const subscription = Keyboard.addListener(keyboardEvent, () => {
+			if (contentHeightRef.current > 0) {
+				listRef.current?.scrollToOffset({
+					offset: contentHeightRef.current,
+					animated: true,
+				});
+			}
+		});
+		return () => subscription.remove();
+	}, []);
+
 	useEffect(() => {
 		if (number) markAsRead(number);
 	}, [number, markAsRead]);
-
-	useEffect(() => {
-		if (messages.length > 0) {
-			setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-		}
-	}, [messages.length]);
 
 	const handleSend = useCallback(async () => {
 		const trimmed = text.trim();
@@ -152,8 +164,8 @@ export default function ChatScreen() {
 		<View style={messageStyles.container}>
 			<Stack.Screen
 				options={{
-					title: getDisplayName(number ?? "").split(" ")[0] ?? "",
-					headerBackTitle: t("messages.back"),
+					title: getDisplayName(number ?? "") ?? "",
+					headerBackButtonDisplayMode: "minimal",
 				}}
 			/>
 
@@ -172,9 +184,24 @@ export default function ChatScreen() {
 						<MessageBubble message={item} showDay={shouldShowDay(index)} />
 					)}
 					contentContainerStyle={messageStyles.listContent}
-					onContentSizeChange={() =>
-						listRef.current?.scrollToEnd({ animated: true })
-					}
+					onContentSizeChange={(w, h) => {
+						contentHeightRef.current = h;
+						listRef.current?.scrollToOffset({
+							offset: h,
+							animated: !isInitialLoad.current,
+						});
+						isInitialLoad.current = false;
+					}}
+					onLayout={() => {
+						if (!isInitialLoad.current && contentHeightRef.current > 0) {
+							setTimeout(() => {
+								listRef.current?.scrollToOffset({
+									offset: contentHeightRef.current,
+									animated: true,
+								});
+							}, 50);
+						}
+					}}
 				/>
 
 				<MessageInputBar

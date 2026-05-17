@@ -1,4 +1,5 @@
-import { Stack } from "expo-router";
+import { Link, Stack } from "expo-router";
+import { NavArrowRight } from "iconoir-react-native";
 import React, { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
@@ -45,7 +46,16 @@ export default function SettingsScreen() {
 		setDataLimit,
 	} = useRouter();
 
-	const [urlInput, setUrlInput] = useState(routerUrl);
+	const getDisplayUrl = (url: string) => {
+		return url.replace(/^https?:\/\//i, "");
+	};
+
+	const [urlInput, setUrlInput] = useState(getDisplayUrl(routerUrl));
+
+	useEffect(() => {
+		setUrlInput(getDisplayUrl(routerUrl));
+	}, [routerUrl]);
+
 	const [passwordInput, setPasswordInput] = useState(password);
 	const [isSaving, setIsSaving] = useState(false);
 	const [limitSelection, setLimitSelection] = useState({ start: 0, end: 0 });
@@ -74,7 +84,11 @@ export default function SettingsScreen() {
 	};
 
 	const handleSave = async () => {
-		const url = urlInput.trim() || "http://192.168.0.1";
+		const trimmed = urlInput.trim() || "192.168.0.1";
+		let url = trimmed;
+		if (!url.startsWith("http://") && !url.startsWith("https://")) {
+			url = `http://${url}`;
+		}
 		if (!passwordInput.trim()) {
 			Alert.alert(t("settings.attention"), t("settings.enter_pw_alert"));
 			return;
@@ -226,8 +240,10 @@ export default function SettingsScreen() {
 								<TextInput
 									style={globalStyles.fieldInput}
 									value={urlInput}
-									onChangeText={setUrlInput}
-									placeholder="http://192.168.0.1"
+									onChangeText={(val) =>
+										setUrlInput(val.replace(/^https?:\/\//i, ""))
+									}
+									placeholder="192.168.0.1"
 									placeholderTextColor={Colors.routyGray}
 									autoCapitalize="none"
 									autoCorrect={false}
@@ -305,13 +321,45 @@ export default function SettingsScreen() {
 								</>
 							)}
 							<View style={globalStyles.divider} />
+							<Link href="/settings/dns" asChild>
+								<TouchableOpacity style={globalStyles.field}>
+									<Text style={globalStyles.fieldLabel}>
+										{t("settings.dns")}
+									</Text>
+									<View
+										style={{
+											flexDirection: "row",
+											alignItems: "center",
+											gap: 2,
+										}}
+									>
+										<Text style={globalStyles.infoValue}>
+											{dataUsage?.dnsMode === "manual"
+												? t("settings.dns_manual")
+												: t("settings.dns_automatic")}
+										</Text>
+										<NavArrowRight
+											width={20}
+											height={20}
+											strokeWidth={2}
+											color={Colors.routyGray}
+											opacity={0.5}
+											style={{ marginBottom: -2, marginRight: -2 }}
+										/>
+									</View>
+								</TouchableOpacity>
+							</Link>
+							<View style={globalStyles.divider} />
 							<View style={globalStyles.field}>
 								<Text style={globalStyles.fieldLabel}>
 									{t("settings.data_limit")}
 								</Text>
 								<View style={settingsStyles.fieldRow}>
 									<TextInput
-										style={[globalStyles.fieldInput, settingsStyles.dataLimitInput]}
+										style={[
+											globalStyles.fieldInput,
+											settingsStyles.dataLimitInput,
+										]}
 										value={dataLimitValue}
 										onChangeText={(val) => {
 											const clean = val.replace(/[^0-9]/g, "");

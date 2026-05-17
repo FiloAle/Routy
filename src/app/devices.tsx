@@ -78,7 +78,7 @@ export default function DevicesScreen() {
 					headerLargeTitle: false,
 					headerTransparent: true,
 					headerShadowVisible: false,
-					headerBackTitle: t("tabs.home"),
+					headerBackButtonDisplayMode: "minimal",
 					headerTitleStyle: { color: Colors.routyWhite },
 				}}
 			/>

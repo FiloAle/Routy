@@ -29,7 +29,7 @@ export const cardStyles = StyleSheet.create({
 		fontFamily: "ui-rounded",
 	},
 	chevron: {
-		marginLeft: 4,
+		marginRight: -4,
 	},
 	pressable: {
 		flex: 1,

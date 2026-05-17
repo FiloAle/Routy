@@ -10,6 +10,7 @@ interface DashboardCardProps {
 	value?: string | number;
 	children?: React.ReactNode;
 	onPress?: () => void;
+	onLongPress?: () => void;
 	showChevron?: boolean;
 	containerStyle?: ViewStyle;
 	labelStyle?: TextStyle;
@@ -21,6 +22,7 @@ export function DashboardCard({
 	value,
 	children,
 	onPress,
+	onLongPress,
 	showChevron = false,
 	containerStyle,
 	labelStyle,
@@ -49,10 +51,11 @@ export function DashboardCard({
 		</View>
 	);
 
-	if (onPress) {
+	if (onPress || onLongPress) {
 		return (
 			<Pressable
 				onPress={onPress}
+				onLongPress={onLongPress}
 				style={({ pressed }) => [
 					cardStyles.pressable,
 					{ opacity: pressed ? 0.7 : 1 },

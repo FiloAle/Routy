@@ -7,10 +7,13 @@ import {
 	Animated,
 	Platform,
 	TouchableOpacity,
+	Linking,
+	Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle } from "react-native-svg";
 import { Link, Stack } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
@@ -79,6 +82,70 @@ export default function HomeScreen() {
 			useNativeDriver: true,
 		}).start();
 	}, [percentage]);
+
+	const getLteItalyLink = (
+		mcc: string | undefined,
+		mnc: string | undefined,
+		cellId: string | undefined,
+	): string | null => {
+		if (!cellId || cellId === "-" || !mcc || !mnc) return null;
+		const cellVal = parseInt(cellId, 10);
+		if (isNaN(cellVal)) return null;
+
+		const enbId = Math.trunc(cellVal / 256).toString();
+		let plmn = mcc.toString() + mnc.toString();
+
+		if (plmn === "22201") {
+			plmn = "2221";
+		} else if (plmn === "22299") {
+			plmn = "22288";
+		} else if (plmn === "22250" && enbId.length === 6) {
+			plmn = "22288";
+		}
+
+		return `https://lteitaly.it/internal/map.php#bts=${plmn}.${enbId}`;
+	};
+
+	const handleCellPress = () => {
+		if (dataUsage?.mcc && dataUsage?.mnc && dataUsage?.cellId) {
+			const url = getLteItalyLink(
+				dataUsage.mcc,
+				dataUsage.mnc,
+				dataUsage.cellId,
+			);
+			if (url) {
+				Linking.canOpenURL(url)
+					.then((supported) => {
+						if (supported) {
+							Linking.openURL(url);
+						} else {
+							Alert.alert(t("common.error"), "Impossibile aprire l'URL.");
+						}
+					})
+					.catch((err) => {
+						console.error("An error occurred", err);
+						Alert.alert(
+							t("common.error"),
+							"Errore durante l'apertura del link.",
+						);
+					});
+			}
+		}
+	};
+
+	const handleCellLongPress = async () => {
+		if (dataUsage?.mcc && dataUsage?.mnc && dataUsage?.cellId) {
+			const url = getLteItalyLink(
+				dataUsage.mcc,
+				dataUsage.mnc,
+				dataUsage.cellId,
+			);
+			if (url) {
+				await Clipboard.setStringAsync(url);
+				Alert.alert(t("common.copied"), t("common.copied_link"));
+			}
+		}
+	};
 
 	const scrollY = React.useRef(new Animated.Value(0)).current;
 
@@ -228,12 +295,16 @@ export default function HomeScreen() {
 					<View style={dashboardStyles.infoRow}>
 						<DashboardCard
 							label={t("dashboard.operator")}
-							value={`${dataUsage?.networkProvider} ${dataUsage?.networkType}${dataUsage?.isCA ? "+" : ""}`}
+							value={dataUsage?.networkProvider ?? "-"}
 						/>
 
 						<DashboardCard
-							label={t("dashboard.bands")}
-							value={dataUsage?.bands}
+							label={t("dashboard.network_tech")}
+							value={
+								dataUsage
+									? `${dataUsage.networkType}${dataUsage.isCA ? "+" : ""}`
+									: "-"
+							}
 						/>
 					</View>
 
@@ -275,13 +346,35 @@ export default function HomeScreen() {
 					<SectionLabel>{t("dashboard.signal")}</SectionLabel>
 					<View style={dashboardStyles.infoRow}>
 						<DashboardCard
+							label={t("dashboard.cell")}
+							value={dataUsage?.cellId ?? "-"}
+							onPress={handleCellPress}
+							onLongPress={handleCellLongPress}
+						/>
+
+						<DashboardCard
+							label={t("dashboard.bands")}
+							value={dataUsage?.bands}
+						/>
+					</View>
+
+					<View style={dashboardStyles.infoRow}>
+						<DashboardCard
 							label={t("dashboard.rsrp")}
-							value={`${dataUsage?.rsrp} dBm`}
+							value={
+								dataUsage?.rsrp && dataUsage.rsrp !== "-"
+									? `${dataUsage.rsrp} dBm`
+									: "-"
+							}
 						/>
 
 						<DashboardCard
 							label={t("dashboard.sinr")}
-							value={`${dataUsage?.sinr} dB`}
+							value={
+								dataUsage?.sinr && dataUsage.sinr !== "-"
+									? `${dataUsage.sinr} dB`
+									: "-"
+							}
 						/>
 					</View>
 				</View>

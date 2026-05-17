@@ -17,11 +17,12 @@
 		"renewing": "Renewing session...",
 		"received": "Received",
 		"sent": "Sent",
-		"usage_limit": "out of %{limit}"
+		"usage_limit": "out of %{limit}",
+		"cell": "Cell",
+		"network_tech": "Network"
 	},
 	"messages": {
 		"title": "Messages",
-		"back": "All",
 		"to": "To:",
 		"delete": "Delete",
 		"delete_title": "Delete chat",
@@ -34,7 +35,7 @@
 		"new": "New message",
 		"recipient_placeholder": "Number or contact",
 		"error_send": "Unable to send message.",
-		"input_placeholder": "Text Message · SMS",
+		"input_placeholder": "Text message · SMS",
 		"delete_failed": "Delete failed"
 	},
 	"settings": {
@@ -56,6 +57,16 @@
 		"login_success_msg": "Login to router successful!",
 		"saved_title": "Saved",
 		"saved_msg": "Settings saved.",
+		"dns": "DNS",
+		"dns_automatic": "Automatic",
+		"dns_manual": "Manual",
+		"dns_server": "DNS Server",
+		"dns_primary": "Primary DNS",
+		"dns_secondary": "Secondary DNS",
+		"save": "Save",
+		"dns_success_msg": "DNS configuration updated successfully.",
+		"dns_error_msg": "Failed to update DNS settings.",
+		"config_dns": "Configure DNS",
 		"attention": "Attention",
 		"enter_pw_alert": "Please enter the router password.",
 		"info_connection": "Connection",
@@ -88,6 +99,8 @@
 		"error": "Error",
 		"info": "Info",
 		"today": "Today",
-		"yesterday": "Yesterday"
+		"yesterday": "Yesterday",
+		"copied": "Copied",
+		"copied_link": "Link copied to clipboard."
 	}
 }

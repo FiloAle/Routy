@@ -17,11 +17,12 @@
 		"renewing": "Rinnovo sessione...",
 		"received": "Ricevuti",
 		"sent": "Inviati",
-		"usage_limit": "di %{limit}"
+		"usage_limit": "di %{limit}",
+		"cell": "Cella",
+		"network_tech": "Rete"
 	},
 	"messages": {
 		"title": "Messaggi",
-		"back": "Tutti",
 		"to": "A:",
 		"delete": "Elimina",
 		"delete_title": "Elimina chat",
@@ -56,6 +57,16 @@
 		"login_success_msg": "Login al router riuscito!",
 		"saved_title": "Salvato",
 		"saved_msg": "Impostazioni salvate.",
+		"dns": "DNS",
+		"dns_automatic": "Automatico",
+		"dns_manual": "Manuale",
+		"dns_server": "Server DNS",
+		"dns_primary": "DNS primario",
+		"dns_secondary": "DNS secondario",
+		"save": "Salva",
+		"dns_success_msg": "Configurazione DNS aggiornata con successo.",
+		"dns_error_msg": "Errore durante l'aggiornamento dei DNS.",
+		"config_dns": "Configura DNS",
 		"attention": "Attenzione",
 		"enter_pw_alert": "Inserisci la password del router.",
 		"info_connection": "Connessione",
@@ -88,6 +99,8 @@
 		"error": "Errore",
 		"info": "Info",
 		"today": "Oggi",
-		"yesterday": "Ieri"
+		"yesterday": "Ieri",
+		"copied": "Copiato",
+		"copied_link": "Link copiato negli appunti."
 	}
 }

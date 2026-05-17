@@ -25,7 +25,7 @@ export const globalStyles = StyleSheet.create({
 	divider: {
 		height: StyleSheet.hairlineWidth,
 		backgroundColor: Colors.routyLightGray,
-		marginLeft: 16,
+		marginHorizontal: 16,
 	},
 	field: {
 		flexDirection: "row",
@@ -59,7 +59,6 @@ export const globalStyles = StyleSheet.create({
 	infoValue: {
 		fontSize: 16,
 		color: Colors.routyGray,
-		fontWeight: "500",
 	},
 	statusRow: {
 		flexDirection: "row",

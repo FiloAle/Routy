@@ -26,6 +26,13 @@ export interface DataUsage {
 	pppStatus: string; // ppp_connected, disconnected, etc.
 	wanIp: string;
 	ssid: string;
+	cellId: string;
+	enbId: string;
+	mcc: string;
+	mnc: string;
+	dnsMode: "auto" | "manual";
+	preferDns: string;
+	standbyDns: string;
 }
 
 export interface Device {
@@ -169,7 +176,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: {
 				isTest: false,
-				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid",
+				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual",
 				multi_data: "1",
 			},
 		});
@@ -214,6 +221,14 @@ export class RouterApi {
 		if (rawNetType.toUpperCase() === "LTE") networkType = "4G";
 		if (rawNetType.toUpperCase() === "LTE_A") networkType = "4G+";
 
+		let enbId = "-";
+		if (data.Z_eNB_id && data.Z_eNB_id !== "-") {
+			const cellVal = parseInt(data.Z_eNB_id, 10);
+			if (!isNaN(cellVal)) {
+				enbId = Math.trunc(cellVal / 256).toString();
+			}
+		}
+
 		return {
 			monthlyRxBytes: parseInt(data.monthly_rx_bytes || "0", 10),
 			monthlyTxBytes: parseInt(data.monthly_tx_bytes || "0", 10),
@@ -233,6 +248,13 @@ export class RouterApi {
 			pppStatus: data.ppp_status,
 			wanIp: data.wan_ipaddr,
 			ssid: data.wifi_chip1_ssid1_ssid || "Unknown",
+			cellId: data.Z_eNB_id || "-",
+			enbId,
+			mcc: data.mcc || "",
+			mnc: data.mnc || "",
+			dnsMode: data.dns_mode || "auto",
+			preferDns: data.prefer_dns_manual || "",
+			standbyDns: data.standby_dns_manual || "",
 		};
 	}
 
@@ -478,6 +500,35 @@ export class RouterApi {
 
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
 			throw new Error(`Night mode update failed: ${res.data?.result}`);
+		}
+	}
+
+	async setDns(
+		mode: "auto" | "manual",
+		preferDns: string,
+		standbyDns: string,
+	): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "ROUTER_DNS_SETTING",
+			dns_mode: mode,
+			prefer_dns_manual: preferDns,
+			standby_dns_manual: standbyDns,
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending setDns params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response setDns:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`DNS setting failed: ${res.data?.result}`);
 		}
 	}
 

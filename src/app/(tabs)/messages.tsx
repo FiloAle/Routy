@@ -333,6 +333,15 @@ export default function MessagesScreen() {
 		number: string;
 	} | null>(null);
 
+	React.useEffect(() => {
+		if (!isModalVisible) {
+			setRecipient("");
+			setMessageText("");
+			setSuggestions([]);
+			setSelectedContact(null);
+		}
+	}, [isModalVisible]);
+
 	const handleRecipientChange = (text: string) => {
 		setRecipient(text);
 		if (text.length > 0) {
