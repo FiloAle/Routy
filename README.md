@@ -36,7 +36,7 @@ Since it bypasses the need for a central server for notifications, it utilizes a
 - The smartphone must be connected to the router's Wi-Fi network.
 - Local Network permissions must be granted to allow communication with the router's IP.
 
-## Getting Started
+## Getting Started for a Debug Build
 
 1. Install dependencies:
 
@@ -44,15 +44,24 @@ Since it bypasses the need for a central server for notifications, it utilizes a
    npm install
    ```
 
-2. Start the development server:
+2. Run on a physical device (recommended for testing background fetch and local network features):
 
-   ```bash
-   npx expo start
-   ```
-
-3. Run on a physical device (recommended for testing background fetch and local network features):
    ```bash
    npx expo run:ios --device
+   ```
+
+## Getting Started for a Release Build
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Run on a physical device:
+
+   ```bash
+   npx expo run:ios --device --configuration Release
    ```
 
 ## Screenshots
