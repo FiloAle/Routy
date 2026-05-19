@@ -55,6 +55,17 @@ Since it bypasses the need for a central server for notifications, it utilizes a
    npx expo run:ios --device
    ```
 
+## Screenshots
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px;">
+  <img src="./docs/images/home.png" width="250" alt="Dashboard Home">
+  <img src="./docs/images/devices.png" width="250" alt="Connected Devices">
+  <img src="./docs/images/messages.png" width="250" alt="Messages List">
+  <img src="./docs/images/chat.png" width="250" alt="Chat View">
+  <img src="./docs/images/settings.png" width="250" alt="Settings">
+  <img src="./docs/images/dns.png" width="250" alt="DNS Configuration">
+</div>
+
 ---
 
 _Note: This is a third-party application and is not affiliated with ZTE Corporation._
