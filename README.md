@@ -57,7 +57,7 @@ Since it bypasses the need for a central server for notifications, it utilizes a
 
 ## Screenshots
 
-<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; width: 100%;">
+<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2%; width: 100%;">
   <img src="./docs/images/home.png" width="32%" style="margin-bottom: 2%;" alt="Dashboard Home">
   <img src="./docs/images/devices.png" width="32%" style="margin-bottom: 2%;" alt="Connected Devices">
   <img src="./docs/images/messages.png" width="32%" style="margin-bottom: 2%;" alt="Messages List">
