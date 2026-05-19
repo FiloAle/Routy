@@ -147,6 +147,14 @@ export default function HomeScreen() {
 		}
 	};
 
+	const getDisplayCellId = (): string => {
+		const cellId = dataUsage?.cellId;
+		if (!cellId || cellId === "-") return "-";
+		const cellVal = parseInt(cellId, 10);
+		if (isNaN(cellVal)) return cellId;
+		return Math.trunc(cellVal / 256).toString();
+	};
+
 	const scrollY = React.useRef(new Animated.Value(0)).current;
 
 	const titleOpacity = scrollY.interpolate({
@@ -347,7 +355,7 @@ export default function HomeScreen() {
 					<View style={dashboardStyles.infoRow}>
 						<DashboardCard
 							label={t("dashboard.cell")}
-							value={dataUsage?.cellId ?? "-"}
+							value={getDisplayCellId()}
 							onPress={handleCellPress}
 							onLongPress={handleCellLongPress}
 						/>
