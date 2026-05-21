@@ -2,7 +2,7 @@ import { useRouter as useExpoRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Contacts from 'expo-contacts';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import React, {
   createContext,
   useCallback,
@@ -226,6 +226,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
   const startPolling = useCallback(() => {
     stopPolling();
+    fetchAndUpdate();
     pollTimerRef.current = setInterval(fetchAndUpdate, POLL_INTERVAL_MS);
   }, [fetchAndUpdate, stopPolling]);
 
@@ -334,6 +335,34 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus === 'logged_in') startPolling();
     else stopPolling();
   }, [authStatus, startPolling, stopPolling]);
+
+  // Auto-retry login when app returns to the foreground and is in error/idle state
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active' && (authStatus === 'error' || authStatus === 'idle') && password) {
+        console.log('[RouterContext] App foregrounded, retrying login...');
+        setAuthStatus('loading');
+        setAuthError(null);
+        try {
+          await apiRef.current.login(password);
+          if (mountedRef.current) {
+            setAuthStatus('logged_in');
+            lastLoginRef.current = Date.now();
+          }
+        } catch (e: any) {
+          if (mountedRef.current) {
+            setAuthStatus('error');
+            setAuthError(e?.message ?? t('settings.error_conn'));
+          }
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [authStatus, password]);
 
   const saveSettings = useCallback(
     async (url: string, pw: string) => {

@@ -1,27 +1,26 @@
+import * as Clipboard from "expo-clipboard";
+import { LinearGradient } from "expo-linear-gradient";
+import { Link, Stack } from "expo-router";
 import React, { useEffect } from "react";
 import {
+	Alert,
+	Animated,
+	Linking,
+	Platform,
 	RefreshControl,
 	Text,
-	View,
-	Dimensions,
-	Animated,
-	Platform,
 	TouchableOpacity,
-	Linking,
-	Alert,
+	View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle } from "react-native-svg";
-import { Link, Stack } from "expo-router";
-import * as Clipboard from "expo-clipboard";
 
+import { DashboardCard } from "@/components/DashboardCard";
+import { SectionLabel } from "@/components/SectionLabel";
+import { Colors } from "@/constants/Colors";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
-import { globalStyles } from "@/styles/globalStyles";
 import { dashboardStyles } from "@/styles/dashboardStyles";
-import { SectionLabel } from "@/components/SectionLabel";
-import { DashboardCard } from "@/components/DashboardCard";
+import { globalStyles } from "@/styles/globalStyles";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const CIRCLE_SIZE = 120;

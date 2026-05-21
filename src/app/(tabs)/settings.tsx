@@ -57,6 +57,11 @@ export default function SettingsScreen() {
 	}, [routerUrl]);
 
 	const [passwordInput, setPasswordInput] = useState(password);
+
+	useEffect(() => {
+		setPasswordInput(password);
+	}, [password]);
+
 	const [isSaving, setIsSaving] = useState(false);
 	const [limitSelection, setLimitSelection] = useState({ start: 0, end: 0 });
 

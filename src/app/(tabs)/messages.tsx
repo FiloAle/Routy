@@ -1,45 +1,45 @@
-import { useRouter as useExpoRouter, Stack } from "expo-router";
+import { MessageInputBar } from "@/components/MessageInputBar";
+import { contactsService } from "@/services/contacts-service";
+import { GlassView } from "expo-glass-effect";
+import { LinearGradient } from "expo-linear-gradient";
+import { Stack, useRouter as useExpoRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { NavArrowRight, Trash } from "iconoir-react-native";
 import React, { useCallback, useEffect } from "react";
 import {
 	ActivityIndicator,
+	Alert,
+	Animated,
+	Dimensions,
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
 	Pressable,
+	RefreshControl,
 	StyleSheet,
 	Text,
-	View,
-	Animated,
-	Platform,
-	RefreshControl,
-	Dimensions,
-	Modal,
 	TextInput,
-	KeyboardAvoidingView,
 	TouchableOpacity,
-	Alert,
+	View,
 } from "react-native";
 import { RectButton } from "react-native-gesture-handler";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { LinearGradient } from "expo-linear-gradient";
-import { Trash, NavArrowRight } from "iconoir-react-native";
-import { GlassView } from "expo-glass-effect";
-import { SymbolView } from "expo-symbols";
-import { contactsService } from "@/services/contacts-service";
-import { MessageInputBar } from "@/components/MessageInputBar";
 import Reanimated, {
-	useAnimatedStyle,
-	interpolate,
 	Extrapolation,
-	useSharedValue,
+	interpolate,
 	interpolateColor,
 	useAnimatedReaction,
+	useAnimatedStyle,
+	useSharedValue,
 	type SharedValue,
 } from "react-native-reanimated";
 
-import { useRouter } from "@/context/router-context";
-import { Conversation, formatMessageDate } from "@/utils/sms";
-import { t } from "@/i18n";
 import { Colors } from "@/constants/Colors";
-import { globalStyles, Layout } from "@/styles/globalStyles";
+import { useRouter } from "@/context/router-context";
+import { t } from "@/i18n";
+import { Layout } from "@/styles/globalStyles";
 import { messageStyles } from "@/styles/messageStyles";
+import { Conversation, formatMessageDate } from "@/utils/sms";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -135,11 +135,11 @@ function ConversationRow({
 			const width =
 				drag > threshold
 					? interpolate(
-							drag,
-							[threshold, threshold + 40],
-							[50, threshold + 40 - 24],
-							Extrapolation.CLAMP,
-						) + (drag > threshold + 40 ? drag - (threshold + 40) : 0)
+						drag,
+						[threshold, threshold + 40],
+						[50, threshold + 40 - 24],
+						Extrapolation.CLAMP,
+					) + (drag > threshold + 40 ? drag - (threshold + 40) : 0)
 					: 50;
 
 			return {
@@ -457,7 +457,7 @@ export default function MessagesScreen() {
 					>
 						<SymbolView
 							name="square.and.pencil"
-							size={22}
+							size={24}
 							tintColor={Colors.routyWhite}
 							weight="regular"
 							style={messageStyles.headerComposeIcon}
@@ -532,7 +532,7 @@ export default function MessagesScreen() {
 							>
 								<SymbolView
 									name="xmark"
-									size={20}
+									size={24}
 									tintColor={Colors.routyWhite}
 									weight="regular"
 								/>
