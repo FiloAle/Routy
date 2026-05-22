@@ -33,6 +33,7 @@ export interface DataUsage {
 	dnsMode: "auto" | "manual";
 	preferDns: string;
 	standbyDns: string;
+	lteBandLock: string;
 }
 
 export interface Device {
@@ -176,7 +177,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: {
 				isTest: false,
-				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual",
+				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual,lte_band_lock",
 				multi_data: "1",
 			},
 		});
@@ -255,6 +256,7 @@ export class RouterApi {
 			dnsMode: data.dns_mode || "auto",
 			preferDns: data.prefer_dns_manual || "",
 			standbyDns: data.standby_dns_manual || "",
+			lteBandLock: data.lte_band_lock || "",
 		};
 	}
 
@@ -311,12 +313,13 @@ export class RouterApi {
 		if (msgIds.length === 0) return;
 		const adToken = await this.getADToken();
 
-		// Standard ZTE syntax for marking messages as read
+		// Standard ZTE syntax for marking messages as read (matching router function Pe)
+		const msgIdParam = msgIds.join(";") + ";";
 		const params = new URLSearchParams({
 			isTest: "false",
 			goformId: "SET_MSG_READ",
-			msg_id: msgIds.join(";"),
-			tag: "1", // 1 = Mark as Read
+			msg_id: msgIdParam,
+			tag: "0",
 			AD: adToken,
 		});
 
@@ -529,6 +532,41 @@ export class RouterApi {
 
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
 			throw new Error(`DNS setting failed: ${res.data?.result}`);
+		}
+	}
+
+	async setLteBands(mode: "auto" | "manual", bands: string[]): Promise<void> {
+		const adToken = await this.getADToken();
+		let bandLockValue = "0x20080800C5"; // Default/AUTO
+		if (mode === "manual") {
+			let n = 0n;
+			bands.forEach((b) => {
+				const bandNum = parseInt(b.replace("B", ""), 10);
+				if (!isNaN(bandNum)) {
+					n += 1n << BigInt(bandNum - 1);
+				}
+			});
+			bandLockValue = "0x" + n.toString(16).toUpperCase();
+		}
+
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "SET_LTE_BAND_LOCK",
+			lte_band_lock: bandLockValue,
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending setLteBands params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response setLteBands:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`LTE band lock setting failed: ${res.data?.result}`);
 		}
 	}
 

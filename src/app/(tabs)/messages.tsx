@@ -413,10 +413,13 @@ export default function MessagesScreen() {
 	}
 
 	if (authStatus === "error") {
+		const isTimeout = authError?.toLowerCase().includes("timeout") || authError?.toLowerCase().includes("10000ms");
+		const displayError = isTimeout ? t("settings.error_timeout") : authError;
+
 		return (
 			<View style={messageStyles.centerContainer}>
 				<Text style={messageStyles.errorIcon}>⚠️</Text>
-				<Text style={messageStyles.errorText}>{authError}</Text>
+				<Text style={messageStyles.errorText}>{displayError}</Text>
 				<Text style={messageStyles.errorHint}>{t("settings.error_hint")}</Text>
 				<Pressable style={messageStyles.retryButton} onPress={login}>
 					<Text style={messageStyles.retryButtonText}>

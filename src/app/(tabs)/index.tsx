@@ -359,10 +359,13 @@ export default function HomeScreen() {
 							onLongPress={handleCellLongPress}
 						/>
 
-						<DashboardCard
-							label={t("dashboard.bands")}
-							value={dataUsage?.bands}
-						/>
+						<Link href="/settings/bands" asChild>
+							<DashboardCard
+								label={t("dashboard.bands")}
+								value={dataUsage?.bands}
+								showChevron
+							/>
+						</Link>
 					</View>
 
 					<View style={dashboardStyles.infoRow}>

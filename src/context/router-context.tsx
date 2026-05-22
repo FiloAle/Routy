@@ -55,6 +55,7 @@ interface RouterContextValue {
   fetchNightMode: () => Promise<void>;
   setNightMode: (enabled: boolean, start: string, end: string) => Promise<void>;
   setDns: (mode: "auto" | "manual", preferDns: string, standbyDns: string) => Promise<void>;
+  setLteBands: (mode: "auto" | "manual", selectedBands: string[]) => Promise<void>;
 
   dataLimitValue: string;
   dataLimitUnit: "GB" | "TB";
@@ -507,6 +508,19 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     [loadDataUsage],
   );
 
+  const setLteBands = useCallback(
+    async (mode: "auto" | "manual", selectedBands: string[]) => {
+      try {
+        await apiRef.current.setLteBands(mode, selectedBands);
+        await loadDataUsage();
+      } catch (e) {
+        console.warn("[setLteBands] error:", e);
+        throw e;
+      }
+    },
+    [loadDataUsage],
+  );
+
   const loadDevices = useCallback(async () => {
     if (authStatus !== 'logged_in') return;
     setIsLoadingDevices(true);
@@ -617,6 +631,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         fetchNightMode,
         setNightMode,
         setDns,
+        setLteBands,
         dataLimitValue,
         dataLimitUnit,
         setDataLimit,

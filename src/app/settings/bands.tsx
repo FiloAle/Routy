@@ -6,7 +6,6 @@ import {
 	Platform,
 	ScrollView,
 	Text,
-	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
@@ -17,51 +16,85 @@ import { Colors } from "@/constants/Colors";
 import { globalStyles, Layout } from "@/styles/globalStyles";
 import { SectionLabel } from "@/components/SectionLabel";
 
-export default function DnsScreen() {
-	const { dataUsage, setDns } = useRouter();
+const SELECTABLE_BANDS = ["B1", "B3", "B7", "B8", "B20", "B28", "B32", "B38"];
+
+export default function BandsScreen() {
+	const { dataUsage, setLteBands } = useRouter();
+
+	const getDecodedBands = () => {
+		const hex = dataUsage?.lteBandLock || "";
+		// "0x20080800C5" represents AUTO. If empty or matching, we return auto and all bands.
+		if (!hex || hex.toUpperCase() === "0X20080800C5") {
+			return { mode: "auto" as const, bands: SELECTABLE_BANDS };
+		}
+		try {
+			const val = BigInt(hex);
+			const selected: string[] = [];
+			SELECTABLE_BANDS.forEach((b) => {
+				const bandNum = parseInt(b.replace("B", ""), 10);
+				const bit = 1n << BigInt(bandNum - 1);
+				if ((val & bit) !== 0n) {
+					selected.push(b);
+				}
+			});
+			// If somehow it successfully parsed 0 bands, fallback to auto
+			if (selected.length === 0) {
+				return { mode: "auto" as const, bands: SELECTABLE_BANDS };
+			}
+			return { mode: "manual" as const, bands: selected };
+		} catch (e) {
+			console.warn("Failed to decode bands:", hex, e);
+			return { mode: "auto" as const, bands: SELECTABLE_BANDS };
+		}
+	};
+
+	const decoded = getDecodedBands();
 
 	const [initialState, setInitialState] = useState({
-		mode: (dataUsage?.dnsMode as "auto" | "manual") || "auto",
-		preferDns: dataUsage?.preferDns || "",
-		standbyDns: dataUsage?.standbyDns || "",
+		mode: decoded.mode,
+		bands: decoded.bands,
 	});
 
 	const [mode, setMode] = useState<"auto" | "manual">(initialState.mode);
-	const [preferDns, setPreferDns] = useState(initialState.preferDns);
-	const [standbyDns, setStandbyDns] = useState(initialState.standbyDns);
+	const [selectedBands, setSelectedBands] = useState<string[]>(initialState.bands);
 	const [isSaving, setIsSaving] = useState(false);
 
-	const hasChanges =
-		mode !== initialState.mode ||
-		(mode === "manual" &&
-			(preferDns !== initialState.preferDns || standbyDns !== initialState.standbyDns));
+	const hasChanges = (() => {
+		if (mode !== initialState.mode) return true;
+		if (mode === "manual") {
+			const s1 = [...selectedBands].sort();
+			const s2 = [...initialState.bands].sort();
+			return JSON.stringify(s1) !== JSON.stringify(s2);
+		}
+		return false;
+	})();
+
+	const handleToggleBand = (band: string) => {
+		if (selectedBands.includes(band)) {
+			setSelectedBands(selectedBands.filter((b) => b !== band));
+		} else {
+			setSelectedBands([...selectedBands, band]);
+		}
+	};
 
 	const handleSave = async () => {
 		if (!hasChanges) return;
 
-		if (mode === "manual" && !preferDns.trim()) {
-			Alert.alert(t("settings.attention"), t("settings.dns_error_msg"));
+		if (mode === "manual" && selectedBands.length === 0) {
+			Alert.alert(t("settings.attention"), t("settings.bands_empty_error_msg"));
 			return;
 		}
 
 		setIsSaving(true);
 		try {
-			// If mode is auto, we pass "auto" to api, and the api handles setting the dns.
-			// ZTE Router usually expects "auto" to set auto and can ignore secondary values,
-			// but we pass them clean or as empty.
-			await setDns(
-				mode,
-				mode === "manual" ? preferDns.trim() : "",
-				mode === "manual" ? standbyDns.trim() : "",
-			);
-			Alert.alert(t("settings.saved_title"), t("settings.dns_success_msg"));
+			await setLteBands(mode, mode === "manual" ? selectedBands : SELECTABLE_BANDS);
+			Alert.alert(t("settings.saved_title"), t("settings.bands_success_msg"));
 			setInitialState({
 				mode: mode,
-				preferDns: mode === "manual" ? preferDns.trim() : "",
-				standbyDns: mode === "manual" ? standbyDns.trim() : "",
+				bands: mode === "manual" ? selectedBands : SELECTABLE_BANDS,
 			});
 		} catch (error) {
-			Alert.alert(t("settings.attention"), t("settings.dns_error_msg"));
+			Alert.alert(t("settings.attention"), t("settings.bands_error_msg"));
 		} finally {
 			setIsSaving(false);
 		}
@@ -71,7 +104,7 @@ export default function DnsScreen() {
 		<View style={globalStyles.container}>
 			<Stack.Screen
 				options={{
-					title: t("settings.config_dns"),
+					title: t("settings.config_bands"),
 					headerLargeTitle: false,
 					headerTransparent: true,
 					headerShadowVisible: false,
@@ -115,14 +148,14 @@ export default function DnsScreen() {
 				]}
 			>
 				<View style={[globalStyles.section, globalStyles.firstSection]}>
-					<SectionLabel>{t("settings.dns_mode")}</SectionLabel>
+					<SectionLabel>{t("settings.bands_mode")}</SectionLabel>
 					<View style={globalStyles.card}>
 						<TouchableOpacity
 							style={globalStyles.field}
 							onPress={() => setMode("auto")}
 						>
 							<Text style={globalStyles.fieldLabel}>
-								{t("settings.dns_automatic")}
+								{t("settings.bands_automatic")}
 							</Text>
 							{mode === "auto" && (
 								<Check
@@ -139,7 +172,7 @@ export default function DnsScreen() {
 							onPress={() => setMode("manual")}
 						>
 							<Text style={globalStyles.fieldLabel}>
-								{t("settings.dns_manual")}
+								{t("settings.bands_manual")}
 							</Text>
 							{mode === "manual" && (
 								<Check
@@ -154,55 +187,30 @@ export default function DnsScreen() {
 				</View>
 
 				<View style={globalStyles.section}>
-					<SectionLabel>{t("settings.dns_server")}</SectionLabel>
+					<SectionLabel>{t("settings.bands_list")}</SectionLabel>
 					<View
 						style={[globalStyles.card, mode === "auto" && { opacity: 0.5 }]}
 					>
-						<View style={globalStyles.field}>
-							<Text style={globalStyles.fieldLabel}>
-								{t("settings.dns_primary")}
-							</Text>
-							<TextInput
-								style={[
-									globalStyles.fieldInput,
-									{
-										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
-									},
-								]}
-								value={preferDns}
-								onChangeText={(text) => setPreferDns(text.replace(/,/g, "."))}
-								editable={mode === "manual"}
-								placeholder="1.1.1.1"
-								placeholderTextColor={Colors.routyGray}
-								keyboardType={Platform.OS === "ios" ? "numbers-and-punctuation" : "numeric"}
-								autoCapitalize="none"
-								autoCorrect={false}
-							/>
-						</View>
-						<View style={globalStyles.divider} />
-						<View style={globalStyles.field}>
-							<Text style={globalStyles.fieldLabel}>
-								{t("settings.dns_secondary")}
-							</Text>
-							<TextInput
-								style={[
-									globalStyles.fieldInput,
-									{
-										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
-									},
-								]}
-								value={standbyDns}
-								onChangeText={(text) => setStandbyDns(text.replace(/,/g, "."))}
-								editable={mode === "manual"}
-								placeholder="1.0.0.1"
-								placeholderTextColor={Colors.routyGray}
-								keyboardType={Platform.OS === "ios" ? "numbers-and-punctuation" : "numeric"}
-								autoCapitalize="none"
-								autoCorrect={false}
-							/>
-						</View>
+						{SELECTABLE_BANDS.map((band, idx) => (
+							<React.Fragment key={band}>
+								{idx > 0 && <View style={globalStyles.divider} />}
+								<TouchableOpacity
+									style={globalStyles.field}
+									onPress={() => handleToggleBand(band)}
+									disabled={mode === "auto"}
+								>
+									<Text style={globalStyles.fieldLabel}>{band}</Text>
+									{selectedBands.includes(band) && (
+										<Check
+											width={20}
+											height={20}
+											strokeWidth={2.5}
+											color={Colors.routyBlue}
+										/>
+									)}
+								</TouchableOpacity>
+							</React.Fragment>
+						))}
 					</View>
 				</View>
 			</ScrollView>

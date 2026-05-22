@@ -1,71 +1,81 @@
 {
-	"expo": {
-		"name": "Routy",
-		"slug": "Routy",
-		"version": "1.0.0",
-		"orientation": "portrait",
-		"icon": "./assets/images/icon.png",
-		"scheme": "routy",
-		"userInterfaceStyle": "automatic",
-		"splash": {
-			"image": "./assets/images/splash-icon.png",
-			"resizeMode": "contain",
-			"backgroundColor": "#208AEF"
-		},
-		"ios": {
-			"icon": "./assets/routy.icon",
-			"bundleIdentifier": "com.filippoalessandrini.routy",
-			"infoPlist": {
-				"CFBundleAllowMixedLocalizations": true,
-				"NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
-				"NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
-				"UIBackgroundModes": ["processing", "fetch"],
-				"BGTaskSchedulerPermittedIdentifiers": [
-					"com.expo.modules.backgroundtask.processing"
-				]
-			}
-		},
-		"locales": {
-			"en": "./src/i18n/locales/en-native.json",
-			"it": "./src/i18n/locales/it-native.json"
-		},
-		"plugins": [
-			"expo-router",
-			"expo-background-task",
-			"expo-task-manager",
-			"./withRemovePushEntitlement",
-			[
-				"expo-notifications",
-				{
-					"icon": "./assets/images/icon.png",
-					"color": "#208AEF"
-				}
-			],
-			[
-				"expo-contacts",
-				{
-					"contactsPermission": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
-				}
-			],
-			[
-				"expo-splash-screen",
-				{
-					"backgroundColor": "#208AEF",
-					"image": "./assets/images/splash-icon.png",
-					"imageWidth": 240
-				}
-			]
-		],
-		"experiments": {
-			"typedRoutes": true,
-			"reactCompiler": true
-		},
-		"android": {
-			"permissions": [
-				"android.permission.READ_CONTACTS",
-				"android.permission.WRITE_CONTACTS"
-			],
-			"package": "com.filippoalessandrini.routy"
-		}
-	}
+  "expo": {
+    "name": "Routy",
+    "slug": "Routy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "routy",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#208AEF"
+    },
+    "ios": {
+      "icon": "./assets/routy.icon",
+      "bundleIdentifier": "com.filippoalessandrini.routy",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "NSContactsUsageDescription": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono.",
+        "NSLocalNetworkUsageDescription": "Routy si connette al router ZTE sulla rete locale per leggere e inviare SMS.",
+        "UIBackgroundModes": [
+          "processing",
+          "fetch"
+        ],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "com.expo.modules.backgroundtask.processing"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "locales": {
+      "en": "./src/i18n/locales/en-native.json",
+      "it": "./src/i18n/locales/it-native.json"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-background-task",
+      "expo-task-manager",
+      "./withRemovePushEntitlement",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#208AEF"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 240
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "android": {
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS"
+      ],
+      "package": "com.filippoalessandrini.routy"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1c3e9b72-cdfa-4f04-87b2-45bf77ceedac"
+      }
+    }
+  }
 }
