@@ -48,12 +48,12 @@ export class RouterApi {
 	private cookies: string = "";
 	private baseUrl: string;
 
-	constructor(baseUrl: string) {
+	constructor(baseUrl: string, timeoutMs: number = 10000) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
 		this.client = axios.create({
 			baseURL: this.baseUrl,
-			timeout: 10000,
+			timeout: timeoutMs,
 			headers: {
 				Referer: `${this.baseUrl}index.html#management/software_update.html`,
 				"X-Requested-With": "XMLHttpRequest",

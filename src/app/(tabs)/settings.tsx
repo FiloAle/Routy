@@ -100,13 +100,13 @@ export default function SettingsScreen() {
 		}
 		setIsSaving(true);
 		await saveSettings(url, passwordInput.trim());
-		await login();
+		const success = await login(passwordInput.trim());
 		setIsSaving(false);
 		Alert.alert(
-			authStatus === "logged_in"
+			success
 				? t("settings.login_success_title")
 				: t("settings.saved_title"),
-			authStatus === "logged_in"
+			success
 				? t("settings.login_success_msg")
 				: t("settings.saved_msg"),
 		);

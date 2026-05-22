@@ -421,7 +421,7 @@ export default function MessagesScreen() {
 				<Text style={messageStyles.errorIcon}>⚠️</Text>
 				<Text style={messageStyles.errorText}>{displayError}</Text>
 				<Text style={messageStyles.errorHint}>{t("settings.error_hint")}</Text>
-				<Pressable style={messageStyles.retryButton} onPress={login}>
+				<Pressable style={messageStyles.retryButton} onPress={() => { login(); }}>
 					<Text style={messageStyles.retryButtonText}>
 						{t("settings.retry")}
 					</Text>

@@ -12,7 +12,6 @@ export default function TabsLayout() {
 	const { conversations } = useRouter();
 
 	const hasUnread = conversations.some((c) => c.unreadCount > 0);
-	const messageIcon = hasUnread ? "message.badge.filled.fill" : "message.fill";
 
 	return (
 		<NativeTabs backgroundColor={bg} tintColor={Colors.routyBlue}>
@@ -25,7 +24,19 @@ export default function TabsLayout() {
 				<NativeTabs.Trigger.Label>
 					{t("tabs.messages")}
 				</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf={messageIcon} md="message" />
+				<NativeTabs.Trigger.Icon
+					sf={
+						hasUnread
+							? {
+									default:
+										"message.badge.filled.fill:palette(#208AEF,#FFFFFF)" as any,
+									selected:
+										"message.badge.filled.fill:palette(#208AEF,#208AEF)" as any,
+								}
+							: "message.fill"
+					}
+					md="message"
+				/>
 			</NativeTabs.Trigger>
 
 			<NativeTabs.Trigger name="settings">

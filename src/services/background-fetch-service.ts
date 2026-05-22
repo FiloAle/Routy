@@ -25,10 +25,10 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     if (!savedUrl || !savedPw) {
       console.log('[BackgroundTask] Missing credentials, skipping.');
-      return;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
-    const api = new RouterApi(savedUrl);
+    const api = new RouterApi(savedUrl, 4000);
     await api.login(savedPw);
     
     // Fetch latest conversations
@@ -48,7 +48,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     if (newMessages.length === 0) {
       console.log('[BackgroundTask] No new messages found.');
-      return;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
     console.log(`[BackgroundTask] Found ${newMessages.length} new messages!`);
@@ -74,8 +74,10 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     // Save updated known IDs
     await AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIds)));
+    return BackgroundTask.BackgroundTaskResult.Success;
   } catch (error) {
     console.error('[BackgroundTask] Task failed:', error);
+    return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
 

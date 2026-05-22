@@ -62,7 +62,7 @@ interface RouterContextValue {
   setDataLimit: (value: string, unit: "GB" | "TB") => Promise<void>;
 
   saveSettings: (url: string, pw: string) => Promise<void>;
-  login: () => Promise<void>;
+  login: (customPassword?: string) => Promise<boolean>;
   loadSms: () => Promise<void>;
   loadDataUsage: () => Promise<void>;
   loadDevices: () => Promise<void>;
@@ -340,6 +340,18 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   // Auto-retry login when app returns to the foreground and is in error/idle state
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        try {
+          const knownRaw = await AsyncStorage.getItem(STORAGE_KEY_KNOWN_IDS);
+          if (knownRaw) {
+            const ids = JSON.parse(knownRaw);
+            knownIdsRef.current = new Set(Array.isArray(ids) ? ids : []);
+          }
+        } catch (e) {
+          console.warn('[RouterContext] Failed to reload knownIds on foreground:', e);
+        }
+      }
+
       if (nextAppState === 'active' && (authStatus === 'error' || authStatus === 'idle') && password) {
         console.log('[RouterContext] App foregrounded, retrying login...');
         setAuthStatus('loading');
@@ -380,20 +392,24 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     [stopPolling]
   );
 
-  const login = useCallback(async () => {
-    if (!password) {
+  const login = useCallback(async (customPassword?: string): Promise<boolean> => {
+    const pwToUse = customPassword ?? password;
+    if (!pwToUse) {
       setAuthError(t('settings.error_pw'));
       setAuthStatus('error');
-      return;
+      return false;
     }
     setAuthStatus('loading');
     setAuthError(null);
     try {
-      await apiRef.current.login(password);
+      await apiRef.current.login(pwToUse);
       setAuthStatus('logged_in');
+      lastLoginRef.current = Date.now();
+      return true;
     } catch (e: any) {
       setAuthStatus('error');
       setAuthError(e?.message ?? t('settings.error_conn'));
+      return false;
     }
   }, [password]);
 
