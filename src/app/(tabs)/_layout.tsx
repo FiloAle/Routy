@@ -31,7 +31,7 @@ export default function TabsLayout() {
 									default:
 										"message.badge.filled.fill:palette(#208AEF,#FFFFFF)" as any,
 									selected:
-										"message.badge.filled.fill:palette(#208AEF,#208AEF)" as any,
+										"message.badge.filled.fill:palette(#FFFFFF,#208AEF)" as any,
 								}
 							: "message.fill"
 					}

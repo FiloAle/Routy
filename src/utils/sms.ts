@@ -115,7 +115,7 @@ export function groupByConversation(
 
 	for (const raw of rawMessages) {
 		const number = decodeZTE(raw.number) || raw.number;
-		const content = decodeZTE(raw.content);
+		const content = decodeZTE(raw.content).trim();
 		const date = parseZteDate(raw.date);
 
 		// Force tag '0' (read) if ID is in our local readIds set
