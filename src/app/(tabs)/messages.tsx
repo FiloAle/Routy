@@ -1,9 +1,10 @@
 import { MessageInputBar } from "@/components/MessageInputBar";
+import { ComposeButton } from "@/components/ComposeButton";
 import { contactsService } from "@/services/contacts-service";
-import { GlassView } from "expo-glass-effect";
+import { NativeGlassView as GlassView } from "@/components/NativeGlassView";
+import { CloseButton } from "@/components/CloseButton";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter as useExpoRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { NavArrowRight, Trash } from "iconoir-react-native";
 import React, { useCallback, useEffect } from "react";
 import {
@@ -135,11 +136,11 @@ function ConversationRow({
 			const width =
 				drag > threshold
 					? interpolate(
-						drag,
-						[threshold, threshold + 40],
-						[50, threshold + 40 - 24],
-						Extrapolation.CLAMP,
-					) + (drag > threshold + 40 ? drag - (threshold + 40) : 0)
+							drag,
+							[threshold, threshold + 40],
+							[50, threshold + 40 - 24],
+							Extrapolation.CLAMP,
+						) + (drag > threshold + 40 ? drag - (threshold + 40) : 0)
 					: 50;
 
 			return {
@@ -413,7 +414,9 @@ export default function MessagesScreen() {
 	}
 
 	if (authStatus === "error") {
-		const isTimeout = authError?.toLowerCase().includes("timeout") || authError?.toLowerCase().includes("10000ms");
+		const isTimeout =
+			authError?.toLowerCase().includes("timeout") ||
+			authError?.toLowerCase().includes("10000ms");
 		const displayError = isTimeout ? t("settings.error_timeout") : authError;
 
 		return (
@@ -421,7 +424,12 @@ export default function MessagesScreen() {
 				<Text style={messageStyles.errorIcon}>⚠️</Text>
 				<Text style={messageStyles.errorText}>{displayError}</Text>
 				<Text style={messageStyles.errorHint}>{t("settings.error_hint")}</Text>
-				<Pressable style={messageStyles.retryButton} onPress={() => { login(); }}>
+				<Pressable
+					style={messageStyles.retryButton}
+					onPress={() => {
+						login();
+					}}
+				>
 					<Text style={messageStyles.retryButtonText}>
 						{t("settings.retry")}
 					</Text>
@@ -450,23 +458,7 @@ export default function MessagesScreen() {
 				]}
 			>
 				<Text style={messageStyles.headerTitle}>{t("messages.title")}</Text>
-				<TouchableOpacity
-					onPress={() => setIsModalVisible(true)}
-					activeOpacity={0.7}
-				>
-					<GlassView
-						style={messageStyles.composeButton}
-						glassEffectStyle="regular"
-					>
-						<SymbolView
-							name="square.and.pencil"
-							size={24}
-							tintColor={Colors.routyWhite}
-							weight="regular"
-							style={messageStyles.headerComposeIcon}
-						/>
-					</GlassView>
-				</TouchableOpacity>
+				<ComposeButton onPress={() => setIsModalVisible(true)} />
 			</Animated.View>
 
 			{isLoadingSms && conversations.length === 0 ? (
@@ -524,23 +516,7 @@ export default function MessagesScreen() {
 				<View style={messageStyles.modalContainer}>
 					<View style={messageStyles.modalHeader}>
 						<Text style={messageStyles.modalTitle}>{t("messages.new")}</Text>
-						<TouchableOpacity
-							style={messageStyles.closeButtonContainer}
-							onPress={() => setIsModalVisible(false)}
-							activeOpacity={0.7}
-						>
-							<GlassView
-								style={messageStyles.closeButton}
-								glassEffectStyle="regular"
-							>
-								<SymbolView
-									name="xmark"
-									size={24}
-									tintColor={Colors.routyWhite}
-									weight="regular"
-								/>
-							</GlassView>
-						</TouchableOpacity>
+						<CloseButton onPress={() => setIsModalVisible(false)} />
 					</View>
 
 					<GlassView

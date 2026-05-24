@@ -1,14 +1,7 @@
 import React from "react";
-import {
-	Platform,
-	StyleSheet,
-	TextInput,
-	TouchableOpacity,
-	View,
-	ViewStyle,
-} from "react-native";
-import { GlassView } from "expo-glass-effect";
-import { SymbolView } from "expo-symbols";
+import { Platform, StyleSheet, TextInput, View, ViewStyle } from "react-native";
+import { NativeGlassView } from "./NativeGlassView";
+import { SendButton } from "./SendButton";
 import Reanimated, {
 	useAnimatedStyle,
 	withTiming,
@@ -19,7 +12,7 @@ import { t } from "@/i18n";
 import { Colors } from "../constants/Colors";
 import { Layout } from "../styles/globalStyles";
 
-const AnimatedGlassView = Reanimated.createAnimatedComponent(GlassView);
+const AnimatedGlassView = Reanimated.createAnimatedComponent(NativeGlassView);
 
 interface MessageInputBarProps {
 	value: string;
@@ -106,29 +99,7 @@ export function MessageInputBar({
 					},
 				]}
 			>
-				<TouchableOpacity
-					onPress={onSend}
-					disabled={disabled || isSending}
-					activeOpacity={0.7}
-				>
-					<View
-						style={[
-							styles.sendButton,
-							(disabled || isSending) && { opacity: 0.5 },
-						]}
-					>
-						<AnimatedGlassView
-							style={StyleSheet.absoluteFill}
-							glassEffectStyle="regular"
-						/>
-						<SymbolView
-							name="arrow.up"
-							size={18}
-							tintColor={Colors.routyWhite}
-							weight="bold"
-						/>
-					</View>
-				</TouchableOpacity>
+				<SendButton onPress={onSend} disabled={disabled || isSending} />
 			</Reanimated.View>
 		</View>
 	);
