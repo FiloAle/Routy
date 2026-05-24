@@ -2,13 +2,12 @@ import React from "react";
 import {
 	ActivityIndicator,
 	Pressable,
-	StyleSheet,
 	Text,
 	ViewStyle,
 } from "react-native";
 
 import { Colors } from "../constants/Colors";
-import { Layout } from "../styles/globalStyles";
+import { primaryButtonStyles as styles } from "../styles/primaryButtonStyles";
 
 interface PrimaryButtonProps {
 	label: string;
@@ -47,20 +46,3 @@ export function PrimaryButton({
 	);
 }
 
-const styles = StyleSheet.create({
-	button: {
-		borderRadius: Layout.borderRadius + 4,
-		paddingVertical: 14,
-		alignItems: "center",
-		justifyContent: "center",
-		minHeight: 50,
-	},
-	buttonDisabled: {
-		opacity: 0.6,
-	},
-	buttonText: {
-		color: Colors.routyWhite,
-		fontSize: 16,
-		fontWeight: "600",
-	},
-});

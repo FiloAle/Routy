@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, StyleSheet, TextInput, View, ViewStyle } from "react-native";
+import { Platform, TextInput, View, ViewStyle } from "react-native";
 import { NativeGlassView } from "./NativeGlassView";
 import { SendButton } from "./SendButton";
 import Reanimated, {
@@ -10,7 +10,7 @@ import Reanimated, {
 import { t } from "@/i18n";
 
 import { Colors } from "../constants/Colors";
-import { Layout } from "../styles/globalStyles";
+import { messageInputBarStyles as styles } from "../styles/messageInputBarStyles";
 
 const AnimatedGlassView = Reanimated.createAnimatedComponent(NativeGlassView);
 
@@ -105,38 +105,3 @@ export function MessageInputBar({
 	);
 }
 
-const styles = StyleSheet.create({
-	inputBar: {
-		flexDirection: "row",
-		alignItems: "flex-end",
-		paddingHorizontal: 16,
-		backgroundColor: "transparent",
-		marginBottom: 12,
-		paddingTop: 12,
-	},
-	inputGlass: {
-		flex: 1,
-		borderRadius: Layout.borderRadius + 10, // Keeping this more rounded as it's a pill shape
-		overflow: "hidden",
-	},
-	input: {
-		minHeight: 40,
-		maxHeight: 120,
-		paddingHorizontal: 16,
-		paddingTop: 10,
-		paddingBottom: 10,
-		color: Colors.routyWhite,
-		fontSize: 16,
-	},
-	sendButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: Colors.routyBlue,
-		justifyContent: "center",
-		alignItems: "center",
-		overflow: "hidden",
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.15)",
-	},
-});
