@@ -14,6 +14,8 @@ export const globalStyles = StyleSheet.create({
 	scroll: {
 		paddingHorizontal: 16,
 		paddingBottom: 100,
+		// Clears the header. Padding rather than contentInset: React Native 0.86
+		// resets the inset of recycled ScrollViews without re-applying it.
 		paddingTop: Layout.headerOffset,
 		gap: 28,
 	},

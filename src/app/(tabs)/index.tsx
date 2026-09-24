@@ -6,7 +6,6 @@ import {
 	Alert,
 	Animated,
 	Linking,
-	Platform,
 	RefreshControl,
 	Text,
 	TouchableOpacity,
@@ -157,7 +156,7 @@ export default function HomeScreen() {
 	const scrollY = React.useRef(new Animated.Value(0)).current;
 
 	const titleOpacity = scrollY.interpolate({
-		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
+		inputRange: [0, 40],
 		outputRange: [1, 0],
 		extrapolate: "clamp",
 	});
@@ -186,20 +185,18 @@ export default function HomeScreen() {
 			<Animated.ScrollView
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "ios" ? 0 : 112 },
 				]}
 				onScroll={Animated.event(
 					[{ nativeEvent: { contentOffset: { y: scrollY } } }],
 					{ useNativeDriver: true },
 				)}
 				scrollEventThrottle={16}
-				contentInset={{ top: 112 }}
-				contentOffset={{ x: 0, y: -112 }}
 				refreshControl={
 					<RefreshControl
 						refreshing={isLoadingData}
 						onRefresh={loadDataUsage}
 						tintColor={Colors.routyGray}
+						progressViewOffset={112}
 					/>
 				}
 			>

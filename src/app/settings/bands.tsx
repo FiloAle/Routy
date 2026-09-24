@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	Platform,
 	ScrollView,
 	Text,
 	TouchableOpacity,
@@ -139,11 +138,8 @@ export default function BandsScreen() {
 
 			<ScrollView
 				showsVerticalScrollIndicator={false}
-				contentInset={{ top: Layout.headerOffset }}
-				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
 					globalStyles.scrollNoTab,
 				]}
 			>

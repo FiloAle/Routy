@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import React from "react";
-import { FlatList, Text, View, RefreshControl, Platform } from "react-native";
+import { FlatList, Text, View, RefreshControl } from "react-native";
 import { AppleImac2021, Wifi, WifiOff } from "iconoir-react-native";
 import { deviceStyles } from "@/styles/deviceStyles";
 import { useRouter } from "@/context/router-context";
@@ -87,11 +87,8 @@ export default function DevicesScreen() {
 				showsVerticalScrollIndicator={false}
 				data={[]}
 				renderItem={null}
-				contentInset={{ top: Layout.headerOffset }}
-				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
 					globalStyles.scrollNoTab,
 				]}
 				ListHeaderComponent={() => (
@@ -121,6 +118,7 @@ export default function DevicesScreen() {
 						refreshing={isLoadingDevices}
 						onRefresh={loadDevices}
 						tintColor={Colors.routyGray}
+						progressViewOffset={Layout.headerOffset}
 					/>
 				}
 				ListEmptyComponent={
