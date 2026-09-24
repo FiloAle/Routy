@@ -108,8 +108,8 @@
 	"common": {
 		"error": "Errore",
 		"info": "Info",
-		"today": "Oggi",
-		"yesterday": "Ieri",
+		"today": "oggi",
+		"yesterday": "ieri",
 		"copied": "Copiato",
 		"copied_link": "Link copiato negli appunti."
 	}
