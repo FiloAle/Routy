@@ -61,6 +61,7 @@ import Reanimated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/Colors";
+import { scrollTopInset } from "../../../modules/routy-ui-modifiers";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { Layout } from "@/styles/globalStyles";
@@ -265,31 +266,26 @@ export default function MessagesScreen() {
 
 	// ── Render ────────────────────────────────────────────────────────────────
 
-	// The SwiftUI List respects the top safe area; pad the rest so the first row
+	// The SwiftUI List respects the top safe area; inset the rest so the first row
 	// starts below the header, as the FlatList `contentInset` did.
 	const { top: safeAreaTop } = useSafeAreaInsets();
 	const listTopSpacing = Layout.headerOffset - safeAreaTop;
 
 	// Scroll distance from the resting position: > 0 scrolling up, < 0 pulling to refresh.
-	// At rest SwiftUI reports `contentOffsetY === -safeAreaTop` (the list's top content inset).
+	// At rest SwiftUI reports `contentOffsetY === -(safe area + top inset)`, i.e. -headerOffset.
 	const scrollDelta = useSharedValue(0);
 	const scrollGeometryModifier = useScrollGeometryChange((geometry) => {
 		"worklet";
-		scrollDelta.value = geometry.contentOffsetY + safeAreaTop;
+		scrollDelta.value = geometry.contentOffsetY + Layout.headerOffset;
 	});
 
 	const headerAnimatedStyle = useAnimatedStyle(() => {
 		const delta = scrollDelta.value;
 		return {
 			opacity: interpolate(delta, [0, 40], [1, 0], Extrapolation.CLAMP),
+			// Stays put while pulling to refresh; the spinner appears below it.
 			transform: [
-				{
-					// While pulling, move with the content so the refresh spinner shows above the title.
-					translateY:
-						delta < 0
-							? -delta
-							: interpolate(delta, [0, 40], [0, -10], Extrapolation.CLAMP),
-				},
+				{ translateY: interpolate(delta, [0, 40], [0, -10], Extrapolation.CLAMP) },
 			],
 		};
 	});
@@ -440,17 +436,11 @@ export default function MessagesScreen() {
 							scrollContentBackground("hidden"),
 							scrollIndicators("hidden"),
 							refreshable(handleRefresh),
+							// Content starts below the header but still scrolls under it.
+							scrollTopInset(listTopSpacing),
 							...(scrollGeometryModifier ? [scrollGeometryModifier] : []),
 						]}
 					>
-						<Spacer
-							modifiers={[
-								frame({ height: listTopSpacing }),
-								listRowInsets({ top: 0, bottom: 0, leading: 0, trailing: 0 }),
-								rowBackground,
-								listRowSeparator("hidden"),
-							]}
-						/>
 
 						{conversations.length === 0 ? (
 							<HStack
