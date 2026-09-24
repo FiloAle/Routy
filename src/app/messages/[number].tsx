@@ -60,9 +60,11 @@ function DaySeparator({ date }: { date: Date }) {
 function MessageBubble({
 	message,
 	showDay,
+	startsGroup,
 }: {
 	message: SmsMessage;
 	showDay: boolean;
+	startsGroup: boolean;
 }) {
 	return (
 		<>
@@ -71,6 +73,7 @@ function MessageBubble({
 				style={[
 					messageStyles.bubbleRow,
 					message.isSent && messageStyles.bubbleRowSent,
+					startsGroup && messageStyles.bubbleRowGroupStart,
 				]}
 			>
 				<View
@@ -160,6 +163,13 @@ export default function ChatScreen() {
 		return !isSameCalendarDay(prev.date, curr.date);
 	};
 
+	// Extra space when the sender changes; consecutive messages stay tight.
+	const startsGroup = (index: number) => {
+		const prev = messages[index - 1];
+		const curr = messages[index];
+		return !!prev && !!curr && prev.isSent !== curr.isSent && !shouldShowDay(index);
+	};
+
 	return (
 		<View style={messageStyles.container}>
 			<Stack.Screen
@@ -181,7 +191,11 @@ export default function ChatScreen() {
 					data={messages}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item, index }) => (
-						<MessageBubble message={item} showDay={shouldShowDay(index)} />
+						<MessageBubble
+							message={item}
+							showDay={shouldShowDay(index)}
+							startsGroup={startsGroup(index)}
+						/>
 					)}
 					contentContainerStyle={messageStyles.listContent}
 					onContentSizeChange={(w, h) => {

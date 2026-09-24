@@ -196,6 +196,9 @@ export const messageStyles = StyleSheet.create({
 	bubbleRowSent: {
 		justifyContent: "flex-end",
 	},
+	bubbleRowGroupStart: {
+		marginTop: 8,
+	},
 	bubble: {
 		maxWidth: "75%",
 		paddingHorizontal: 14,
