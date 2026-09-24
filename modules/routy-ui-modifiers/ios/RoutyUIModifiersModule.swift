@@ -15,6 +15,14 @@ internal struct ScrollTopInsetModifier: ViewModifier, Record {
   }
 }
 
+/// Keeps text as written: grouped list section headers are uppercased by default,
+/// and @expo/ui's textCase modifier can't reset it to nil.
+internal struct TextCaseNoneModifier: ViewModifier, Record {
+  func body(content: Content) -> some View {
+    content.textCase(nil)
+  }
+}
+
 public class RoutyUIModifiersModule: Module {
   public func definition() -> ModuleDefinition {
     Name("RoutyUIModifiers")
@@ -23,10 +31,14 @@ public class RoutyUIModifiersModule: Module {
       ViewModifierRegistry.register("routyScrollTopInset") { params, appContext, _ in
         return try ScrollTopInsetModifier(from: params, appContext: appContext)
       }
+      ViewModifierRegistry.register("routyTextCaseNone") { params, appContext, _ in
+        return try TextCaseNoneModifier(from: params, appContext: appContext)
+      }
     }
 
     OnDestroy {
       ViewModifierRegistry.unregister("routyScrollTopInset")
+      ViewModifierRegistry.unregister("routyTextCaseNone")
     }
   }
 }

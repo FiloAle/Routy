@@ -7,3 +7,6 @@ requireNativeModule("RoutyUIModifiers");
 /** Insets a SwiftUI scroll view's content from the top; see ScrollTopInsetModifier. */
 export const scrollTopInset = (top: number) =>
 	createModifier("routyScrollTopInset", { top });
+
+/** Shows text as written, e.g. in grouped list section headers; see TextCaseNoneModifier. */
+export const textCaseNone = () => createModifier("routyTextCaseNone");

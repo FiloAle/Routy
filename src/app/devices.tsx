@@ -1,75 +1,104 @@
 import { Stack } from "expo-router";
 import React from "react";
-import { FlatList, Text, View, RefreshControl } from "react-native";
-import { AppleImac2021, Wifi, WifiOff } from "iconoir-react-native";
-import { deviceStyles } from "@/styles/deviceStyles";
+import { View } from "react-native";
+import {
+	HStack,
+	Host,
+	Image,
+	List,
+	RoundedRectangle,
+	Section,
+	Spacer,
+	Text as SwiftText,
+	VStack,
+	ZStack,
+} from "@expo/ui/swift-ui";
+import {
+	font,
+	foregroundStyle,
+	frame,
+	lineLimit,
+	listRowBackground,
+	listRowInsets,
+	listSectionSpacing,
+	listStyle,
+	offset,
+	padding,
+	refreshable,
+	scrollContentBackground,
+} from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors, useThemePalette } from "@/constants/Colors";
-import { globalStyles, Layout } from "@/styles/globalStyles";
-import { SectionLabel } from "@/components/SectionLabel";
+import { useThemePalette } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
+import { Device } from "@/services/router-api";
+import { textCaseNone } from "../../modules/routy-ui-modifiers";
+
+type Palette = ReturnType<typeof useThemePalette>;
+
+const isDisconnected = (device: Device) => !device.ip || device.ip === "-";
+
+function DeviceRow({
+	device,
+	palette,
+	modifiers,
+}: {
+	device: Device;
+	palette: Palette;
+	modifiers: React.ComponentProps<typeof HStack>["modifiers"];
+}) {
+	const disconnected = isDisconnected(device);
+	const color = disconnected ? palette.secondaryText : palette.text;
+	const symbol = disconnected
+		? "wifi.slash"
+		: device.type === "cable"
+			? "desktopcomputer"
+			: "wifi";
+
+	return (
+		<HStack spacing={12} modifiers={modifiers}>
+			<ZStack modifiers={[frame({ width: 40, height: 40 })]}>
+				<RoundedRectangle
+					cornerRadius={10}
+					modifiers={[foregroundStyle(palette.fill)]}
+				/>
+				<Image systemName={symbol} color={color} modifiers={[font({ size: 18 })]} />
+			</ZStack>
+			<VStack alignment="leading" spacing={2}>
+				<SwiftText
+					modifiers={[
+						font({ size: 17, weight: "semibold" }),
+						foregroundStyle(color),
+						lineLimit(1),
+					]}
+				>
+					{device.hostname}
+				</SwiftText>
+				<SwiftText
+					modifiers={[font({ size: 13 }), foregroundStyle(palette.secondaryText)]}
+				>
+					{disconnected ? device.mac : `${device.ip} • ${device.mac}`}
+				</SwiftText>
+			</VStack>
+			<Spacer />
+		</HStack>
+	);
+}
 
 export default function DevicesScreen() {
 	const palette = useThemePalette();
 	const { devices, isLoadingDevices, loadDevices } = useRouter();
 
-	const connectedDevices = devices.filter((d) => d.ip && d.ip !== "-");
-	const knownDevices = devices.filter((d) => !d.ip || d.ip === "-");
+	const groups = [
+		{ title: t("devices.connected"), data: devices.filter((d) => !isDisconnected(d)) },
+		{ title: t("devices.disconnected"), data: devices.filter(isDisconnected) },
+	].filter((g) => g.data.length > 0);
 
-	const renderDevice = ({ item }: { item: any }) => {
-		const isDisconnected = !item.ip || item.ip === "-";
-		const color = isDisconnected ? palette.secondaryText : palette.text;
-		const strokeWidth = 1.5;
-
-		return (
-			<View style={deviceStyles.deviceItem}>
-				<View style={deviceStyles.iconContainer}>
-					{isDisconnected ? (
-						<WifiOff
-							width={22}
-							height={22}
-							strokeWidth={strokeWidth}
-							color={color}
-						/>
-					) : item.type === "cable" ? (
-						<AppleImac2021
-							width={22}
-							height={22}
-							strokeWidth={strokeWidth}
-							color={color}
-						/>
-					) : (
-						<Wifi
-							width={22}
-							height={22}
-							strokeWidth={strokeWidth}
-							color={color}
-						/>
-					)}
-				</View>
-				<View style={deviceStyles.deviceInfo}>
-					<Text
-						style={[
-							deviceStyles.hostname,
-							isDisconnected && { color: Colors.routyGray },
-						]}
-						numberOfLines={1}
-					>
-						{item.hostname}
-					</Text>
-					<Text style={deviceStyles.ip}>
-						{item.ip && item.ip !== "-" ? `${item.ip} • ` : ""}
-						{item.mac}
-					</Text>
-				</View>
-			</View>
-		);
-	};
-
-	const sections = [
-		{ title: t("devices.connected"), data: connectedDevices },
-		{ title: t("devices.disconnected"), data: knownDevices },
-	].filter((s) => s.data.length > 0);
+	// Each device is its own inset-grouped section, so the system draws it as a separate card.
+	const cardModifiers = [
+		listRowInsets({ top: 16, bottom: 16, leading: 16, trailing: 16 }),
+		listRowBackground(palette.card),
+	];
 
 	return (
 		<View style={globalStyles.container}>
@@ -84,52 +113,61 @@ export default function DevicesScreen() {
 				}}
 			/>
 
-			<FlatList
-				showsVerticalScrollIndicator={false}
-				data={[]}
-				renderItem={null}
-				contentContainerStyle={[
-					globalStyles.scroll,
-					globalStyles.scrollNoTab,
-				]}
-				ListHeaderComponent={() => (
-					<View style={deviceStyles.listContainer}>
-						{sections.map((section, index) => (
-							<View
-								key={section.title}
-								style={[
-									globalStyles.section,
-									index === 0 && globalStyles.firstSection,
+			{/* Sits under the transparent native header: the List's safe area already clears it. */}
+			<Host style={{ flex: 1 }}>
+				<List
+					modifiers={[
+						listStyle("insetGrouped"),
+						scrollContentBackground("hidden"),
+						listSectionSpacing(8),
+						refreshable(loadDevices),
+					]}
+				>
+					{groups.map((group) =>
+						group.data.map((device, index) => (
+							<Section
+								key={device.mac}
+								header={
+									index === 0 ? (
+										<SwiftText
+											modifiers={[
+												font({ size: 16, weight: "semibold" }),
+												foregroundStyle(palette.secondaryText),
+												textCaseNone(),
+												// iOS aligns headers with the row content; keep them near the card edge as before.
+												offset({ x: -12 }),
+											]}
+										>
+											{group.title}
+										</SwiftText>
+									) : undefined
+								}
+							>
+								<DeviceRow device={device} palette={palette} modifiers={cardModifiers} />
+							</Section>
+						)),
+					)}
+
+					{!isLoadingDevices && devices.length === 0 && (
+						<Section>
+							<HStack
+								modifiers={[
+									padding({ top: 100 }),
+									listRowBackground("#00000000"),
 								]}
 							>
-								<SectionLabel>{section.title}</SectionLabel>
-								<View style={deviceStyles.sectionCards}>
-									{section.data.map((device) => (
-										<View key={device.mac}>
-											{renderDevice({ item: device })}
-										</View>
-									))}
-								</View>
-							</View>
-						))}
-					</View>
-				)}
-				refreshControl={
-					<RefreshControl
-						refreshing={isLoadingDevices}
-						onRefresh={loadDevices}
-						tintColor={Colors.routyGray}
-						progressViewOffset={Layout.headerOffset}
-					/>
-				}
-				ListEmptyComponent={
-					!isLoadingDevices && devices.length === 0 ? (
-						<View style={deviceStyles.empty}>
-							<Text style={deviceStyles.emptyText}>{t("devices.empty")}</Text>
-						</View>
-					) : null
-				}
-			/>
+								<Spacer />
+								<SwiftText
+									modifiers={[font({ size: 16 }), foregroundStyle(palette.secondaryText)]}
+								>
+									{t("devices.empty")}
+								</SwiftText>
+								<Spacer />
+							</HStack>
+						</Section>
+					)}
+				</List>
+			</Host>
 		</View>
 	);
 }
