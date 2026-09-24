@@ -88,15 +88,15 @@ export function formatMessageDate(date: Date): string {
 		});
 	}
 
-	// Ieri -> mostra "Ieri"
+	// Ieri -> mostra "ieri"
 	if (diffDays === 1) {
-		return "Ieri";
+		return "ieri";
 	}
 
 	// Ultimi 7 giorni -> mostra il nome del giorno
 	if (diffDays < 7) {
-		const dayName = date.toLocaleDateString("it-IT", { weekday: "long" });
-		return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+		// Lowercase, as in the chat's date separators ("lunedì").
+		return date.toLocaleDateString("it-IT", { weekday: "long" });
 	}
 
 	// Altrimenti -> mostra dd/mm/yy

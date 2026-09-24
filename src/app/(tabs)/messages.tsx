@@ -3,37 +3,62 @@ import { ComposeButton } from "@/components/ComposeButton";
 import { contactsService } from "@/services/contacts-service";
 import { NativeGlassView as GlassView } from "@/components/NativeGlassView";
 import { CloseButton } from "@/components/CloseButton";
+import {
+	Button,
+	Circle,
+	HStack,
+	Host,
+	Image,
+	List,
+	Spacer,
+	SwipeActions,
+	Text as SwiftText,
+	VStack,
+	ZStack,
+} from "@expo/ui/swift-ui";
+import {
+	clipShape,
+	font,
+	foregroundStyle,
+	frame,
+	labelStyle,
+	layoutPriority,
+	lineLimit,
+	listRowBackground,
+	listRowInsets,
+	listRowSeparator,
+	listStyle,
+	offset,
+	padding,
+	refreshable,
+	scrollContentBackground,
+	scrollIndicators,
+	tint,
+	useScrollGeometryChange,
+} from "@expo/ui/swift-ui/modifiers";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter as useExpoRouter } from "expo-router";
-import { NavArrowRight, Trash } from "iconoir-react-native";
 import React, { useCallback, useEffect } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	Animated,
-	Dimensions,
 	KeyboardAvoidingView,
 	Modal,
 	Platform,
 	Pressable,
-	RefreshControl,
 	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { RectButton } from "react-native-gesture-handler";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Reanimated, {
 	Extrapolation,
 	interpolate,
-	interpolateColor,
-	useAnimatedReaction,
 	useAnimatedStyle,
 	useSharedValue,
-	type SharedValue,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/Colors";
 import { useRouter } from "@/context/router-context";
@@ -42,7 +67,8 @@ import { Layout } from "@/styles/globalStyles";
 import { messageStyles } from "@/styles/messageStyles";
 import { Conversation, formatMessageDate } from "@/utils/sms";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Row modifiers shared by every SwiftUI list row on this screen.
+const rowBackground = listRowBackground(Colors.routyBlack);
 
 function ConversationAvatar({ name }: { name: string }) {
 	const isNumeric = /^\+?\d+$/.test(name);
@@ -60,190 +86,129 @@ function ConversationAvatar({ name }: { name: string }) {
 	}
 
 	return (
-		<LinearGradient
-			colors={[Colors.routyLightGray, Colors.routyDarkGray]}
-			style={messageStyles.avatar}
-		>
-			<Text style={messageStyles.avatarText}>
-				{isNumeric ? "👤" : initials}
-			</Text>
-		</LinearGradient>
+		<ZStack modifiers={[frame({ width: 50, height: 50 }), clipShape("circle")]}>
+			<Circle
+				modifiers={[
+					foregroundStyle({
+						type: "linearGradient",
+						colors: [Colors.routyLightGray, Colors.routyDarkGray],
+						startPoint: { x: 0.5, y: 0 },
+						endPoint: { x: 0.5, y: 1 },
+					}),
+				]}
+			/>
+			{isNumeric ? (
+				<Image
+					systemName="person.fill"
+					color={Colors.routyWhite}
+					// Pushed down so the avatar circle crops the shoulders.
+					modifiers={[font({ size: 44 }), offset({ y: 6 })]}
+				/>
+			) : (
+				<SwiftText
+					modifiers={[
+						font({ size: 24, weight: "bold", design: "rounded" }),
+						foregroundStyle(Colors.routyWhite),
+					]}
+				>
+					{initials}
+				</SwiftText>
+			)}
+		</ZStack>
 	);
 }
 
 function ConversationRow({
 	conversation,
+	isFirst,
 	onPress,
 	onDelete,
 }: {
 	conversation: Conversation;
+	isFirst: boolean;
 	onPress: () => void;
-	onDelete: (number: string, onCancel?: () => void) => void;
+	onDelete: (number: string) => void;
 }) {
 	const lastMsg = conversation.lastMessage;
 	const preview = lastMsg.isSent
 		? `${t("messages.you")}${lastMsg.content}`
 		: lastMsg.content;
 	const dateStr = formatMessageDate(lastMsg.date);
-	const swipeableRef = React.useRef<any>(null);
-	const isFullSwipe = useSharedValue(false);
-	const dragValue = useSharedValue(0);
-	const rowAnimatedStyle = useAnimatedStyle(() => {
-		const drag = Math.abs(dragValue.value);
-		const backgroundColor = interpolateColor(
-			drag,
-			[0, 80],
-			[Colors.routyBlack, Colors.routyDarkGray],
-		);
-		const borderRadius = interpolate(
-			drag,
-			[0, 40],
-			[0, 12],
-			Extrapolation.CLAMP,
-		);
-		return {
-			backgroundColor,
-			borderRadius,
-			overflow: "hidden",
-		};
-	});
-
-	const renderRightActions = (
-		progress: SharedValue<number>,
-		dragX: SharedValue<number>,
-	) => {
-		// Synchronize dragX with the row background
-		useAnimatedReaction(
-			() => dragX.value,
-			(val) => {
-				dragValue.value = val;
-			},
-		);
-
-		const animatedStyles = useAnimatedStyle(() => {
-			const drag = Math.abs(dragX.value);
-			const threshold = SCREEN_WIDTH * 0.35;
-
-			if (drag > threshold && !isFullSwipe.value) {
-				isFullSwipe.value = true;
-			} else if (drag <= threshold && isFullSwipe.value) {
-				isFullSwipe.value = false;
-			}
-
-			// Width logic:
-			// 1. Stays 50 until threshold
-			// 2. Stretches to match the 'drag' minus margins
-			const width =
-				drag > threshold
-					? interpolate(
-							drag,
-							[threshold, threshold + 40],
-							[50, threshold + 40 - 24],
-							Extrapolation.CLAMP,
-						) + (drag > threshold + 40 ? drag - (threshold + 40) : 0)
-					: 50;
-
-			return {
-				width,
-				borderRadius: 25,
-			};
-		});
-
-		const iconStyles = useAnimatedStyle(() => {
-			const drag = Math.abs(dragX.value);
-			const threshold = SCREEN_WIDTH * 0.35;
-			const scale = interpolate(
-				drag,
-				[0, 50, threshold, SCREEN_WIDTH],
-				[0.8, 1, 1, 1.3],
-				Extrapolation.CLAMP,
-			);
-
-			return {
-				transform: [{ scale }],
-			};
-		});
-
-		return (
-			<View style={messageStyles.deleteActionWrapper}>
-				<Reanimated.View style={[messageStyles.deleteAction, animatedStyles]}>
-					<RectButton
-						style={messageStyles.deleteActionButton}
-						onPress={() => {
-							onDelete(conversation.number, () => {
-								swipeableRef.current?.close();
-							});
-						}}
-					>
-						<Reanimated.View style={iconStyles}>
-							<Trash color={Colors.routyWhite} width={24} height={24} />
-						</Reanimated.View>
-					</RectButton>
-				</Reanimated.View>
-			</View>
-		);
-	};
+	const isUnread = conversation.unreadCount > 0;
 
 	return (
-		<ReanimatedSwipeable
-			ref={swipeableRef}
-			renderRightActions={renderRightActions}
-			onSwipeableWillOpen={(direction) => {
-				if (direction === "right" && isFullSwipe.value) {
-					onDelete(conversation.number, () => {
-						swipeableRef.current?.close();
-					});
-				}
-			}}
-			friction={1.2}
-			rightThreshold={40}
+		<SwipeActions
+			modifiers={[
+				listRowInsets({ top: 12, bottom: 12, leading: 16, trailing: 16 }),
+				rowBackground,
+				// No separator between the top spacer and the first conversation.
+				...(isFirst ? [listRowSeparator("hidden", "top")] : []),
+			]}
 		>
-			<RectButton
-				style={[
-					messageStyles.row,
-					{ backgroundColor: Colors.routyTransparent },
-				]}
-				underlayColor={Colors.routyDarkGray}
-				onPress={onPress}
-			>
-				<Reanimated.View
-					style={[StyleSheet.absoluteFill, rowAnimatedStyle]}
-					pointerEvents="none"
-				/>
-				<ConversationAvatar name={conversation.displayName} />
-				<View style={messageStyles.rowContent}>
-					<View style={messageStyles.rowHeader}>
-						<Text style={messageStyles.rowName} numberOfLines={1}>
-							{conversation.displayName}
-						</Text>
-						<Text style={messageStyles.rowDate}>{dateStr}</Text>
-					</View>
-					<View style={messageStyles.rowFooter}>
-						<Text
-							style={[
-								messageStyles.rowPreview,
-								conversation.unreadCount > 0 && messageStyles.rowPreviewUnread,
-							]}
-							numberOfLines={1}
-						>
-							{preview}
-						</Text>
-						<View style={messageStyles.rowRightSide}>
-							{conversation.unreadCount > 0 && (
-								<View style={messageStyles.unreadDot} />
+			<Button onPress={onPress}>
+				<HStack spacing={12}>
+					<ConversationAvatar name={conversation.displayName} />
+					<VStack alignment="leading" spacing={2}>
+						<HStack spacing={8}>
+							<SwiftText
+								modifiers={[
+									font({ size: 16, weight: "semibold" }),
+									foregroundStyle(Colors.routyWhite),
+									lineLimit(1),
+								]}
+							>
+								{conversation.displayName}
+							</SwiftText>
+							<Spacer />
+							<SwiftText
+								modifiers={[
+									font({ size: 13 }),
+									foregroundStyle(Colors.routyGray),
+									layoutPriority(1),
+								]}
+							>
+								{dateStr}
+							</SwiftText>
+						</HStack>
+						<HStack spacing={8}>
+							<SwiftText
+								modifiers={[
+									font({ size: 14, weight: isUnread ? "semibold" : "regular" }),
+									foregroundStyle(isUnread ? Colors.routyWhite : Colors.routyGray),
+									lineLimit(1),
+								]}
+							>
+								{preview}
+							</SwiftText>
+							<Spacer />
+							{isUnread && (
+								<Circle
+									modifiers={[
+										foregroundStyle(Colors.routyBlue),
+										frame({ width: 10, height: 10 }),
+									]}
+								/>
 							)}
-							<NavArrowRight
-								width={14}
-								height={14}
-								strokeWidth={2.5}
-								style={{ marginBottom: -2 }}
+							<Image
+								systemName="chevron.right"
 								color={Colors.routyLightGray}
+								modifiers={[font({ size: 14, weight: "semibold" })]}
 							/>
-						</View>
-					</View>
-				</View>
-			</RectButton>
-		</ReanimatedSwipeable>
+						</HStack>
+					</VStack>
+				</HStack>
+			</Button>
+			<SwipeActions.Actions edge="trailing">
+				{/* No `destructive` role: SwiftUI would remove the row before the confirmation alert. */}
+				<Button
+					label={t("messages.delete")}
+					systemImage="trash"
+					// Icon only; the label stays as the VoiceOver name.
+					modifiers={[labelStyle("iconOnly"), tint(Colors.routyRed)]}
+					onPress={() => onDelete(conversation.number)}
+				/>
+			</SwipeActions.Actions>
+		</SwipeActions>
 	);
 }
 
@@ -267,9 +232,7 @@ export default function MessagesScreen() {
 		}
 	}, [authStatus, conversations.length, loadSms]);
 
-	const handleRefresh = useCallback(() => {
-		loadSms();
-	}, [loadSms]);
+	const handleRefresh = useCallback(() => loadSms(), [loadSms]);
 
 	const handleOpen = useCallback(
 		(conv: Conversation) => {
@@ -282,17 +245,13 @@ export default function MessagesScreen() {
 	);
 
 	const handleDelete = useCallback(
-		(number: string, onCancel?: () => void) => {
+		(number: string) => {
 			const name = conversations.find((c) => c.number === number)?.displayName;
 			Alert.alert(
 				t("messages.delete_title"),
 				t("messages.delete_confirm", { name: name || number }),
 				[
-					{
-						text: t("messages.cancel"),
-						style: "cancel",
-						onPress: () => onCancel?.(),
-					},
+					{ text: t("messages.cancel"), style: "cancel" },
 					{
 						text: t("messages.delete"),
 						style: "destructive",
@@ -306,20 +265,33 @@ export default function MessagesScreen() {
 
 	// ── Render ────────────────────────────────────────────────────────────────
 
-	const scrollY = React.useRef(
-		new Animated.Value(Platform.OS === "ios" ? -112 : 0),
-	).current;
+	// The SwiftUI List respects the top safe area; pad the rest so the first row
+	// starts below the header, as the FlatList `contentInset` did.
+	const { top: safeAreaTop } = useSafeAreaInsets();
+	const listTopSpacing = Layout.headerOffset - safeAreaTop;
 
-	const titleOpacity = scrollY.interpolate({
-		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
-		outputRange: [1, 0],
-		extrapolate: "clamp",
+	// Scroll distance from the resting position: > 0 scrolling up, < 0 pulling to refresh.
+	// At rest SwiftUI reports `contentOffsetY === -safeAreaTop` (the list's top content inset).
+	const scrollDelta = useSharedValue(0);
+	const scrollGeometryModifier = useScrollGeometryChange((geometry) => {
+		"worklet";
+		scrollDelta.value = geometry.contentOffsetY + safeAreaTop;
 	});
 
-	const titleTranslateY = scrollY.interpolate({
-		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
-		outputRange: [0, -10],
-		extrapolate: "clamp",
+	const headerAnimatedStyle = useAnimatedStyle(() => {
+		const delta = scrollDelta.value;
+		return {
+			opacity: interpolate(delta, [0, 40], [1, 0], Extrapolation.CLAMP),
+			transform: [
+				{
+					// While pulling, move with the content so the refresh spinner shows above the title.
+					translateY:
+						delta < 0
+							? -delta
+							: interpolate(delta, [0, 40], [0, -10], Extrapolation.CLAMP),
+				},
+			],
+		};
 	});
 
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -448,63 +420,73 @@ export default function MessagesScreen() {
 				pointerEvents="none"
 			/>
 
-			<Animated.View
-				style={[
-					messageStyles.header,
-					{
-						opacity: titleOpacity,
-						transform: [{ translateY: titleTranslateY }],
-					},
-				]}
-			>
+			<Reanimated.View style={[messageStyles.header, headerAnimatedStyle]}>
 				<Text style={messageStyles.headerTitle}>{t("messages.title")}</Text>
-				<ComposeButton onPress={() => setIsModalVisible(true)} />
-			</Animated.View>
+				{/* Out of the flow so the 44pt button doesn't push the title below Home/Settings. */}
+				<View style={messageStyles.headerAction}>
+					<ComposeButton onPress={() => setIsModalVisible(true)} />
+				</View>
+			</Reanimated.View>
 
 			{isLoadingSms && conversations.length === 0 ? (
 				<View style={messageStyles.centerContainer}>
 					<Text style={messageStyles.statusText}>{t("messages.loading")}</Text>
 				</View>
 			) : (
-				<Animated.FlatList
-					style={{ flex: 1 }}
-					showsVerticalScrollIndicator={false}
-					data={conversations}
-					onScroll={Animated.event(
-						[{ nativeEvent: { contentOffset: { y: scrollY } } }],
-						{ useNativeDriver: true },
-					)}
-					scrollEventThrottle={16}
-					contentInset={{ top: Layout.headerOffset }}
-					contentOffset={{ x: 0, y: -Layout.headerOffset }}
-					ListHeaderComponent={() => <View style={{ height: 0 }} />}
-					keyExtractor={(item) => item.number}
-					renderItem={({ item }) => (
-						<ConversationRow
-							conversation={item}
-							onPress={() => handleOpen(item)}
-							onDelete={handleDelete}
+				<Host style={messageStyles.listHost} colorScheme="dark">
+					<List
+						modifiers={[
+							listStyle("plain"),
+							scrollContentBackground("hidden"),
+							scrollIndicators("hidden"),
+							refreshable(handleRefresh),
+							...(scrollGeometryModifier ? [scrollGeometryModifier] : []),
+						]}
+					>
+						<Spacer
+							modifiers={[
+								frame({ height: listTopSpacing }),
+								listRowInsets({ top: 0, bottom: 0, leading: 0, trailing: 0 }),
+								rowBackground,
+								listRowSeparator("hidden"),
+							]}
 						/>
-					)}
-					ItemSeparatorComponent={() => (
-						<View style={messageStyles.separator} />
-					)}
-					refreshControl={
-						<RefreshControl
-							refreshing={isLoadingSms}
-							onRefresh={handleRefresh}
-							tintColor={Colors.routyGray}
-						/>
-					}
-					contentContainerStyle={messageStyles.listContainer}
-					alwaysBounceVertical={true}
-					ListEmptyComponent={
-						<View style={messageStyles.emptyContent}>
-							<Text style={messageStyles.emptyIcon}>💬</Text>
-							<Text style={messageStyles.emptyText}>{t("messages.empty")}</Text>
-						</View>
-					}
-				/>
+
+						{conversations.length === 0 ? (
+							<HStack
+								modifiers={[
+									padding({ top: 100 }),
+									rowBackground,
+									listRowSeparator("hidden"),
+								]}
+							>
+								<Spacer />
+								<VStack spacing={12}>
+									<SwiftText modifiers={[font({ size: 40 })]}>💬</SwiftText>
+									<SwiftText
+										modifiers={[
+											font({ size: 16 }),
+											foregroundStyle(Colors.routyGray),
+										]}
+									>
+										{t("messages.empty")}
+									</SwiftText>
+								</VStack>
+								<Spacer />
+							</HStack>
+						) : (
+							conversations.map((item, index) => (
+								<ConversationRow
+									key={item.number}
+									conversation={item}
+									isFirst={index === 0}
+									onPress={() => handleOpen(item)}
+									onDelete={handleDelete}
+								/>
+							))
+						)}
+					</List>
+				</Host>
 			)}
 
 			<Modal

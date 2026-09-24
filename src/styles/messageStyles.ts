@@ -1,4 +1,4 @@
-import { Dimensions, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Colors } from "../constants/Colors";
 import { Layout } from "./globalStyles";
 
@@ -14,6 +14,10 @@ export const messageStyles = StyleSheet.create({
 		backgroundColor: Colors.routyBlack,
 		gap: 12,
 		padding: 24,
+	},
+	listHost: {
+		flex: 1,
+		backgroundColor: Colors.routyBlack,
 	},
 	statusText: {
 		color: Colors.routyGray,
@@ -46,100 +50,6 @@ export const messageStyles = StyleSheet.create({
 		fontWeight: "600",
 		fontSize: 15,
 	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		gap: 12,
-	},
-	rowContent: {
-		flex: 1,
-		gap: 2,
-	},
-	rowHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	rowName: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: Colors.routyWhite,
-		flex: 1,
-		marginRight: 8,
-	},
-	rowDate: {
-		fontSize: 13,
-		color: Colors.routyGray,
-	},
-	rowFooter: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	rowPreview: {
-		fontSize: 14,
-		color: Colors.routyGray,
-		flex: 1,
-		marginRight: 4,
-	},
-	rowPreviewUnread: {
-		color: Colors.routyWhite,
-		fontWeight: "600",
-	},
-	rowRightSide: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	unreadDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		backgroundColor: Colors.routyBlue,
-		marginTop: 1,
-	},
-	avatar: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	avatarText: {
-		fontSize: 24,
-		color: Colors.routyWhite,
-		fontWeight: "700",
-		fontFamily: "ui-rounded",
-		marginTop: -2,
-		textAlign: "center",
-	},
-	separator: {
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: Colors.routyLightGray,
-		marginLeft: 78,
-	},
-	deleteActionWrapper: {
-		justifyContent: "center",
-		alignItems: "flex-end",
-		paddingHorizontal: 12,
-		backgroundColor: "transparent",
-		overflow: "hidden",
-	},
-	deleteAction: {
-		backgroundColor: Colors.routyRed,
-		height: 50,
-		justifyContent: "center",
-		alignItems: "center",
-		overflow: "hidden",
-	},
-	deleteActionButton: {
-		flex: 1,
-		width: "100%",
-		justifyContent: "center",
-		alignItems: "center",
-	},
 	header: {
 		position: "absolute",
 		top: 0,
@@ -154,20 +64,19 @@ export const messageStyles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
+	headerAction: {
+		// Spans the title's box (same insets as `header`) and centers the button on it.
+		position: "absolute",
+		top: 60,
+		bottom: 8,
+		right: 16,
+		justifyContent: "center",
+	},
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "700",
 		color: Colors.routyWhite,
 		letterSpacing: 0.4,
-	},
-	composeButton: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		overflow: "hidden",
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: -2,
 	},
 	modalContainer: {
 		flex: 1,
@@ -263,20 +172,6 @@ export const messageStyles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	emptyContent: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingTop: 100,
-		gap: 12,
-	},
-	emptyIcon: {
-		fontSize: 40,
-	},
-	emptyText: {
-		color: Colors.routyGray,
-		fontSize: 16,
-	},
 	listContent: {
 		paddingHorizontal: 8,
 		paddingTop: Layout.headerOffset,
@@ -338,11 +233,6 @@ export const messageStyles = StyleSheet.create({
 	},
 	headerComposeIcon: {
 		marginTop: -2,
-	},
-	listContainer: {
-		minHeight: Dimensions.get("window").height - Layout.headerOffset - 90,
-		paddingBottom: 100,
-		paddingHorizontal: 0,
 	},
 });
 
