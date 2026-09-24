@@ -1,4 +1,5 @@
-import * as Contacts from 'expo-contacts';
+// The legacy API throws when imported from the package root since SDK 56.
+import * as Contacts from 'expo-contacts/legacy';
 
 class ContactsService {
   private cache = new Map<string, string>();
