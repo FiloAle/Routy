@@ -8,7 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { RouterProvider } from "@/context/router-context";
 import { registerBackgroundFetchAsync } from "@/services/background-fetch-service";
 
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -20,6 +20,7 @@ SplashScreen.setOptions({
 });
 
 export default function RootLayout() {
+	const palette = useThemePalette();
 	const colorScheme = useColorScheme();
 
 	React.useEffect(() => {
@@ -61,7 +62,7 @@ export default function RootLayout() {
 			<ThemeProvider
 				value={colorScheme === "dark" ? customDarkTheme : customDefaultTheme}
 			>
-				<StatusBar style="light" />
+				<StatusBar style="auto" />
 				<RouterProvider>
 					<Stack>
 						<Stack.Screen name="index" options={{ headerShown: false }} />
@@ -76,7 +77,7 @@ export default function RootLayout() {
 								headerTransparent: true,
 								headerStyle: { backgroundColor: Colors.routyTransparent },
 								headerShadowVisible: false,
-								headerTintColor: Colors.routyWhite,
+								headerTintColor: palette.text,
 								headerBackTitle: "Tutti",
 							}}
 						/>

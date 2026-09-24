@@ -19,7 +19,7 @@ import { isDemoCredentials } from "@/services/demo-router-api";
 import { SectionLabel } from "@/components/SectionLabel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles } from "@/styles/globalStyles";
 import { settingsStyles } from "@/styles/settingsStyles";
 
@@ -47,6 +47,7 @@ export default function SettingsScreen() {
 		dataLimitUnit,
 		setDataLimit,
 	} = useRouter();
+	const palette = useThemePalette();
 
 	const getDisplayUrl = (url: string) => {
 		return url.replace(/^https?:\/\//i, "");
@@ -208,7 +209,7 @@ export default function SettingsScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
-				colors={["rgba(0,0,0,0.8)", "transparent"]}
+				colors={[`${palette.background}CC`, `${palette.background}00`]}
 				style={settingsStyles.headerGradient}
 				pointerEvents="none"
 			/>
@@ -310,7 +311,7 @@ export default function SettingsScreen() {
 									}
 									onValueChange={toggleNetwork}
 									trackColor={{
-										false: Colors.routyLightGray,
+										false: Colors.fill,
 										true: Colors.routyBlue,
 									}}
 									disabled={
@@ -354,7 +355,7 @@ export default function SettingsScreen() {
 											width={20}
 											height={20}
 											strokeWidth={2}
-											color={Colors.routyGray}
+											color={palette.secondaryText}
 											opacity={0.5}
 											style={{ marginBottom: -2, marginRight: -2 }}
 										/>
@@ -457,7 +458,7 @@ export default function SettingsScreen() {
 									value={nightMode?.enabled || false}
 									onValueChange={toggleNightMode}
 									trackColor={{
-										false: Colors.routyLightGray,
+										false: Colors.fill,
 										true: Colors.routyBlue,
 									}}
 								/>
@@ -474,7 +475,6 @@ export default function SettingsScreen() {
 									mode="time"
 									display="default"
 									onChange={handleNightModeStartChange}
-									themeVariant="dark"
 								/>
 							</View>
 
@@ -490,7 +490,6 @@ export default function SettingsScreen() {
 									mode="time"
 									display="default"
 									onChange={handleNightModeEndChange}
-									themeVariant="dark"
 								/>
 							</View>
 						</View>

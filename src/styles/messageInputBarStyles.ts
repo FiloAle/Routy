@@ -15,6 +15,8 @@ export const messageInputBarStyles = StyleSheet.create({
 		flex: 1,
 		borderRadius: Layout.borderRadius + 10,
 		overflow: "hidden",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: Colors.glassBorder,
 	},
 	input: {
 		minHeight: 40,
@@ -22,7 +24,7 @@ export const messageInputBarStyles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 10,
 		paddingBottom: 10,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontSize: 16,
 	},
 	sendButton: {
@@ -34,6 +36,6 @@ export const messageInputBarStyles = StyleSheet.create({
 		alignItems: "center",
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.15)",
+		borderColor: Colors.hairline,
 	},
 });

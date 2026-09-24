@@ -20,7 +20,7 @@ export function ComposeButton({ onPress }: ComposeButtonProps) {
 				systemImage="square.and.pencil"
 				modifiers={[
 					labelStyle("iconOnly"),
-					foregroundStyle("white"),
+					foregroundStyle({ type: "hierarchical", style: "primary" }),
 					padding({ bottom: 2 }),
 					frame({ width: 44, height: 44 }),
 					glassEffect({

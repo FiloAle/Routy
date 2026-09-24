@@ -9,7 +9,7 @@ export const deviceStyles = StyleSheet.create({
 	deviceItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		padding: 16,
 		borderRadius: Layout.borderRadius,
 	},
@@ -17,7 +17,7 @@ export const deviceStyles = StyleSheet.create({
 		width: 40,
 		height: 40,
 		borderRadius: 10,
-		backgroundColor: Colors.routyLightGray,
+		backgroundColor: Colors.fill,
 		justifyContent: "center",
 		alignItems: "center",
 		marginRight: 12,
@@ -28,7 +28,7 @@ export const deviceStyles = StyleSheet.create({
 	hostname: {
 		fontSize: 17,
 		fontWeight: "600",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		marginBottom: 2,
 	},
 	ip: {

@@ -84,7 +84,14 @@ function MessageBubble({
 							: messageStyles.bubbleReceived,
 					]}
 				>
-					<Text style={messageStyles.bubbleText}>{message.content}</Text>
+					<Text
+						style={[
+							messageStyles.bubbleText,
+							message.isSent && messageStyles.bubbleTextSent,
+						]}
+					>
+						{message.content}
+					</Text>
 				</View>
 			</View>
 		</>

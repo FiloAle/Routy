@@ -15,7 +15,7 @@ import Svg, { Circle } from "react-native-svg";
 
 import { DashboardCard } from "@/components/DashboardCard";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { dashboardStyles } from "@/styles/dashboardStyles";
@@ -41,6 +41,7 @@ export default function HomeScreen() {
 		dataLimitValue,
 		dataLimitUnit,
 	} = useRouter();
+	const palette = useThemePalette();
 
 	const [speedUnit, setSpeedUnit] = React.useState<"Kbps" | "Mbps">("Kbps");
 
@@ -166,7 +167,7 @@ export default function HomeScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
-				colors={["rgba(0,0,0,0.8)", "transparent"]}
+				colors={[`${palette.background}CC`, `${palette.background}00`]}
 				style={dashboardStyles.headerGradient}
 				pointerEvents="none"
 			/>

@@ -17,7 +17,7 @@ export const dashboardStyles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "700",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		letterSpacing: 0.4,
 	},
 	headerGradient: {
@@ -30,7 +30,7 @@ export const dashboardStyles = StyleSheet.create({
 	},
 	usageCard: {
 		flexDirection: "row",
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		borderRadius: Layout.borderRadius,
 		padding: 20,
 		alignItems: "center",
@@ -49,7 +49,7 @@ export const dashboardStyles = StyleSheet.create({
 	chartValue: {
 		fontSize: 24,
 		fontWeight: "800",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontFamily: "ui-rounded",
 	},
 	chartSubtext: {
@@ -67,7 +67,7 @@ export const dashboardStyles = StyleSheet.create({
 	statLabel: {
 		fontSize: 15,
 		fontWeight: "400",
-		color: Colors.routyWhite,
+		color: Colors.text,
 	},
 	statValueMain: {
 		fontSize: 26,
@@ -90,7 +90,7 @@ export const dashboardStyles = StyleSheet.create({
 	},
 	infoValueSmall: {
 		fontSize: 17,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 		fontFamily: "ui-rounded",
 	},

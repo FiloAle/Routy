@@ -60,7 +60,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { scrollTopInset } from "../../../modules/routy-ui-modifiers";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
@@ -68,10 +68,8 @@ import { Layout } from "@/styles/globalStyles";
 import { messageStyles } from "@/styles/messageStyles";
 import { Conversation, formatMessageDate } from "@/utils/sms";
 
-// Row modifiers shared by every SwiftUI list row on this screen.
-const rowBackground = listRowBackground(Colors.routyBlack);
-
 function ConversationAvatar({ name }: { name: string }) {
+	const palette = useThemePalette();
 	const isNumeric = /^\+?\d+$/.test(name);
 	let initials = "";
 
@@ -92,7 +90,7 @@ function ConversationAvatar({ name }: { name: string }) {
 				modifiers={[
 					foregroundStyle({
 						type: "linearGradient",
-						colors: [Colors.routyLightGray, Colors.routyDarkGray],
+						colors: palette.avatarGradient,
 						startPoint: { x: 0.5, y: 0 },
 						endPoint: { x: 0.5, y: 1 },
 					}),
@@ -136,12 +134,13 @@ function ConversationRow({
 		: lastMsg.content;
 	const dateStr = formatMessageDate(lastMsg.date);
 	const isUnread = conversation.unreadCount > 0;
+	const palette = useThemePalette();
 
 	return (
 		<SwipeActions
 			modifiers={[
 				listRowInsets({ top: 12, bottom: 12, leading: 16, trailing: 16 }),
-				rowBackground,
+				listRowBackground(palette.plainBackground),
 				// No separator between the top spacer and the first conversation.
 				...(isFirst ? [listRowSeparator("hidden", "top")] : []),
 			]}
@@ -154,7 +153,7 @@ function ConversationRow({
 							<SwiftText
 								modifiers={[
 									font({ size: 16, weight: "semibold" }),
-									foregroundStyle(Colors.routyWhite),
+									foregroundStyle(palette.text),
 									lineLimit(1),
 								]}
 							>
@@ -164,7 +163,7 @@ function ConversationRow({
 							<SwiftText
 								modifiers={[
 									font({ size: 13 }),
-									foregroundStyle(Colors.routyGray),
+									foregroundStyle(palette.secondaryText),
 									layoutPriority(1),
 								]}
 							>
@@ -175,7 +174,7 @@ function ConversationRow({
 							<SwiftText
 								modifiers={[
 									font({ size: 14, weight: isUnread ? "semibold" : "regular" }),
-									foregroundStyle(isUnread ? Colors.routyWhite : Colors.routyGray),
+									foregroundStyle(isUnread ? palette.text : palette.secondaryText),
 									lineLimit(1),
 								]}
 							>
@@ -192,7 +191,7 @@ function ConversationRow({
 							)}
 							<Image
 								systemName="chevron.right"
-								color={Colors.routyLightGray}
+								color={palette.separator}
 								modifiers={[font({ size: 14, weight: "semibold" })]}
 							/>
 						</HStack>
@@ -226,6 +225,7 @@ export default function MessagesScreen() {
 	} = useRouter();
 	const expoRouter = useExpoRouter();
 	const inputRef = React.useRef<TextInput>(null);
+	const palette = useThemePalette();
 
 	useEffect(() => {
 		if (authStatus === "logged_in" && conversations.length === 0) {
@@ -429,7 +429,7 @@ export default function MessagesScreen() {
 					<Text style={messageStyles.statusText}>{t("messages.loading")}</Text>
 				</View>
 			) : (
-				<Host style={messageStyles.listHost} colorScheme="dark">
+				<Host style={messageStyles.listHost}>
 					<List
 						modifiers={[
 							listStyle("plain"),
@@ -446,7 +446,7 @@ export default function MessagesScreen() {
 							<HStack
 								modifiers={[
 									padding({ top: 100 }),
-									rowBackground,
+									listRowBackground(palette.plainBackground),
 									listRowSeparator("hidden"),
 								]}
 							>
@@ -456,7 +456,7 @@ export default function MessagesScreen() {
 									<SwiftText
 										modifiers={[
 											font({ size: 16 }),
-											foregroundStyle(Colors.routyGray),
+											foregroundStyle(palette.secondaryText),
 										]}
 									>
 										{t("messages.empty")}

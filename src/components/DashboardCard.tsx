@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, Text, View, ViewStyle, TextStyle } from "react-native";
 import { NavArrowRight } from "iconoir-react-native";
 
-import { Colors } from "../constants/Colors";
+import { useThemePalette } from "../constants/Colors";
 import { cardStyles } from "@/styles/cardStyles";
 
 interface DashboardCardProps {
@@ -28,6 +28,7 @@ export function DashboardCard({
 	labelStyle,
 	valueStyle,
 }: DashboardCardProps) {
+	const palette = useThemePalette();
 	const Content = (
 		<View style={[cardStyles.card, containerStyle]}>
 			<View style={cardStyles.headerRow}>
@@ -37,7 +38,7 @@ export function DashboardCard({
 						width={14}
 						height={14}
 						strokeWidth={2.5}
-						color={Colors.routyGray}
+						color={palette.secondaryText}
 						style={cardStyles.chevron}
 					/>
 				)}

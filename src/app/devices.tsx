@@ -5,11 +5,12 @@ import { AppleImac2021, Wifi, WifiOff } from "iconoir-react-native";
 import { deviceStyles } from "@/styles/deviceStyles";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles, Layout } from "@/styles/globalStyles";
 import { SectionLabel } from "@/components/SectionLabel";
 
 export default function DevicesScreen() {
+	const palette = useThemePalette();
 	const { devices, isLoadingDevices, loadDevices } = useRouter();
 
 	const connectedDevices = devices.filter((d) => d.ip && d.ip !== "-");
@@ -17,7 +18,7 @@ export default function DevicesScreen() {
 
 	const renderDevice = ({ item }: { item: any }) => {
 		const isDisconnected = !item.ip || item.ip === "-";
-		const color = isDisconnected ? Colors.routyGray : Colors.routyWhite;
+		const color = isDisconnected ? palette.secondaryText : palette.text;
 		const strokeWidth = 1.5;
 
 		return (
@@ -79,7 +80,7 @@ export default function DevicesScreen() {
 					headerTransparent: true,
 					headerShadowVisible: false,
 					headerBackButtonDisplayMode: "minimal",
-					headerTitleStyle: { color: Colors.routyWhite },
+					headerTitleStyle: { color: palette.text },
 				}}
 			/>
 

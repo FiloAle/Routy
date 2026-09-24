@@ -13,11 +13,12 @@ import {
 import { Check } from "iconoir-react-native";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
-import { globalStyles, Layout } from "@/styles/globalStyles";
+import { Colors, useThemePalette } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
 import { SectionLabel } from "@/components/SectionLabel";
 
 export default function DnsScreen() {
+	const palette = useThemePalette();
 	const { dataUsage, setDns } = useRouter();
 
 	const [initialState, setInitialState] = useState({
@@ -76,7 +77,7 @@ export default function DnsScreen() {
 					headerTransparent: true,
 					headerShadowVisible: false,
 					headerBackButtonDisplayMode: "minimal",
-					headerTitleStyle: { color: Colors.routyWhite },
+					headerTitleStyle: { color: palette.text },
 					headerRight: () => (
 						<TouchableOpacity
 							onPress={handleSave}
@@ -87,11 +88,11 @@ export default function DnsScreen() {
 							}}
 						>
 							{isSaving ? (
-								<ActivityIndicator size="small" color={Colors.routyWhite} />
+								<ActivityIndicator size="small" color={Colors.text} />
 							) : (
 								<Text
 									style={{
-										color: hasChanges ? Colors.routyWhite : Colors.routyGray,
+										color: hasChanges ? Colors.text : Colors.routyGray,
 										fontWeight: "600",
 										fontSize: 15,
 									}}
@@ -164,7 +165,7 @@ export default function DnsScreen() {
 									globalStyles.fieldInput,
 									{
 										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
+											mode === "manual" ? Colors.text : Colors.routyGray,
 									},
 								]}
 								value={preferDns}
@@ -187,7 +188,7 @@ export default function DnsScreen() {
 									globalStyles.fieldInput,
 									{
 										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
+											mode === "manual" ? Colors.text : Colors.routyGray,
 									},
 								]}
 								value={standbyDns}

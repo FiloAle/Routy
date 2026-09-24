@@ -5,19 +5,19 @@ import { Layout } from "./globalStyles";
 export const messageStyles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.plainBackground,
 	},
 	centerContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.plainBackground,
 		gap: 12,
 		padding: 24,
 	},
 	listHost: {
 		flex: 1,
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.plainBackground,
 	},
 	statusText: {
 		color: Colors.routyGray,
@@ -75,12 +75,12 @@ export const messageStyles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "700",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		letterSpacing: 0.4,
 	},
 	modalContainer: {
 		flex: 1,
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 	},
 	modalHeader: {
 		flexDirection: "row",
@@ -92,7 +92,7 @@ export const messageStyles = StyleSheet.create({
 	modalTitle: {
 		fontSize: 17,
 		fontWeight: "600",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		marginBottom: 2,
 	},
 	closeButtonContainer: {
@@ -111,6 +111,8 @@ export const messageStyles = StyleSheet.create({
 		marginHorizontal: 20,
 		borderRadius: 99,
 		overflow: "hidden",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: Colors.glassBorder,
 	},
 	recipientField: {
 		flexDirection: "row",
@@ -126,22 +128,22 @@ export const messageStyles = StyleSheet.create({
 	recipientInput: {
 		flex: 1,
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		paddingVertical: 4,
 	},
 	suggestionsContainer: {
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		maxHeight: 200,
 	},
 	suggestionItem: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: Colors.routyLightGray,
+		borderBottomColor: Colors.separator,
 	},
 	suggestionName: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	suggestionNumber: {
@@ -156,7 +158,7 @@ export const messageStyles = StyleSheet.create({
 	},
 	selectedRecipientName: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	selectedRecipientNumber: {
@@ -168,7 +170,7 @@ export const messageStyles = StyleSheet.create({
 		width: 24,
 		height: 24,
 		borderRadius: 12,
-		backgroundColor: "rgba(255,255,255,0.1)",
+		backgroundColor: Colors.faintFill,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -207,15 +209,18 @@ export const messageStyles = StyleSheet.create({
 		borderRadius: Layout.borderRadius - 4,
 	},
 	bubbleReceived: {
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.bubbleReceived,
 	},
 	bubbleSent: {
 		backgroundColor: Colors.routyBlue,
 	},
 	bubbleText: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		lineHeight: 22,
+	},
+	bubbleTextSent: {
+		color: Colors.routyWhite,
 	},
 	headerGradient: {
 		position: "absolute",

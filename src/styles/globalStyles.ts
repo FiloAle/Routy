@@ -9,7 +9,7 @@ export const Layout = {
 export const globalStyles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.background,
 	},
 	scroll: {
 		paddingHorizontal: 16,
@@ -20,13 +20,13 @@ export const globalStyles = StyleSheet.create({
 		gap: 28,
 	},
 	card: {
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		borderRadius: Layout.borderRadius,
 		overflow: "hidden",
 	},
 	divider: {
 		height: StyleSheet.hairlineWidth,
-		backgroundColor: Colors.routyLightGray,
+		backgroundColor: Colors.separator,
 		marginHorizontal: 16,
 	},
 	field: {
@@ -38,12 +38,12 @@ export const globalStyles = StyleSheet.create({
 	},
 	fieldLabel: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 	},
 	fieldInput: {
 		flex: 1,
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		textAlign: "right",
 		marginLeft: 10,
 	},
@@ -56,7 +56,7 @@ export const globalStyles = StyleSheet.create({
 	},
 	infoLabel: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 	},
 	infoValue: {
 		fontSize: 16,

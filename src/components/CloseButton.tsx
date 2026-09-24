@@ -22,7 +22,7 @@ export function CloseButton({ onPress }: CloseButtonProps) {
 					systemImage="xmark"
 					modifiers={[
 						labelStyle("iconOnly"),
-						foregroundStyle("white"),
+						foregroundStyle({ type: "hierarchical", style: "primary" }),
 						frame({ width: 44, height: 44 }),
 						glassEffect({
 							glass: { variant: "regular", interactive: true },
