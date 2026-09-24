@@ -119,6 +119,18 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const knownIdsRef = useRef<Set<string>>(new Set());
   const readIdsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
+  // Tracks optimistic SMS changes, so a poll that raced one doesn't overwrite it with stale data.
+  const smsMutationRef = useRef({ generation: 0, pending: 0 });
+
+  const beginSmsMutation = useCallback(() => {
+    smsMutationRef.current.generation += 1;
+    smsMutationRef.current.pending += 1;
+  }, []);
+
+  const endSmsMutation = useCallback(() => {
+    smsMutationRef.current.pending -= 1;
+    smsMutationRef.current.generation += 1;
+  }, []);
 
   // Handle notification clicks
   useEffect(() => {
@@ -192,7 +204,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAndUpdate = useCallback(async () => {
     if (!mountedRef.current || authStatus !== 'logged_in') return;
-    
+    const generationAtStart = smsMutationRef.current.generation;
+
     try {
       // Check if we need to renew session
       const now = Date.now();
@@ -209,15 +222,19 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         apiRef.current.fetchDevices(),
       ]);
 
-      const enriched = enrichWithContacts(convs);
-      
-      await detectAndNotify(enriched);
+      if (!mountedRef.current) return;
+      setDataUsage(usage);
+      setDevices(devs);
 
-      if (mountedRef.current) {
-        setConversations(enriched);
-        setDataUsage(usage);
-        setDevices(devs);
-      }
+      // Discard the SMS list if a local change started or finished while it was being fetched.
+      const isStale = () =>
+        smsMutationRef.current.generation !== generationAtStart ||
+        smsMutationRef.current.pending > 0;
+      if (isStale()) return;
+
+      const enriched = enrichWithContacts(convs);
+      await detectAndNotify(enriched);
+      if (mountedRef.current && !isStale()) setConversations(enriched);
     } catch (e) {
       console.warn('[fetchAndUpdate] error:', e);
     }
@@ -551,14 +568,22 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   }, [authStatus]);
 
   const sendSms = useCallback(
-    async (number: string, text: string) => apiRef.current.sendSms(number, text),
-    []
+    async (number: string, text: string) => {
+      beginSmsMutation();
+      try {
+        await apiRef.current.sendSms(number, text);
+      } finally {
+        endSmsMutation();
+      }
+    },
+    [beginSmsMutation, endSmsMutation]
   );
 
   const markAsRead = useCallback(async (number: string) => {
     const conv = conversations.find(c => c.number === number);
     if (!conv || conv.unreadCount === 0) return;
 
+    beginSmsMutation();
     setConversations(prev => prev.map(c => 
       c.number === number ? { ...c, unreadCount: 0 } : c
     ));
@@ -573,25 +598,30 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       await apiRef.current.markAsRead(receivedIds);
     } catch (e) {
       console.warn('[markAsRead] API failed:', e);
+    } finally {
+      endSmsMutation();
     }
-  }, [conversations]);
+  }, [conversations, beginSmsMutation, endSmsMutation]);
 
   const deleteConversation = useCallback(async (number: string) => {
     const conv = conversations.find(c => c.number === number);
     if (!conv) return;
 
     // Optimistic update
+    beginSmsMutation();
     setConversations(prev => prev.filter(c => c.number !== number));
 
     try {
       const msgIds = conv.messages.map(m => m.id);
       await apiRef.current.deleteSms(msgIds);
+      endSmsMutation();
     } catch (e) {
       console.warn('[deleteConversation] API failed:', e);
+      endSmsMutation();
       // Revert if failed (optional, but good for UX)
       await loadSms(); 
     }
-  }, [conversations, loadSms]);
+  }, [conversations, loadSms, beginSmsMutation, endSmsMutation]);
 
   const addOptimisticMessage = useCallback((number: string, msg: SmsMessage) => {
     setConversations((prev) => {
@@ -613,6 +643,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       ];
     });
     knownIdsRef.current.add(msg.id);
+    // Drop any poll already in flight: it can't contain this message yet.
+    smsMutationRef.current.generation += 1;
   }, [getDisplayName]);
 
   const setDataLimit = useCallback(async (value: string, unit: "GB" | "TB") => {
