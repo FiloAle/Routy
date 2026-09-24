@@ -54,6 +54,8 @@
 		"error_hint": "Check your settings and make sure you are connected to the same Wi-Fi network as the router.",
 		"retry": "Retry",
 		"save_and_connect": "Save and Connect",
+		"exit_demo": "Exit demo",
+		"demo_enabled": "You have enabled demo mode",
 		"login_success_title": "Connected",
 		"login_success_msg": "Login to router successful!",
 		"saved_title": "Saved",

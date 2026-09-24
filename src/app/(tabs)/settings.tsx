@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "@/context/router-context";
+import { isDemoCredentials } from "@/services/demo-router-api";
 import { SectionLabel } from "@/components/SectionLabel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { t } from "@/i18n";
@@ -27,6 +28,8 @@ export default function SettingsScreen() {
 		routerUrl,
 		password,
 		saveSettings,
+		exitDemo,
+		isDemoMode,
 		login,
 		authStatus,
 		dataUsage,
@@ -101,6 +104,10 @@ export default function SettingsScreen() {
 		await saveSettings(url, passwordInput.trim());
 		const success = await login(passwordInput.trim());
 		setIsSaving(false);
+		if (success && isDemoCredentials(url, passwordInput.trim())) {
+			Alert.alert(t("settings.demo_enabled"));
+			return;
+		}
 		Alert.alert(
 			success
 				? t("settings.login_success_title")
@@ -269,8 +276,12 @@ export default function SettingsScreen() {
 							</View>
 						</View>
 						<PrimaryButton
-							label={t("settings.save_and_connect")}
-							onPress={handleSave}
+							label={
+								isDemoMode
+									? t("settings.exit_demo")
+									: t("settings.save_and_connect")
+							}
+							onPress={isDemoMode ? exitDemo : handleSave}
 							isLoading={isSaving}
 						/>
 					</View>

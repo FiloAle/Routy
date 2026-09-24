@@ -13,6 +13,12 @@ import React, {
 } from 'react';
 
 import { contactsService } from '../services/contacts-service';
+import {
+  DEMO_CONTACTS,
+  DEMO_ID_PREFIX,
+  DemoRouterApi,
+  isDemoCredentials,
+} from '../services/demo-router-api';
 import { RouterApi, DataUsage } from '../services/router-api';
 import { Conversation, SmsMessage } from '../utils/sms';
 import { t } from '../i18n';
@@ -26,6 +32,9 @@ const STORAGE_KEY_DATA_LIMIT_UNIT = '@routy/data_limit_unit';
 const DEFAULT_URL = 'http://192.168.0.1';
 const POLL_INTERVAL_MS = 3_000;
 
+const createRouterApi = (url: string, pw: string): RouterApi =>
+  isDemoCredentials(url, pw) ? new DemoRouterApi() : new RouterApi(url);
+
 export type AuthStatus = 'idle' | 'loading' | 'logged_in' | 'error';
 
 interface RouterContextValue {
@@ -33,6 +42,7 @@ interface RouterContextValue {
   password: string;
   authStatus: AuthStatus;
   authError: string | null;
+  isDemoMode: boolean;
   conversations: Conversation[];
   dataUsage: DataUsage | null;
   devices: Device[];
@@ -62,6 +72,7 @@ interface RouterContextValue {
   setDataLimit: (value: string, unit: "GB" | "TB") => Promise<void>;
 
   saveSettings: (url: string, pw: string) => Promise<void>;
+  exitDemo: () => Promise<void>;
   login: (customPassword?: string) => Promise<boolean>;
   loadSms: () => Promise<void>;
   loadDataUsage: () => Promise<void>;
@@ -113,6 +124,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [dataLimitValue, setDataLimitValueState] = useState('1');
   const [dataLimitUnit, setDataLimitUnitState] = useState<'GB' | 'TB'>('TB');
   const expoRouter = useExpoRouter();
+  const isDemoMode = isDemoCredentials(routerUrl, password);
 
   const apiRef = useRef<RouterApi>(new RouterApi(DEFAULT_URL));
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -147,7 +159,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   }, [expoRouter]);
 
   const getDisplayName = useCallback(
-    (number: string) => contactsService.getName(number) ?? number,
+    (number: string) =>
+      contactsService.getName(number) ??
+      // Read the api instance (not state) so the init closure sees demo mode too.
+      (apiRef.current instanceof DemoRouterApi ? DEMO_CONTACTS[number] : undefined) ??
+      number,
     []
   );
 
@@ -155,9 +171,9 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     (convs: Conversation[]) =>
       convs.map((c) => ({
         ...c,
-        displayName: contactsService.getName(c.number) ?? c.number,
+        displayName: getDisplayName(c.number),
       })),
-    []
+    [getDisplayName]
   );
 
   const detectAndNotify = useCallback(
@@ -268,7 +284,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           setRouterUrl(url);
           if (pw) setPassword(pw);
         }
-        apiRef.current = new RouterApi(url);
+        apiRef.current = createRouterApi(url, pw);
 
         if (knownRaw) {
           try {
@@ -399,15 +415,46 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       stopPolling();
       setRouterUrl(url);
       setPassword(pw);
-      apiRef.current = new RouterApi(url);
+      apiRef.current = createRouterApi(url, pw);
       setAuthStatus('idle');
       setAuthError(null);
       setConversations([]);
+      // Re-read from the new router (or the demo) instead of keeping the old model.
+      setSoftwareVersion(null);
+      setSoftwareModel(null);
       await AsyncStorage.setItem(STORAGE_KEY_URL, url);
       await AsyncStorage.setItem(STORAGE_KEY_PASSWORD, pw);
     },
     [stopPolling]
   );
+
+  const exitDemo = useCallback(async () => {
+    stopPolling();
+    setRouterUrl(DEFAULT_URL);
+    setPassword('');
+    apiRef.current = new RouterApi(DEFAULT_URL);
+    setAuthStatus('idle');
+    setAuthError(null);
+    setConversations([]);
+    setDataUsage(null);
+    setDevices([]);
+    setNetworkStatus('idle');
+    setSoftwareVersion(null);
+    setSoftwareModel(null);
+    setNightModeState(null);
+
+    // Forget the fake SMS ids so a later demo session starts fresh.
+    const isRealId = (id: string) => !id.startsWith(DEMO_ID_PREFIX);
+    knownIdsRef.current = new Set(Array.from(knownIdsRef.current).filter(isRealId));
+    readIdsRef.current = new Set(Array.from(readIdsRef.current).filter(isRealId));
+
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_KEY_URL),
+      AsyncStorage.removeItem(STORAGE_KEY_PASSWORD),
+      AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIdsRef.current))),
+      AsyncStorage.setItem(STORAGE_KEY_READ_IDS, JSON.stringify(Array.from(readIdsRef.current))),
+    ]);
+  }, [stopPolling]);
 
   const login = useCallback(async (customPassword?: string): Promise<boolean> => {
     const pwToUse = customPassword ?? password;
@@ -420,6 +467,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
       await apiRef.current.login(pwToUse);
+      if (apiRef.current instanceof DemoRouterApi) {
+        // Treat the seeded demo SMS as already seen, so they don't all fire notifications.
+        const convs = await apiRef.current.fetchConversations();
+        convs.forEach((c) => c.messages.forEach((m) => knownIdsRef.current.add(m.id)));
+      }
       setAuthStatus('logged_in');
       lastLoginRef.current = Date.now();
       return true;
@@ -663,6 +715,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         password,
         authStatus,
         authError,
+        isDemoMode,
         conversations,
         dataUsage,
         devices,
@@ -684,6 +737,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         dataLimitUnit,
         setDataLimit,
         saveSettings,
+        exitDemo,
         login,
         loadSms,
         loadDataUsage,

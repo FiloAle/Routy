@@ -54,6 +54,8 @@
 		"error_hint": "Controlla le impostazioni e assicurati di essere connesso alla stessa rete Wi-Fi del router.",
 		"retry": "Riprova",
 		"save_and_connect": "Salva e connetti",
+		"exit_demo": "Esci dalla demo",
+		"demo_enabled": "Hai attivato la modalità demo",
 		"login_success_title": "Connesso",
 		"login_success_msg": "Login al router riuscito!",
 		"saved_title": "Salvato",
