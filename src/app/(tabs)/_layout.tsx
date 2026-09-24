@@ -17,7 +17,8 @@ export default function TabsLayout() {
 		<NativeTabs backgroundColor={bg} tintColor={Colors.routyBlue}>
 			<NativeTabs.Trigger name="index">
 				<NativeTabs.Trigger.Label>{t("tabs.home")}</NativeTabs.Trigger.Label>
-				<NativeTabs.Trigger.Icon sf="house.fill" md="home" />
+				{/* Private system symbol (resolved by our react-native-screens patch), house.fill before iOS 17.4. */}
+				<NativeTabs.Trigger.Icon sf={"home.fill|house.fill" as any} md="home" />
 			</NativeTabs.Trigger>
 
 			<NativeTabs.Trigger name="messages">

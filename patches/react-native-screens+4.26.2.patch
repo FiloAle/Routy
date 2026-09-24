@@ -1,0 +1,125 @@
+diff --git a/node_modules/react-native-screens/ios/tabs/RNSTabBarAppearanceCoordinator.mm b/node_modules/react-native-screens/ios/tabs/RNSTabBarAppearanceCoordinator.mm
+index fee81a8..719a38d 100644
+--- a/node_modules/react-native-screens/ios/tabs/RNSTabBarAppearanceCoordinator.mm
++++ b/node_modules/react-native-screens/ios/tabs/RNSTabBarAppearanceCoordinator.mm
+@@ -8,6 +8,102 @@
+ #import "RNSTabsHostComponentView.h"
+ #import "RNSTabsScreenViewController.h"
+ 
++// [Routy patch] Supports SF Symbol names with a palette suffix, e.g.
++// "message.badge.filled.fill:palette(#208AEF,#FFFFFF)". Without the suffix the
++// symbol is loaded exactly as before.
++static UIColor *_Nullable RNSRoutyColorFromHex(NSString *hex)
++{
++  NSString *digits = [hex stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
++  if ([digits hasPrefix:@"#"]) {
++    digits = [digits substringFromIndex:1];
++  }
++  if (digits.length != 6 && digits.length != 8) {
++    return nil;
++  }
++  unsigned long long value = 0;
++  NSScanner *scanner = [NSScanner scannerWithString:digits];
++  if (![scanner scanHexLongLong:&value] || !scanner.isAtEnd) {
++    return nil;
++  }
++  CGFloat alpha = 1.0;
++  if (digits.length == 8) {
++    alpha = (value & 0xFF) / 255.0;
++    value >>= 8;
++  }
++  return [UIColor colorWithRed:((value >> 16) & 0xFF) / 255.0
++                         green:((value >> 8) & 0xFF) / 255.0
++                          blue:(value & 0xFF) / 255.0
++                         alpha:alpha];
++}
++
++// Loads a public SF Symbol, falling back to Apple's private system symbols
++// (e.g. "home.fill"). "a|b" tries each name in order, for older iOS versions.
++static UIImage *_Nullable RNSRoutySystemImage(NSString *names)
++{
++  SEL privateSelector = NSSelectorFromString(@"_systemImageNamed:");
++  BOOL hasPrivateLookup = [UIImage respondsToSelector:privateSelector];
++  for (NSString *name in [names componentsSeparatedByString:@"|"]) {
++    UIImage *image = [UIImage systemImageNamed:name];
++    if (image == nil && hasPrivateLookup) {
++      typedef UIImage *_Nullable (*RNSRoutyImageLookup)(id, SEL, NSString *);
++      RNSRoutyImageLookup lookup = (RNSRoutyImageLookup)[UIImage methodForSelector:privateSelector];
++      image = lookup(UIImage.class, privateSelector, name);
++    }
++    if (image != nil) {
++      return image;
++    }
++  }
++  return nil;
++}
++
++static UIImage *_Nullable RNSRoutySystemImageNamed(NSString *name)
++{
++  NSRange marker = [name rangeOfString:@":palette("];
++  if (marker.location == NSNotFound || ![name hasSuffix:@")"]) {
++    return RNSRoutySystemImage(name);
++  }
++
++  NSString *symbolName = [name substringToIndex:marker.location];
++  NSUInteger listStart = NSMaxRange(marker);
++  NSString *list = [name substringWithRange:NSMakeRange(listStart, name.length - 1 - listStart)];
++
++  NSMutableArray<UIColor *> *colors = [NSMutableArray array];
++  for (NSString *part in [list componentsSeparatedByString:@","]) {
++    UIColor *color = RNSRoutyColorFromHex(part);
++    if (color == nil) {
++      return RNSRoutySystemImage(symbolName);
++    }
++    [colors addObject:color];
++  }
++  if (colors.count == 0) {
++    return RNSRoutySystemImage(symbolName);
++  }
++
++  // Same size UIKit uses for tab bar symbols (body text style, large scale).
++  UIImageSymbolConfiguration *sizeConfig = [UIImageSymbolConfiguration configurationWithPointSize:17
++                                                                                           weight:UIImageSymbolWeightRegular
++                                                                                            scale:UIImageSymbolScaleLarge];
++  UIImageSymbolConfiguration *paletteConfig = [UIImageSymbolConfiguration configurationWithPaletteColors:colors];
++  UIImage *symbol = [RNSRoutySystemImage(symbolName)
++      imageByApplyingSymbolConfiguration:[sizeConfig configurationByApplyingConfiguration:paletteConfig]];
++  if (symbol == nil) {
++    return nil;
++  }
++
++  // Flatten the symbol into a bitmap: the tab bar re-applies its own symbol configuration
++  // (preferring multicolor), which would otherwise replace the palette.
++  UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
++  UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:symbol.size format:format];
++  UIImage *flattened = [renderer imageWithActions:^(UIGraphicsImageRendererContext *_Nonnull context) {
++    [symbol drawInRect:CGRectMake(0, 0, symbol.size.width, symbol.size.height)];
++  }];
++  flattened = [flattened imageWithAlignmentRectInsets:symbol.alignmentRectInsets];
++  if (symbol.hasBaseline) {
++    flattened = [flattened imageWithBaselineOffsetFromBottom:symbol.baselineOffsetFromBottom];
++  }
++  return [flattened imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
++}
++
+ @implementation RNSTabBarAppearanceCoordinator
+ 
+ - (void)updateAppearanceOfTabBar:(nullable UITabBar *)tabBar
+@@ -62,7 +158,7 @@ - (void)setIconsForTabBarItem:(UITabBarItem *)tabBarItem
+   if (screenView.iconType == RNSTabsIconTypeSfSymbol || screenView.iconType == RNSTabsIconTypeXcasset) {
+     if (screenView.iconResourceName != nil) {
+       if (screenView.iconType == RNSTabsIconTypeSfSymbol) {
+-        tabBarItem.image = [UIImage systemImageNamed:screenView.iconResourceName];
++        tabBarItem.image = RNSRoutySystemImageNamed(screenView.iconResourceName);
+       } else {
+         tabBarItem.image = [UIImage imageNamed:screenView.iconResourceName];
+       }
+@@ -77,7 +173,7 @@ - (void)setIconsForTabBarItem:(UITabBarItem *)tabBarItem
+ 
+     if (screenView.selectedIconResourceName != nil) {
+       if (screenView.iconType == RNSTabsIconTypeSfSymbol) {
+-        tabBarItem.selectedImage = [UIImage systemImageNamed:screenView.selectedIconResourceName];
++        tabBarItem.selectedImage = RNSRoutySystemImageNamed(screenView.selectedIconResourceName);
+       } else {
+         tabBarItem.selectedImage = [UIImage imageNamed:screenView.selectedIconResourceName];
+       }
