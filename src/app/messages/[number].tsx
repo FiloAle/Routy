@@ -117,8 +117,13 @@ export default function ChatScreen() {
 	const conversation = conversations.find((c) => c.number === number);
 	const messages = conversation?.messages ?? [];
 
-	const isInitialLoad = useRef(true);
+	// Hidden until the first jump to the end, so the chat opens on its latest message
+	// instead of showing the oldest ones and scrolling down.
+	const [isReady, setIsReady] = useState(false);
 	const contentHeightRef = useRef(0);
+	// Rendering every message in the first pass gives the final content height at once,
+	// so a single scroll reaches the end; later batches would each move it further.
+	const [initialNumToRender] = useState(() => Math.max(messages.length, 10));
 
 	useEffect(() => {
 		const keyboardEvent =
@@ -193,7 +198,8 @@ export default function ChatScreen() {
 			>
 				<FlatList
 					ref={listRef}
-					style={messageStyles.chatList}
+					style={[messageStyles.chatList, !isReady && messageStyles.chatListHidden]}
+					initialNumToRender={initialNumToRender}
 					showsVerticalScrollIndicator={false}
 					data={messages}
 					keyExtractor={(item) => item.id}
@@ -207,14 +213,12 @@ export default function ChatScreen() {
 					contentContainerStyle={messageStyles.listContent}
 					onContentSizeChange={(w, h) => {
 						contentHeightRef.current = h;
-						listRef.current?.scrollToOffset({
-							offset: h,
-							animated: !isInitialLoad.current,
-						});
-						isInitialLoad.current = false;
+						// Animated only for new messages, once the chat is on screen.
+						listRef.current?.scrollToOffset({ offset: h, animated: isReady });
+						if (!isReady) requestAnimationFrame(() => setIsReady(true));
 					}}
 					onLayout={() => {
-						if (!isInitialLoad.current && contentHeightRef.current > 0) {
+						if (isReady && contentHeightRef.current > 0) {
 							setTimeout(() => {
 								listRef.current?.scrollToOffset({
 									offset: contentHeightRef.current,

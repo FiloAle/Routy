@@ -236,6 +236,9 @@ export const messageStyles = StyleSheet.create({
 		flex: 1,
 		marginBottom: -90,
 	},
+	chatListHidden: {
+		opacity: 0,
+	},
 	keyboardAvoidingView: {
 		flex: 1,
 	},
