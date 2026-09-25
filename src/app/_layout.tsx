@@ -1,5 +1,4 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -66,7 +65,6 @@ export default function RootLayout() {
 			<ThemeProvider
 				value={colorScheme === "dark" ? customDarkTheme : customDefaultTheme}
 			>
-				<StatusBar style="auto" />
 				<RouterProvider>
 					<Stack>
 						<Stack.Screen name="index" options={{ headerShown: false }} />

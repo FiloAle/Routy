@@ -55,16 +55,20 @@ export default function SettingsScreen() {
 	};
 
 	const [urlInput, setUrlInput] = useState(getDisplayUrl(routerUrl));
-
-	useEffect(() => {
-		setUrlInput(getDisplayUrl(routerUrl));
-	}, [routerUrl]);
-
 	const [passwordInput, setPasswordInput] = useState(password);
 
-	useEffect(() => {
+	// Reset the fields when the saved values change (e.g. loaded at startup or after
+	// leaving demo mode). Done while rendering, so there's no extra effect pass.
+	const [syncedUrl, setSyncedUrl] = useState(routerUrl);
+	if (syncedUrl !== routerUrl) {
+		setSyncedUrl(routerUrl);
+		setUrlInput(getDisplayUrl(routerUrl));
+	}
+	const [syncedPassword, setSyncedPassword] = useState(password);
+	if (syncedPassword !== password) {
+		setSyncedPassword(password);
 		setPasswordInput(password);
-	}, [password]);
+	}
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [limitSelection, setLimitSelection] = useState({ start: 0, end: 0 });
@@ -127,7 +131,7 @@ export default function SettingsScreen() {
 			} else {
 				await connectNetwork();
 			}
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("settings.error_conn"));
 		}
 	};
@@ -136,27 +140,27 @@ export default function SettingsScreen() {
 		if (!nightMode) return;
 		try {
 			await setNightMode(enabled, nightMode.start, nightMode.end);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
 
-	const handleNightModeStartChange = async (event: any, date?: Date) => {
-		if (!nightMode || !date) return;
+	const handleNightModeStartChange = async (_event: unknown, date: Date) => {
+		if (!nightMode) return;
 		const newStart = dateToTimeString(date);
 		try {
 			await setNightMode(nightMode.enabled, newStart, nightMode.end);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
 
-	const handleNightModeEndChange = async (event: any, date?: Date) => {
-		if (!nightMode || !date) return;
+	const handleNightModeEndChange = async (_event: unknown, date: Date) => {
+		if (!nightMode) return;
 		const newEnd = dateToTimeString(date);
 		try {
 			await setNightMode(nightMode.enabled, nightMode.start, newEnd);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
@@ -171,7 +175,7 @@ export default function SettingsScreen() {
 					try {
 						await reboot();
 						Alert.alert(t("common.success"), t("settings.reboot_success"));
-					} catch (error) {
+					} catch {
 						Alert.alert(t("common.error"), t("settings.reboot_error"));
 					}
 				},
@@ -179,9 +183,8 @@ export default function SettingsScreen() {
 		]);
 	};
 
-	const unitAnim = React.useRef(
-		new Animated.Value(dataLimitUnit === "GB" ? 0 : 1),
-	).current;
+	// Created once; state rather than a ref, since it's read while rendering.
+	const [unitAnim] = useState(() => new Animated.Value(dataLimitUnit === "GB" ? 0 : 1));
 
 	useEffect(() => {
 		Animated.spring(unitAnim, {
@@ -197,7 +200,7 @@ export default function SettingsScreen() {
 		outputRange: [2, 42], // Adjust based on button width
 	});
 
-	const scrollY = React.useRef(new Animated.Value(0)).current;
+	const [scrollY] = useState(() => new Animated.Value(0));
 
 	const titleOpacity = scrollY.interpolate({
 		inputRange: [0, 40],
@@ -476,7 +479,7 @@ export default function SettingsScreen() {
 									value={timeStringToDate(nightMode?.start || "00:00")}
 									mode="time"
 									display="default"
-									onChange={handleNightModeStartChange}
+									onValueChange={handleNightModeStartChange}
 								/>
 							</View>
 
@@ -491,7 +494,7 @@ export default function SettingsScreen() {
 									value={timeStringToDate(nightMode?.end || "00:00")}
 									mode="time"
 									display="default"
-									onChange={handleNightModeEndChange}
+									onValueChange={handleNightModeEndChange}
 								/>
 							</View>
 						</View>
