@@ -6,7 +6,8 @@ Piano di implementazione delle prossime funzionalità di Routy.
 |---|---|---|---|
 | 1 | Dimenticare dispositivi disconnessi | Dispositivi | Fatto |
 | 2 | SSID 2.4 GHz / 5 GHz separati | Impostazioni › Rete e consumi | Da fare |
-| 3 | Icona personalizzata dei dispositivi | Dispositivi | Da fare |
+| 3 | Pannello "Modifica": icona e nome | Dispositivi | Da fare |
+| 4 | Bloccare i connessi ed etichetta "Tu" | Dispositivi | Da fare |
 
 ---
 
@@ -163,19 +164,62 @@ Tenendola separata dalla UI, la regola si verifica a colpo d'occhio e si può te
 
 ---
 
-## 3. Icona personalizzata dei dispositivi
+## 3. Pannello "Modifica" del dispositivo: icona e nome
 
 ### Obiettivo
 
-Nella schermata **Dispositivi**, un tap sull'icona di un dispositivo apre un **popover compatto** ancorato all'icona, con una piccola griglia di SF Symbols. Scegliendone uno, diventa l'icona di quel dispositivo, anche dopo riavvii dell'app o del router.
+Lo swipe **Modifica** (matita blu, oggi "Rinomina" e solo sui connessi) su un dispositivo **connesso o disconnesso** apre un **pannello dal basso** che raccoglie in un solo posto icona e nome:
 
-L'aspetto è quello del selettore di icone di Promemoria: cerchi pieni grigi con il simbolo al centro, e un anello attorno all'icona selezionata.
+```
+┌──────────────────────────────┐
+│             ───              │  indicatore di trascinamento
+│           ( 💻 )             │  icona attuale, 72pt: il tap apre/chiude la griglia
+│  ┌──┐ ┌──┐ ┌──┐ ┌──┐         │
+│  └──┘ └──┘ └──┘ └──┘  …      │  griglia dei simboli (solo se aperta)
+│  ┌────────────────────────┐  │
+│  │ MacBook-Pro            │  │  campo del nome, già compilato
+│  └────────────────────────┘  │
+│  Messaggio di errore         │  solo se il nome non è valido
+│  [ Annulla ]  [ Conferma ]   │
+└──────────────────────────────┘
+```
+
+- **Icona in alto al centro.** Il tap espande sotto di sé la griglia dei simboli, un secondo tap la richiude. Scegliere un simbolo aggiorna subito l'anteprima in alto e richiude la griglia.
+- **Campo del nome.** Contiene il nome attuale e, al tap, apre la tastiera per modificarlo.
+- **Annulla / Conferma.** Nulla viene salvato finché non si conferma: Annulla, o il pannello chiuso col trascinamento, scarta le modifiche.
+
+Sostituisce sia il popover sull'icona della riga (il piano precedente) sia l'`Alert.prompt` della rinomina di oggi.
+
+**Swipe action risultanti**, da sinistra a destra. L'ultima sta sul bordo e parte con lo swipe completo, sempre dopo l'alert di conferma:
+
+| Sezione | Azioni |
+|---|---|
+| Connessi | Modifica (blu) · Blocca (rosso), vedi funzione 4 |
+| Disconnessi | Modifica (blu) · Dimentica (arancione) · Blocca (rosso) |
+| Bloccati | Riabilita (verde) |
+
+### Fattibilità
+
+Tutti i pezzi esistono in `@expo/ui` (SDK 57), senza codice nativo nuovo:
+
+| Pezzo | Componente |
+|---|---|
+| Pannello dal basso | `BottomSheet` con `fitToContents`, che adatta l'altezza al contenuto, e `presentationDragIndicator("visible")` |
+| Espansione animata della griglia | `withAnimation` attorno al cambio di stato |
+| Griglia dei simboli | `Grid` con `Grid.Row` |
+| Campo del nome | `TextField` con `useNativeState(nomeAttuale)` per il testo iniziale e `onTextChange` |
+| Pulsanti | `Button` con `buttonStyle("bordered")` e `buttonStyle("borderedProminent")` |
+
+**Punti da verificare nel prototipo:**
+- **Altezza con `fitToContents`.** Il pannello deve crescere in modo fluido quando la griglia si apre. In caso contrario, si usano i detent `medium` e `large` con `presentationDetents`.
+- **Tastiera.** Il pannello SwiftUI sale da solo sopra la tastiera, ma con la griglia aperta rischia di non starci. Per questo il focus sul campo richiude la griglia, e il tap sull'icona chiude la tastiera. Una sola delle due è aperta alla volta.
+- **Posizione del `BottomSheet`.** Va nello stesso `Host` della `List`: è la presentazione `.sheet` di SwiftUI, agganciata a una vista.
 
 ### Contesto
 
-- **Nessun selettore nativo pubblico.** iOS non offre un selettore di SF Symbols: quello di Promemoria è interno all'app di Apple. Va quindi ricostruito con viste SwiftUI di `@expo/ui`.
-- **Il popover resta un popover.** Il `Popover` di `@expo/ui` applica già `.presentationCompactAdaptation(.popover)` da iOS 16.4, il target minimo dell'app, quindi anche su iPhone resta un popover compatto con la freccia e non diventa un bottom sheet.
-- **Righe SwiftUI.** La lista Dispositivi è già una `List` SwiftUI, quindi popover e griglia si innestano direttamente nella riga.
+- **Nessun selettore nativo pubblico.** iOS non offre un selettore di SF Symbols: quello di Promemoria è interno all'app di Apple. La griglia va quindi ricostruita con viste SwiftUI.
+- **Rinomina sul router.** Il nome si salva con `EDIT_HOSTNAME` (`RouterApi.renameDevice`), con le regole di validazione della dashboard già in `hostnameError`.
+- **Icona in locale.** Il router non memorizza icone, quindi l'icona scelta resta sul telefono, in AsyncStorage per MAC, come i dispositivi dimenticati.
 
 ### Simboli, in questo ordine
 
@@ -240,36 +284,47 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 **2. Stato persistente, in [router-context.tsx](../src/context/router-context.tsx)**
 - Chiave `STORAGE_KEY_DEVICE_ICONS = '@routy/device_icons'`: oggetto JSON `{ [MAC maiuscolo]: DeviceIconId }`.
 - Stato `deviceIcons`, caricato in `init()` con lo stesso `try/catch` delle altre chiavi. Gli ID sconosciuti, per esempio rimossi in futuro, vengono ignorati.
-- Azione `setDeviceIcon(mac, id | null)`: con `null` rimuove la scelta e torna all'icona automatica. Aggiorna lo stato in modo immutabile e salva su AsyncStorage.
-- Stesso schema di `hiddenDeviceMacs` della funzione 1: conviene implementarle insieme.
+- Azione `setDeviceIcon(mac, id | null)`: con `null` rimuove la scelta e torna all'icona automatica. Stesso schema di `hideDevice` (ref + stato + AsyncStorage).
+- In `exitDemo()` si tolgono le icone dei MAC demo (`DEMO_DEVICE_MACS`), come per i dispositivi dimenticati.
 
-**3. Icona della riga e popover, in [devices.tsx](../src/app/devices.tsx)**
-- Il riquadro dell'icona (40pt) diventa un `Button` con `buttonStyle("plain")`, così è tappabile solo l'icona e non tutta la riga (e non interferisce con la swipe action della funzione 1).
-- È avvolto in `Popover` con `attachmentAnchor="bottom"`, `arrowEdge="top"` e `isPresented` controllato. Basta uno stato unico per schermata, `pickerFor: string | null` (il MAC della riga aperta).
-- Icona mostrata, sempre in grigio per i disconnessi:
-  1. scelta manuale → `symbolFor(id)`;
-  2. altrimenti icona dal nome (`inferIconFromName`);
-  3. altrimenti `wifi` per wireless e `desktopcomputer` per cavo. Per i disconnessi senza icona scelta né riconosciuta dal nome resta `wifi.slash`.
-- Accessibilità: `accessibilityLabel` del pulsante "Cambia icona" e `accessibilityValue` con il nome dell'icona attuale.
+**3. Icona della riga, in [devices.tsx](../src/app/devices.tsx)**
+- La riga non diventa tappabile: si modifica solo dallo swipe.
+- Icona mostrata, in ordine di priorità:
+  1. **bloccati:** sempre `nosign`;
+  2. **scelta manuale:** `symbolFor(id)`;
+  3. **icona dal nome:** `inferIconFromName`;
+  4. **tipo di connessione:** `wifi` per wireless, `desktopcomputer` per cavo. Per i disconnessi senza scelta né nome riconosciuto resta `wifi.slash`.
+- I disconnessi mostrano il simbolo in grigio, come oggi.
 
-**4. Griglia, nuovo componente `DeviceIconPicker`**
-- `Grid` di `@expo/ui` con 13 icone su 4 colonne (`Grid.Row`: 4 + 4 + 4 + 1), `horizontalSpacing`/`verticalSpacing` di 12 e `padding` di 16. Circa 240×240pt: resta compatto nel popover.
-- Ogni cella: `Button` (`buttonStyle("plain")`) con uno `ZStack` di 44pt.
-  - `Circle` riempito con `palette.fill` e il simbolo a 20pt con `palette.text`.
-  - Cella selezionata: anello esterno, un `Circle` con `strokeBorder` di 2pt in `palette.secondaryText` e diametro 52pt, come nello screenshot di Promemoria.
-- Sotto la griglia, un pulsante testuale "Icona automatica" che cancella la scelta manuale (`setDeviceIcon(mac, null)`) e torna all'icona automatica, cioè quella dal nome o dal tipo di connessione. È visibile solo se c'è una scelta manuale.
-- Nella griglia l'anello indica l'icona attualmente mostrata, anche se automatica.
-- Il tap su un'icona salva subito e chiude il popover (`pickerFor = null`).
-- Il componente riceve `palette`, quindi segue la light/dark mode come il resto della lista.
+**4. Pannello, nuovo componente `DeviceEditSheet`**
+- Stato della schermata: `editing: Device | null`. Lo swipe "Modifica" lo imposta, la chiusura del pannello lo azzera.
+- Stato interno del pannello: `draftIcon: DeviceIconId | null` (con `null` = automatica), `nameState = useNativeState(device.hostname)` e `gridOpen: boolean`.
+- **Icona in alto:** `Button` con `buttonStyle("plain")`. Dentro c'è uno `ZStack` con `Circle` di 72pt in `palette.fill` e il simbolo a 32pt. Il tap esegue `withAnimation` su `gridOpen` e chiude la tastiera.
+- **Griglia**, visibile solo con `gridOpen`:
+  - 14 celle su 4 colonne: **Automatica** per prima (`sparkles`), poi i 13 simboli nell'ordine della tabella.
+  - Celle da 44pt, spaziature di 12pt.
+  - La cella selezionata ha l'anello di 2pt in `palette.secondaryText`, come in Promemoria.
+  - Il tap su una cella imposta `draftIcon` e richiude la griglia.
+- **Campo del nome:** `TextField` in `textFieldStyle("roundedBorder")`. `onFocusChange(true)` richiude la griglia.
+- **Errore del nome:** sotto il campo, in `Colors.routyRed`, mostra il testo di `hostnameError` mentre si scrive. Sostituisce l'alert d'errore che riapre il prompt.
+- **Pulsanti:** Annulla (`bordered`) e Conferma (`borderedProminent`, pulsante primario).
+  - Conferma è disabilitato se il nome non è valido o se non è cambiato nulla.
+  - Mentre salva mostra un `ProgressView` e resta disabilitato.
+- **Conferma** salva solo ciò che è cambiato:
+  1. l'icona con `setDeviceIcon`, locale e immediata;
+  2. il nome con `renameDevice`, sul router.
+  - Se la rinomina fallisce, il pannello resta aperto con l'errore `devices.rename_failed` sotto il campo. L'icona resta salvata, perché è indipendente dal nome.
 
 **5. Testi, in [it.json](../src/i18n/locales/it.json) e [en.json](../src/i18n/locales/en.json)**
-- `devices.change_icon`: "Cambia icona" / "Change icon"
+- `devices.edit`: "Modifica" / "Edit" (etichetta VoiceOver della swipe action; sostituisce `devices.rename`)
+- `devices.change_icon`: "Cambia icona" / "Change icon" (VoiceOver dell'icona in alto)
 - `devices.automatic_icon`: "Icona automatica" / "Automatic icon"
+- `devices.name_placeholder`: "Nome del dispositivo" / "Device name"
 - `devices.icons.<id>` per VoiceOver: iPhone, iPad, Apple Watch, Computer, MacBook, TV, Altoparlante / Speaker, Console, Stampante / Printer, Lampadina / Light bulb, Campanello / Doorbell, Presa / Smart plug, Wi-Fi.
+- Da rimuovere: `devices.rename_title` (il pannello non ha titolo).
 
 **6. Modalità demo**
-- Nessun dato nuovo: i dispositivi demo bastano per provare la funzione.
-- In `exitDemo()` vanno rimosse dal salvataggio le icone dei MAC demo, come per i dispositivi nascosti della funzione 1.
+- Nessun dato nuovo: `DemoRouterApi.renameDevice` esiste già e aggiorna la lista in memoria.
 
 ### Casi limite
 
@@ -278,36 +333,99 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 | iOS 16 e icona "MacBook" | `laptopcomputer` al posto di `macbook` |
 | iOS 16–17 e icona "Altoparlante" | `homepod.2` al posto di `homepod.and.homepod.mini` |
 | Nome con più corrispondenze (es. "iPhone-MacBook") | Vince la prima regola in `NAME_RULES` |
+| Rinomina dal pannello, icona automatica | L'anteprima in alto segue il nome mentre si scrive: "iPad" → `ipad` |
 | Il router rinomina il dispositivo | L'icona automatica si aggiorna col nuovo nome; una scelta manuale resta |
 | ID salvato non più presente nel catalogo | Ignorato: si torna all'icona automatica |
-| Dispositivo dimenticato (funzione 1) | L'icona scelta resta salvata; se il dispositivo ricompare, la ritrova |
-| Swipe sulla riga mentre il popover è aperto | Il popover è modale: il primo tap fuori lo chiude |
+| Dispositivo dimenticato o bloccato | L'icona scelta resta salvata; se il dispositivo torna tra i connessi, la ritrova |
+| Il dispositivo si disconnette a pannello aperto | Il pannello resta aperto; nome e icona si possono salvare comunque (`EDIT_HOSTNAME` vale anche per i disconnessi) |
+| Rinomina di un disconnesso | Il nuovo nome compare subito nella lista, perché `hostNameList` lo restituisce già aggiornato |
+| Rinomina fallita | Pannello aperto con l'errore, icona già salvata |
 
 ### Decisioni prese
 
-- **Disconnessi:** il simbolo (scelto o automatico) si mostra in grigio, così il dispositivo resta riconoscibile e il grigio indica che è offline. `wifi.slash` resta solo quando non c'è né una scelta né un nome riconosciuto.
-- **"Icona automatica":** resta sotto la griglia, perché con le regole sul nome l'icona automatica è utile e serve un modo per tornarci dopo una scelta manuale.
+- **Modifica anche sui disconnessi:** `EDIT_HOSTNAME` vale anche per le voci di `hostNameList` offline. Nel codice di `actionsFor("disconnected")` il pulsante Modifica va **per ultimo**: in SwiftUI il primo pulsante sta sul bordo. L'ordine nel codice è quindi Blocca, Dimentica, Modifica.
+- **Bloccati:** solo Riabilita. Per rinominarli si riabilitano prima.
+
+---
+
+## 4. Bloccare anche i dispositivi connessi ed etichetta "Tu"
+
+### Obiettivo
+
+Anche i dispositivi **connessi via Wi-Fi** hanno lo swipe **Blocca** (rosso, `nosign`), accanto a Modifica, con lo stesso alert dei disconnessi. Dopo la conferma il router lo disconnette dal Wi-Fi e la riga passa tra i **Bloccati**.
+
+Il dispositivo su cui gira Routy si riconosce dal MAC e mostra, subito dopo il nome e sulla stessa riga, l'etichetta **Tu**, in regular e in grigio:
+
+> **iPhone di Filippo** Tu
+> 192.168.0.101 • A4:83:E7:12:34:56
+
+### Contesto
+
+- **Stesso comando.** È la blacklist Wi-Fi della funzione 1: `RouterApi.blockDevice`, con gli stessi controlli sul limite di 32 voci e sulla whitelist. Non serve codice API nuovo per il blocco.
+- **Non bloccare sé stessi.** La dashboard del router impedisce di bloccare il dispositivo da cui la si usa (`black_yourself_tip` in `wifi/station_info.js`). Il client si riconosce con `cmd=get_user_mac_addr`, che restituisce il MAC di chi fa la richiesta, cioè il telefono con Routy.
+- **Solo Wi-Fi.** Il filtro agisce solo sul Wi-Fi: un dispositivo via cavo resterebbe connesso, quindi per i `type: "cable"` il pulsante non compare.
+
+### Implementazione
+
+**1. API, in [router-api.ts](../src/services/router-api.ts)**
+- `fetchOwnMac(): Promise<string | null>` con `cmd=get_user_mac_addr`, in maiuscolo. Restituisce `null` se il router non risponde.
+- In [demo-router-api.ts](../src/services/demo-router-api.ts), `fetchOwnMac` restituisce il MAC di "iPhone di Filippo", così in demo si prova anche il caso "sé stessi".
+
+**2. Stato, in [router-context.tsx](../src/context/router-context.tsx)**
+- `ownMac: string | null`, letto in `loadDevices` insieme alla blacklist. Un errore non blocca la lista, come per la blacklist.
+
+**3. Swipe action, in [devices.tsx](../src/app/devices.tsx)**
+- `actionsFor("connected")`: Blocca sul bordo e Modifica accanto, quindi nel codice Blocca va per primo.
+- Blocca **non compare** per i dispositivi via cavo.
+- Per il **proprio dispositivo** (MAC uguale a `ownMac`) Blocca non compare. Se `ownMac` è sconosciuto, il pulsante compare e la conferma mostra un avviso in più: è il comportamento prudente, perché bloccarsi da soli si recupera solo da un altro dispositivo o via cavo.
+- Stesso alert della funzione 1: "Vuoi bloccare a <nome> l'accesso alla rete?".
+
+**4. Etichetta "Tu", in `DeviceRow`**
+- **Quando:** solo per il dispositivo con MAC uguale a `ownMac`. Con `ownMac` sconosciuto non compare.
+- **Nessuna riga in più:** la riga del nome diventa un `HStack` (spacing 6):
+  - il nome resta `font({ size: 17, weight: "semibold" })` con `lineLimit(1)`;
+  - l'etichetta è un secondo `Text` con `font({ size: 17 })` (regular), `foregroundStyle(palette.secondaryText)`, `lineLimit(1)` e `layoutPriority(1)`.
+- **Nomi lunghi:** con `layoutPriority(1)` è il nome ad accorciarsi con i puntini, mentre l'etichetta resta intera. Due `Text` annidati si fonderebbero in un'unica stringa, e il troncamento taglierebbe proprio l'etichetta: per questo servono due viste affiancate.
+- **Dove compare:** dove sta il dispositivo, di norma tra i Connessi. Nell'app il proprio dispositivo è per forza connesso, perché la risposta del router arriva proprio da lì.
+- **Demo:** con `fetchOwnMac` della demo, l'etichetta compare su "iPhone di Filippo".
+
+**5. Testi**
+- Nessun testo nuovo per il blocco.
+- `devices.this_device`: "Tu" / "You". Breve apposta: "Questo dispositivo" toglierebbe troppo spazio al nome.
+- `devices.block_self_warning`: "Se è il dispositivo che stai usando, perderai la connessione al router." / "If this is the device you're using, you'll lose your connection to the router." (solo con `ownMac` sconosciuto).
+
+### Casi limite
+
+| Caso | Comportamento |
+|---|---|
+| Dispositivo connesso via cavo | Nessun pulsante Blocca |
+| Telefono con indirizzo Wi-Fi privato di iOS | Il router vede quel MAC sia in `station_list` sia in `get_user_mac_addr`, quindi il confronto regge |
+| Il dispositivo bloccato era connesso | Il router lo disconnette; al refresh successivo compare solo tra i Bloccati |
+| Riabilitazione | Torna tra i Disconnessi finché non si ricollega, poi tra i Connessi |
+| Nome lungo sul proprio dispositivo | Il nome si accorcia con i puntini, "Tu" resta intero |
 
 ---
 
 ## Ordine di lavoro e verifica
 
 1. **Funzione 2 per prima:** più piccola, tocca solo API e impostazioni. `tsc` guida il rename di `ssid`.
-2. **Funzioni 1 e 3 insieme:** condividono lo schema di persistenza per MAC nel context e la riga di `devices.tsx`, cioè swipe action e popover sull'icona.
+2. **Funzioni 3 e 4 insieme:** toccano le stesse swipe action. La 3 riusa lo schema di persistenza per MAC della funzione 1 e trasforma "Rinomina" in "Modifica"; la 4 aggiunge Blocca ai connessi.
 3. **Modalità demo** aggiornata per tutte.
 4. **Controlli:** `npx tsc --noEmit`, `npx expo lint` (nessun nuovo errore nei file toccati), `npx expo export --platform ios`.
 5. **Prova sul simulatore in modalità demo:**
-   - [ ] Swipe su un disconnesso → "Dimentica" → alert → `Annulla`: nulla cambia
-   - [ ] Swipe su un disconnesso → "Dimentica" → alert → `Conferma`: sparisce
-   - [ ] Swipe completo su un disconnesso: compare direttamente l'alert
-   - [ ] Riavvio app: il dispositivo resta nascosto
-   - [ ] Swipe su un connesso: nessuna azione
    - [ ] Impostazioni in demo: due righe SSID
    - [ ] Icone automatiche in demo: "iPhone di Filippo" → iPhone, "iPad" → iPad, "MacBook-Pro" → MacBook
-   - [ ] Tap sull'icona di un dispositivo: si apre il popover compatto (niente bottom sheet) con le 13 icone nell'ordine previsto
-   - [ ] Tap su un'icona: salva, chiude il popover, l'icona della riga cambia
-   - [ ] Riavvio app: l'icona scelta resta
-   - [ ] "Icona automatica": torna all'icona dal nome o dal tipo di connessione
-   - [ ] Tap sul resto della riga: nessun popover
-   - [ ] Light e dark mode: griglia e anello di selezione leggibili
-6. **Prova sul router reale:** SSID unico e SSID separati.
+   - [ ] Swipe su un connesso via Wi-Fi: Modifica e Blocca; via cavo e sul proprio dispositivo ("iPhone di Filippo" in demo) solo Modifica
+   - [ ] Blocca su un connesso: alert, poi la riga passa tra i Bloccati
+   - [ ] "iPhone di Filippo" in demo: "Tu" in grigio dopo il nome, sulla stessa riga; con un nome lungo si accorcia solo il nome
+   - [ ] Swipe su un disconnesso: da sinistra Modifica, Dimentica, Blocca
+   - [ ] Swipe "Modifica" su un connesso e su un disconnesso: si apre il pannello con icona e nome attuali, griglia chiusa
+   - [ ] Tap sull'icona: la griglia si apre con Automatica + 13 simboli nell'ordine previsto; secondo tap la chiude
+   - [ ] Scelta di un simbolo: anteprima aggiornata, griglia chiusa, niente ancora salvato
+   - [ ] Tap sul campo: tastiera aperta e griglia chiusa; il pannello resta visibile sopra la tastiera
+   - [ ] Nome non valido: errore sotto il campo, Conferma disabilitato
+   - [ ] Annulla, o pannello trascinato giù: nessuna modifica
+   - [ ] Conferma: riga aggiornata con nuovo nome e nuova icona; riavvio app: l'icona resta
+   - [ ] "Automatica": torna all'icona dal nome o dal tipo di connessione
+   - [ ] Light e dark mode: pannello, griglia e anello di selezione leggibili
+6. **Prova sul router reale:** SSID unico e SSID separati; rinomina dal pannello; `get_user_mac_addr` restituisce il MAC del telefono e "Tu" compare sulla sua riga; blocco e riabilitazione di un dispositivo Wi-Fi connesso che si può scollegare.
