@@ -56,9 +56,12 @@ public struct SymbolImageView: ExpoSwiftUI.View {
 /// UIKit only applies it once a push transition ends, so on its own the blur pops in
 /// after the screen has slid in; this view is part of the screen and slides with it.
 public final class ScrollEdgeContainerView: ExpoView {
-  // The edge effect takes its shape from the container's elements, so an empty
-  // container draws nothing: this clear label spans the header area, down to the
-  // bottom of the navigation bar, so the blur ends where the bar's own one does.
+  // The edge effect spans the container that holds the interaction, and this view's own
+  // frame belongs to React Native's layout. So the interaction lives on an inner container
+  // sized here, down to the bottom of the navigation bar: the blur then ends where the
+  // bar's own one does, whatever the device's status bar height.
+  private let edgeContainer = UIView()
+  // An empty container draws nothing: a clear label gives the effect something to follow.
   private let shapeLabel = UILabel()
   private var interaction: AnyObject?
 
@@ -68,13 +71,16 @@ public final class ScrollEdgeContainerView: ExpoView {
     shapeLabel.text = "\u{00A0}"
     shapeLabel.textColor = .clear
     shapeLabel.isAccessibilityElement = false
-    addSubview(shapeLabel)
+    edgeContainer.isUserInteractionEnabled = false
+    edgeContainer.addSubview(shapeLabel)
+    addSubview(edgeContainer)
   }
 
   public override func layoutSubviews() {
     super.layoutSubviews()
     let height = navigationBarBottom() ?? bounds.height
-    shapeLabel.frame = CGRect(x: 0, y: 0, width: bounds.width, height: height)
+    edgeContainer.frame = CGRect(x: 0, y: 0, width: bounds.width, height: height)
+    shapeLabel.frame = edgeContainer.bounds
     attachIfNeeded()
   }
 
@@ -106,7 +112,7 @@ public final class ScrollEdgeContainerView: ExpoView {
     let edgeInteraction = UIScrollEdgeElementContainerInteraction()
     edgeInteraction.scrollView = scrollView
     edgeInteraction.edge = .top
-    addInteraction(edgeInteraction)
+    edgeContainer.addInteraction(edgeInteraction)
     interaction = edgeInteraction
   }
 
