@@ -57,7 +57,8 @@ public struct SymbolImageView: ExpoSwiftUI.View {
 /// after the screen has slid in; this view is part of the screen and slides with it.
 public final class ScrollEdgeContainerView: ExpoView {
   // The edge effect takes its shape from the container's elements, so an empty
-  // container draws nothing: this clear label spans the whole header area.
+  // container draws nothing: this clear label spans the header area, down to the
+  // bottom of the navigation bar, so the blur ends where the bar's own one does.
   private let shapeLabel = UILabel()
   private var interaction: AnyObject?
 
@@ -72,12 +73,30 @@ public final class ScrollEdgeContainerView: ExpoView {
 
   public override func layoutSubviews() {
     super.layoutSubviews()
-    shapeLabel.frame = bounds
+    let height = navigationBarBottom() ?? bounds.height
+    shapeLabel.frame = CGRect(x: 0, y: 0, width: bounds.width, height: height)
     attachIfNeeded()
+  }
+
+  /// Bottom of the enclosing navigation bar in this view's coordinates. It depends on
+  /// the device (status bar height), so a fixed height would overshoot on some.
+  private func navigationBarBottom() -> CGFloat? {
+    var responder: UIResponder? = self
+    while let current = responder {
+      if let controller = current as? UIViewController, let navigation = controller.navigationController {
+        let bar = navigation.navigationBar
+        let bottom = bar.convert(bar.bounds, to: self).maxY
+        return bottom > 0 ? bottom : nil
+      }
+      responder = current.next
+    }
+    return nil
   }
 
   public override func didMoveToWindow() {
     super.didMoveToWindow()
+    // The navigation bar may only be reachable now, so lay out the shape again.
+    setNeedsLayout()
     attachIfNeeded()
   }
 
