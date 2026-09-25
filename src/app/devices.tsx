@@ -119,7 +119,7 @@ function DeviceRow({
 						<SwiftText
 							modifiers={[
 								font({ size: 17 }),
-								foregroundStyle(palette.secondaryText),
+								foregroundStyle(Colors.routyBlue),
 								lineLimit(1),
 								layoutPriority(1),
 							]}

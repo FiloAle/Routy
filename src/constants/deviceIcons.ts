@@ -12,11 +12,11 @@ export const DEVICE_ICONS = [
 	{ id: "computer", symbol: "desktopcomputer" },
 	{ id: "macbook", symbol: "macbook", legacySymbol: "laptopcomputer", minIOS: 17 },
 	{ id: "tv", symbol: "tv" },
-	{ id: "mediastick", symbol: "mediastick" },
 	{ id: "speaker", symbol: "homepod.and.homepod.mini", legacySymbol: "homepod.2", minIOS: 18 },
 	{ id: "console", symbol: "gamecontroller" },
 	{ id: "drive", symbol: "externaldrive" },
 	{ id: "printer", symbol: "printer" },
+	{ id: "camera", symbol: "web.camera" },
 	{ id: "light", symbol: "lightbulb" },
 	{ id: "doorbell", symbol: "video.doorbell" },
 	{ id: "plug", symbol: "poweroutlet.type.b" },
@@ -48,8 +48,6 @@ const NAME_RULES: { match: RegExp; id: DeviceIconId }[] = [
 	{ match: /iphone/i, id: "iphone" },
 	{ match: /ipad/i, id: "ipad" },
 	{ match: /macbook/i, id: "macbook" },
-	// Before "tv": "FireTV-Stick" is a stick.
-	{ match: /stick/i, id: "mediastick" },
 	{ match: /tv/i, id: "tv" },
 	{ match: /nas|drive/i, id: "drive" },
 ];

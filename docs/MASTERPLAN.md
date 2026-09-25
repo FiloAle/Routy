@@ -231,11 +231,11 @@ Tutti i pezzi esistono in `@expo/ui` (SDK 57), senza codice nativo nuovo:
 | 4 | `computer` | `desktopcomputer` | iOS 13 |
 | 5 | `macbook` | `macbook` (fallback `laptopcomputer`) | iOS 17 (fallback iOS 14) |
 | 6 | `tv` | `tv` | iOS 13 |
-| 7 | `mediastick` | `mediastick` | iOS 15 |
-| 8 | `speaker` | `homepod.and.homepod.mini` (fallback `homepod.2`) | iOS 18 (fallback iOS 14) |
-| 9 | `console` | `gamecontroller` | iOS 13 |
-| 10 | `drive` | `externaldrive` | iOS 14 |
-| 11 | `printer` | `printer` | iOS 13 |
+| 7 | `speaker` | `homepod.and.homepod.mini` (fallback `homepod.2`) | iOS 18 (fallback iOS 14) |
+| 8 | `console` | `gamecontroller` | iOS 13 |
+| 9 | `drive` | `externaldrive` | iOS 14 |
+| 10 | `printer` | `printer` | iOS 13 |
+| 11 | `camera` | `web.camera` | iOS 16 |
 | 12 | `light` | `lightbulb` | iOS 13 |
 | 13 | `doorbell` | `video.doorbell` | iOS 16 |
 | 14 | `plug` | `poweroutlet.type.b` | iOS 16 |
@@ -256,11 +256,11 @@ export const DEVICE_ICONS = [
   { id: "computer", symbol: "desktopcomputer" },
   { id: "macbook", symbol: "macbook", legacySymbol: "laptopcomputer", minIOS: 17 },
   { id: "tv", symbol: "tv" },
-  { id: "mediastick", symbol: "mediastick" },
   { id: "speaker", symbol: "homepod.and.homepod.mini", legacySymbol: "homepod.2", minIOS: 18 },
   { id: "console", symbol: "gamecontroller" },
   { id: "drive", symbol: "externaldrive" },
   { id: "printer", symbol: "printer" },
+  { id: "camera", symbol: "web.camera" },
   { id: "light", symbol: "lightbulb" },
   { id: "doorbell", symbol: "video.doorbell" },
   { id: "plug", symbol: "poweroutlet.type.b" },
@@ -275,7 +275,6 @@ const NAME_RULES: { match: RegExp; id: DeviceIconId }[] = [
   { match: /iphone/i, id: "iphone" },
   { match: /ipad/i, id: "ipad" },
   { match: /macbook/i, id: "macbook" },
-  { match: /stick/i, id: "mediastick" }, // prima di "tv": "FireTV-Stick" è una chiavetta
   { match: /tv/i, id: "tv" },
   { match: /nas|drive/i, id: "drive" },
 ];
@@ -283,7 +282,7 @@ export function inferIconFromName(hostname: string): DeviceIconId | null;
 ```
 
 **Icona automatica.** È l'icona che il dispositivo ha quando non ne è stata scelta una a mano. Si decide in quest'ordine:
-1. dal **nome** con `inferIconFromName`: "iPhone di Filippo" → `iphone`, "iPad" → `ipad`, "MacBook-Pro" → `macbook`, "Amazon-FireTV-Stick" → `mediastick`, "Smart-TV" → `tv`, "NAS" e "My-Drive" → `drive`. Se il nome contiene sia "stick" sia "tv" vince `mediastick`;
+1. dal **nome** con `inferIconFromName`: "iPhone di Filippo" → `iphone`, "iPad" → `ipad`, "MacBook-Pro" → `macbook`, "Amazon-FireTV-Stick" e "Smart-TV" → `tv`, "NAS" e "My-Drive" → `drive`.;
 2. altrimenti dal **tipo di connessione**, come oggi: `wifi` per wireless, `desktopcomputer` per cavo.
 
 Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul nome si possono estendere in futuro (per esempio "Watch" → `watch`, "iMac" → `computer`) aggiungendo righe a `NAME_RULES`.
@@ -327,7 +326,7 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 - `devices.change_icon`: "Cambia icona" / "Change icon" (VoiceOver dell'icona in alto)
 - `devices.automatic_icon`: "Icona automatica" / "Automatic icon"
 - `devices.name_placeholder`: "Nome del dispositivo" / "Device name"
-- `devices.icons.<id>` per VoiceOver: iPhone, iPad, Apple Watch, Computer, MacBook, TV, Chiavetta multimediale / Media stick, Altoparlante / Speaker, Console, Disco esterno / External drive, Stampante / Printer, Lampadina / Light bulb, Campanello / Doorbell, Presa / Smart plug, Wi-Fi.
+- `devices.icons.<id>` per VoiceOver: iPhone, iPad, Apple Watch, Computer, MacBook, TV, Altoparlante / Speaker, Console, Disco esterno / External drive, Stampante / Printer, Videocamera / Camera, Lampadina / Light bulb, Campanello / Doorbell, Presa / Smart plug, Wi-Fi.
 - Da rimuovere: `devices.rename_title` (il pannello non ha titolo).
 
 **6. Modalità demo**
@@ -339,7 +338,7 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 |---|---|
 | iOS 16 e icona "MacBook" | `laptopcomputer` al posto di `macbook` |
 | iOS 16–17 e icona "Altoparlante" | `homepod.2` al posto di `homepod.and.homepod.mini` |
-| Nome con più corrispondenze (es. "iPhone-MacBook", "FireTV-Stick") | Vince la prima regola in `NAME_RULES`: per "stick" e "tv" vince `mediastick` |
+| Nome con più corrispondenze (es. "iPhone-MacBook") | Vince la prima regola in `NAME_RULES` |
 | Rinomina dal pannello, icona automatica | L'anteprima in alto segue il nome mentre si scrive: "iPad" → `ipad` |
 | Il router rinomina il dispositivo | L'icona automatica si aggiorna col nuovo nome; una scelta manuale resta |
 | ID salvato non più presente nel catalogo | Ignorato: si torna all'icona automatica |
@@ -361,7 +360,7 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 
 Anche i dispositivi **connessi via Wi-Fi** hanno lo swipe **Blocca** (rosso, `nosign`), accanto a Modifica, con lo stesso alert dei disconnessi. Dopo la conferma il router lo disconnette dal Wi-Fi e la riga passa tra i **Bloccati**.
 
-Il dispositivo su cui gira Routy si riconosce dal MAC e mostra, subito dopo il nome e sulla stessa riga, l'etichetta **Tu**, in regular e in grigio:
+Il dispositivo su cui gira Routy si riconosce dal MAC e mostra, subito dopo il nome e sulla stessa riga, l'etichetta **Tu**, in regular e nel blu primario dell'app:
 
 > **iPhone di Filippo** Tu
 > 192.168.0.101 • A4:83:E7:12:34:56
@@ -391,7 +390,7 @@ Il dispositivo su cui gira Routy si riconosce dal MAC e mostra, subito dopo il n
 - **Quando:** solo per il dispositivo con MAC uguale a `ownMac`. Con `ownMac` sconosciuto non compare.
 - **Nessuna riga in più:** la riga del nome diventa un `HStack` (spacing 6):
   - il nome resta `font({ size: 17, weight: "semibold" })` con `lineLimit(1)`;
-  - l'etichetta è un secondo `Text` con `font({ size: 17 })` (regular), `foregroundStyle(palette.secondaryText)`, `lineLimit(1)` e `layoutPriority(1)`.
+  - l'etichetta è un secondo `Text` con `font({ size: 17 })` (regular), `foregroundStyle(Colors.routyBlue)`, `lineLimit(1)` e `layoutPriority(1)`.
 - **Nomi lunghi:** con `layoutPriority(1)` è il nome ad accorciarsi con i puntini, mentre l'etichetta resta intera. Due `Text` annidati si fonderebbero in un'unica stringa, e il troncamento taglierebbe proprio l'etichetta: per questo servono due viste affiancate.
 - **Dove compare:** dove sta il dispositivo, di norma tra i Connessi. Nell'app il proprio dispositivo è per forza connesso, perché la risposta del router arriva proprio da lì.
 - **Demo:** con `fetchOwnMac` della demo, l'etichetta compare su "iPhone di Filippo".
