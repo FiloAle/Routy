@@ -14,6 +14,7 @@ import { SmsMessage } from "@/utils/sms";
 import { MessageInputBar } from "@/components/MessageInputBar";
 import i18n, { t } from "@/i18n";
 import { messageStyles } from "@/styles/messageStyles";
+import { ScrollEdgeContainer } from "../../../modules/routy-ui-modifiers";
 
 // ── Day label separator ───────────────────────────────────────────────────────
 
@@ -237,6 +238,9 @@ export default function ChatScreen() {
 					bottomOffset={8}
 				/>
 			</KeyboardAvoidingView>
+
+			{/* The header's blur, drawn by the list, slides in with the chat instead of popping in after. */}
+			<ScrollEdgeContainer style={messageStyles.headerEdge} />
 		</View>
 	);
 }

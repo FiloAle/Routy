@@ -51,6 +51,63 @@ public struct SymbolImageView: ExpoSwiftUI.View {
   }
 }
 
+/// Makes the screen's scroll view draw its top edge effect (the soft blur under the
+/// navigation bar) below this view. The navigation bar asks for the same effect, but
+/// UIKit only applies it once a push transition ends, so on its own the blur pops in
+/// after the screen has slid in; this view is part of the screen and slides with it.
+public final class ScrollEdgeContainerView: ExpoView {
+  // The edge effect takes its shape from the container's elements, so an empty
+  // container draws nothing: this clear label spans the whole header area.
+  private let shapeLabel = UILabel()
+  private var interaction: AnyObject?
+
+  public required init(appContext: AppContext? = nil) {
+    super.init(appContext: appContext)
+    isUserInteractionEnabled = false
+    shapeLabel.text = "\u{00A0}"
+    shapeLabel.textColor = .clear
+    shapeLabel.isAccessibilityElement = false
+    addSubview(shapeLabel)
+  }
+
+  public override func layoutSubviews() {
+    super.layoutSubviews()
+    shapeLabel.frame = bounds
+    attachIfNeeded()
+  }
+
+  public override func didMoveToWindow() {
+    super.didMoveToWindow()
+    attachIfNeeded()
+  }
+
+  private func attachIfNeeded() {
+    guard #available(iOS 26.0, *), interaction == nil, window != nil,
+      let scrollView = screenScrollView() else { return }
+    let edgeInteraction = UIScrollEdgeElementContainerInteraction()
+    edgeInteraction.scrollView = scrollView
+    edgeInteraction.edge = .top
+    addInteraction(edgeInteraction)
+    interaction = edgeInteraction
+  }
+
+  /// The first scroll view, breadth-first, in the enclosing react-native-screens screen.
+  private func screenScrollView() -> UIScrollView? {
+    var root: UIView = self
+    while let parent = root.superview,
+      !String(describing: type(of: root)).contains("RNSScreenView") {
+      root = parent
+    }
+    var queue: [UIView] = [root]
+    while !queue.isEmpty {
+      let view = queue.removeFirst()
+      if let scrollView = view as? UIScrollView { return scrollView }
+      queue.append(contentsOf: view.subviews)
+    }
+    return nil
+  }
+}
+
 public class RoutyUIModifiersModule: Module {
   public func definition() -> ModuleDefinition {
     Name("RoutyUIModifiers")
@@ -64,6 +121,8 @@ public class RoutyUIModifiersModule: Module {
     }
 
     ExpoUIView(SymbolImageView.self)
+
+    View(ScrollEdgeContainerView.self) {}
 
     OnCreate {
       ViewModifierRegistry.register("routyScrollTopInset") { params, appContext, _ in

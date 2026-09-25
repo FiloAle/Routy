@@ -1,5 +1,6 @@
 import { requireNativeModule, requireNativeView } from "expo";
 import type React from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import type { ImageProps } from "@expo/ui/swift-ui";
 import { createModifier } from "@expo/ui/swift-ui/modifiers";
 
@@ -25,3 +26,11 @@ export const SymbolImage: React.ComponentType<{ systemName: NonNullable<ImagePro
 	"RoutyUIModifiers",
 	"SymbolImageView",
 );
+
+/**
+ * Invisible overlay for the header area of a screen with a transparent native header:
+ * the screen's scroll view draws its top edge blur under it, also while the screen is
+ * being pushed. See ScrollEdgeContainerView.
+ */
+export const ScrollEdgeContainer: React.ComponentType<{ style?: StyleProp<ViewStyle> }> =
+	requireNativeView("RoutyUIModifiers", "ScrollEdgeContainerView");

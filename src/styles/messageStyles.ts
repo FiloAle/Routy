@@ -239,6 +239,14 @@ export const messageStyles = StyleSheet.create({
 	chatListHidden: {
 		opacity: 0,
 	},
+	// Covers the transparent header, where the chat list draws its top edge blur.
+	headerEdge: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		height: Layout.headerOffset,
+	},
 	keyboardAvoidingView: {
 		flex: 1,
 	},
