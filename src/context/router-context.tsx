@@ -77,6 +77,7 @@ interface RouterContextValue {
   loadSms: () => Promise<void>;
   loadDataUsage: () => Promise<void>;
   loadDevices: () => Promise<void>;
+  renameDevice: (mac: string, hostname: string) => Promise<void>;
   sendSms: (number: string, text: string) => Promise<void>;
   markAsRead: (number: string) => Promise<void>;
   deleteConversation: (number: string) => Promise<void>;
@@ -619,6 +620,19 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authStatus]);
 
+  const renameDevice = useCallback(
+    async (mac: string, hostname: string) => {
+      try {
+        await apiRef.current.renameDevice(mac, hostname);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[renameDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
+
   const sendSms = useCallback(
     async (number: string, text: string) => {
       beginSmsMutation();
@@ -742,6 +756,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         loadSms,
         loadDataUsage,
         loadDevices,
+        renameDevice,
         sendSms,
         markAsRead,
         deleteConversation,

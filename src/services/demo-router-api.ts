@@ -113,6 +113,17 @@ export class DemoRouterApi extends RouterApi {
 		standbyDns: "",
 	};
 	private lteBandLock = "0x20080800C5";
+	private devices: Device[] = [
+		{ hostname: "iPhone di Filippo", ip: "192.168.0.101", mac: "A4:83:E7:12:34:56", type: "wireless" },
+		{ hostname: "MacBook-Pro", ip: "192.168.0.102", mac: "F0:18:98:AB:CD:EF", type: "wireless" },
+		{ hostname: "Smart-TV", ip: "192.168.0.103", mac: "70:2A:D5:11:22:33", type: "cable" },
+		{ hostname: "iPad", ip: "192.168.0.104", mac: "DC:A9:04:44:55:66", type: "wireless" },
+		{ hostname: "NAS", ip: "192.168.0.10", mac: "00:11:32:77:88:99", type: "cable" },
+		// Known but offline: like `hostNameList`-only entries, with no IP.
+		{ hostname: "Galaxy-S23", ip: "-", mac: "5C:CB:99:AA:10:20", type: "wireless" },
+		{ hostname: "Apple-Watch", ip: "-", mac: "8C:86:1E:30:40:50", type: "wireless" },
+		{ hostname: "PlayStation-5", ip: "-", mac: "BC:33:29:60:70:80", type: "wireless" },
+	];
 
 	constructor() {
 		super(`http://${DEMO_HOST}`);
@@ -196,17 +207,13 @@ export class DemoRouterApi extends RouterApi {
 
 	async fetchDevices(): Promise<Device[]> {
 		await this.delay();
-		return [
-			{ hostname: "iPhone di Filippo", ip: "192.168.0.101", mac: "A4:83:E7:12:34:56", type: "wireless" },
-			{ hostname: "MacBook-Pro", ip: "192.168.0.102", mac: "F0:18:98:AB:CD:EF", type: "wireless" },
-			{ hostname: "Smart-TV", ip: "192.168.0.103", mac: "70:2A:D5:11:22:33", type: "cable" },
-			{ hostname: "iPad", ip: "192.168.0.104", mac: "DC:A9:04:44:55:66", type: "wireless" },
-			{ hostname: "NAS", ip: "192.168.0.10", mac: "00:11:32:77:88:99", type: "cable" },
-			// Known but offline: like `hostNameList`-only entries, with no IP.
-			{ hostname: "Galaxy-S23", ip: "-", mac: "5C:CB:99:AA:10:20", type: "wireless" },
-			{ hostname: "Apple-Watch", ip: "-", mac: "8C:86:1E:30:40:50", type: "wireless" },
-			{ hostname: "PlayStation-5", ip: "-", mac: "BC:33:29:60:70:80", type: "wireless" },
-		];
+		return this.devices.map((d) => ({ ...d }));
+	}
+
+	async renameDevice(mac: string, hostname: string): Promise<void> {
+		await this.delay();
+		const device = this.devices.find((d) => d.mac === mac.toUpperCase());
+		if (device) device.hostname = hostname;
 	}
 
 	async connectNetwork(): Promise<void> {

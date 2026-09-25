@@ -105,7 +105,12 @@
 		"title": "Devices",
 		"connected": "Connected",
 		"disconnected": "Disconnected",
-		"empty": "No devices detected"
+		"empty": "No devices detected",
+		"rename": "Rename",
+		"rename_title": "Rename device",
+		"rename_required": "Enter a name.",
+		"rename_invalid": "The name can't start or end with a space, or contain + ; \" \\",
+		"rename_failed": "Couldn't rename the device."
 	},
 	"common": {
 		"error": "Error",
@@ -113,6 +118,8 @@
 		"today": "Today",
 		"yesterday": "Yesterday",
 		"copied": "Copied",
-		"copied_link": "Link copied to clipboard."
+		"copied_link": "Link copied to clipboard.",
+		"cancel": "Cancel",
+		"save": "Save"
 	}
 }

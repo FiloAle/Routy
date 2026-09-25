@@ -624,4 +624,28 @@ export class RouterApi {
 			return [];
 		}
 	}
+
+	async renameDevice(mac: string, hostname: string): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "EDIT_HOSTNAME",
+			mac,
+			hostname,
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending renameDevice params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response renameDevice:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Device rename failed: ${res.data?.result}`);
+		}
+	}
 }

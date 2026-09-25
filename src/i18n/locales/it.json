@@ -105,7 +105,12 @@
 		"title": "Dispositivi",
 		"connected": "Connessi",
 		"disconnected": "Disconnessi",
-		"empty": "Nessun dispositivo rilevato"
+		"empty": "Nessun dispositivo rilevato",
+		"rename": "Rinomina",
+		"rename_title": "Rinomina dispositivo",
+		"rename_required": "Inserisci un nome.",
+		"rename_invalid": "Il nome non può iniziare o finire con uno spazio, né contenere + ; \" \\",
+		"rename_failed": "Impossibile rinominare il dispositivo."
 	},
 	"common": {
 		"error": "Errore",
@@ -113,6 +118,8 @@
 		"today": "oggi",
 		"yesterday": "ieri",
 		"copied": "Copiato",
-		"copied_link": "Link copiato negli appunti."
+		"copied_link": "Link copiato negli appunti.",
+		"cancel": "Annulla",
+		"save": "Salva"
 	}
 }

@@ -1,7 +1,8 @@
 import { Stack } from "expo-router";
 import React from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import {
+	Button,
 	HStack,
 	Host,
 	Image,
@@ -9,6 +10,7 @@ import {
 	RoundedRectangle,
 	Section,
 	Spacer,
+	SwipeActions,
 	Text as SwiftText,
 	VStack,
 	ZStack,
@@ -17,6 +19,7 @@ import {
 	font,
 	foregroundStyle,
 	frame,
+	labelStyle,
 	lineLimit,
 	listRowBackground,
 	listRowInsets,
@@ -26,10 +29,11 @@ import {
 	padding,
 	refreshable,
 	scrollContentBackground,
+	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { useThemePalette } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles } from "@/styles/globalStyles";
 import { Device } from "@/services/router-api";
 import { textCaseNone } from "../../modules/routy-ui-modifiers";
@@ -38,6 +42,51 @@ type Palette = ReturnType<typeof useThemePalette>;
 
 const isDisconnected = (device: Device) => !device.ip || device.ip === "-";
 
+// Same rules as the router's own dashboard (wifi/station_info.js).
+function hostnameError(hostname: string): string | null {
+	if (hostname === "") return t("devices.rename_required");
+	if (hostname.startsWith(" ") || hostname.endsWith(" ") || /[+;"\\]/.test(hostname))
+		return t("devices.rename_invalid");
+	return null;
+}
+
+// Asks for the new name; an invalid one reopens the prompt so it can be fixed.
+function promptRename(
+	device: Device,
+	renameDevice: (mac: string, hostname: string) => Promise<void>,
+	current = device.hostname,
+) {
+	Alert.prompt(
+		t("devices.rename_title"),
+		device.mac,
+		[
+			{ text: t("common.cancel"), style: "cancel" },
+			{
+				text: t("common.save"),
+				isPreferred: true,
+				onPress: async (value?: string) => {
+					const hostname = value ?? "";
+					if (hostname === device.hostname) return;
+					const error = hostnameError(hostname);
+					if (error) {
+						Alert.alert(t("common.error"), error, [
+							{ text: "OK", onPress: () => promptRename(device, renameDevice, hostname) },
+						]);
+						return;
+					}
+					try {
+						await renameDevice(device.mac, hostname);
+					} catch {
+						Alert.alert(t("common.error"), t("devices.rename_failed"));
+					}
+				},
+			},
+		],
+		"plain-text",
+		current,
+	);
+}
+
 function DeviceRow({
 	device,
 	palette,
@@ -45,7 +94,7 @@ function DeviceRow({
 }: {
 	device: Device;
 	palette: Palette;
-	modifiers: React.ComponentProps<typeof HStack>["modifiers"];
+	modifiers?: React.ComponentProps<typeof HStack>["modifiers"];
 }) {
 	const disconnected = isDisconnected(device);
 	const color = disconnected ? palette.secondaryText : palette.text;
@@ -87,7 +136,7 @@ function DeviceRow({
 
 export default function DevicesScreen() {
 	const palette = useThemePalette();
-	const { devices, isLoadingDevices, loadDevices } = useRouter();
+	const { devices, isLoadingDevices, loadDevices, renameDevice } = useRouter();
 
 	const groups = [
 		{ title: t("devices.connected"), data: devices.filter((d) => !isDisconnected(d)) },
@@ -143,7 +192,23 @@ export default function DevicesScreen() {
 									) : undefined
 								}
 							>
-								<DeviceRow device={device} palette={palette} modifiers={cardModifiers} />
+								{/* Only connected devices can be renamed: disconnected rows keep their swipe for "forget". */}
+								{isDisconnected(device) ? (
+									<DeviceRow device={device} palette={palette} modifiers={cardModifiers} />
+								) : (
+									<SwipeActions modifiers={cardModifiers}>
+										<DeviceRow device={device} palette={palette} />
+										<SwipeActions.Actions edge="leading">
+											<Button
+												label={t("devices.rename")}
+												systemImage="pencil"
+												// Icon only; the label stays as the VoiceOver name.
+												modifiers={[labelStyle("iconOnly"), tint(Colors.routyBlue)]}
+												onPress={() => promptRename(device, renameDevice)}
+											/>
+										</SwipeActions.Actions>
+									</SwipeActions>
+								)}
 							</Section>
 						)),
 					)}
