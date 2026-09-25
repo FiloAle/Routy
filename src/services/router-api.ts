@@ -44,6 +44,29 @@ export interface Device {
 	type: string; // 'cable' or 'wireless'
 }
 
+// With no valid session the router doesn't fail: protected reads come back with
+// the command mapped to "" (e.g. {"sms_data_total":""}), and in multi-field reads
+// the protected fields are "" while public ones like ppp_status still arrive.
+export class SessionExpiredError extends Error {
+	constructor(cmd: string) {
+		super(`Router session expired (${cmd})`);
+		this.name = "SessionExpiredError";
+	}
+}
+
+// The SMS list came back empty while the router still counts messages: its SMS
+// module was busy, so the list says nothing about what's stored.
+export class SmsListUnavailableError extends Error {
+	constructor() {
+		super("SMS list temporarily unavailable");
+		this.name = "SmsListUnavailableError";
+	}
+}
+
+function assertSession(data: any, cmd: string) {
+	if (data?.[cmd] === "") throw new SessionExpiredError(cmd);
+}
+
 export const isDisconnected = (device: Pick<Device, "ip">) => !device.ip || device.ip === "-";
 
 // An entry of the router's Wi-Fi MAC blacklist.
@@ -203,6 +226,8 @@ export class RouterApi {
 		);
 
 		const data = res.data ?? {};
+		// A protected field that is always a number with a valid session.
+		if (data.monthly_rx_bytes === "") throw new SessionExpiredError("monthly_rx_bytes");
 
 		// Parse PCell band (e.g. "B1", "B3"...)
 		const pcell = data.lte_ca_pcell_band
@@ -291,8 +316,22 @@ export class RouterApi {
 			},
 		});
 
-		const messages: RawSmsMessage[] = res.data?.messages ?? [];
+		assertSession(res.data, "sms_data_total");
+		const messages: RawSmsMessage[] = Array.isArray(res.data?.messages) ? res.data.messages : [];
+		if (messages.length === 0 && (await this.countStoredSms()) > 0) {
+			throw new SmsListUnavailableError();
+		}
 		return groupByConversation(messages, readIds);
+	}
+
+	// Messages stored on the router (received, sent and drafts), as the dashboard counts them.
+	private async countStoredSms(): Promise<number> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "sms_capacity_info" },
+		});
+		assertSession(res.data, "sms_capacity_info");
+		const n = (key: string) => parseInt(res.data?.[key], 10) || 0;
+		return n("sms_nv_rev_total") + n("sms_nv_send_total") + n("sms_nv_draftbox_total");
 	}
 
 	async sendSms(number: string, text: string): Promise<void> {
@@ -586,59 +625,57 @@ export class RouterApi {
 		}
 	}
 
+	// Throws instead of returning [] on failure, so callers keep the last good list.
 	async fetchDevices(): Promise<Device[]> {
-		try {
-			// Fetch hostNameList
-			const resHost = await this.client.get("goform/goform_get_cmd_process", {
-				params: { isTest: false, cmd: "hostNameList" },
+		// Fetch hostNameList
+		const resHost = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "hostNameList" },
+		});
+
+		// Fetch station_list
+		const resStation = await this.client.get(
+			"goform/goform_get_cmd_process",
+			{
+				params: { isTest: false, cmd: "station_list" },
+			},
+		);
+
+		assertSession(resHost.data, "hostNameList");
+		assertSession(resStation.data, "station_list");
+		const hostNames: any[] = resHost.data?.devices || [];
+		const stations: any[] = resStation.data?.station_list || [];
+
+		const deviceMap = new Map<string, Device>();
+
+		stations.forEach((s: any) => {
+			const mac = (s.mac_addr || s.mac || "").toUpperCase();
+			if (!mac) return;
+			deviceMap.set(mac, {
+				hostname: s.hostname || mac,
+				ip: s.ip_addr || s.ip || "-",
+				mac: mac,
+				type: s.connect_type === "wired" ? "cable" : "wireless",
 			});
+		});
 
-			// Fetch station_list
-			const resStation = await this.client.get(
-				"goform/goform_get_cmd_process",
-				{
-					params: { isTest: false, cmd: "station_list" },
-				},
-			);
-
-			const hostNames: any[] = resHost.data?.devices || [];
-			const stations: any[] = resStation.data?.station_list || [];
-
-			const deviceMap = new Map<string, Device>();
-
-			stations.forEach((s: any) => {
-				const mac = (s.mac_addr || s.mac || "").toUpperCase();
-				if (!mac) return;
+		hostNames.forEach((h: any) => {
+			const mac = (h.mac || h.mac_addr || "").toUpperCase();
+			if (!mac) return;
+			const existing = deviceMap.get(mac);
+			if (existing) {
+				if (h.hostname && h.hostname !== existing.mac)
+					existing.hostname = h.hostname;
+			} else {
 				deviceMap.set(mac, {
-					hostname: s.hostname || mac,
-					ip: s.ip_addr || s.ip || "-",
+					hostname: h.hostname || mac,
+					ip: "-",
 					mac: mac,
-					type: s.connect_type === "wired" ? "cable" : "wireless",
+					type: "wireless",
 				});
-			});
+			}
+		});
 
-			hostNames.forEach((h: any) => {
-				const mac = (h.mac || h.mac_addr || "").toUpperCase();
-				if (!mac) return;
-				const existing = deviceMap.get(mac);
-				if (existing) {
-					if (h.hostname && h.hostname !== existing.mac)
-						existing.hostname = h.hostname;
-				} else {
-					deviceMap.set(mac, {
-						hostname: h.hostname || mac,
-						ip: "-",
-						mac: mac,
-						type: "wireless",
-					});
-				}
-			});
-
-			return Array.from(deviceMap.values());
-		} catch (e) {
-			console.warn("[RouterApi] fetchDevices error:", e);
-			return [];
-		}
+		return Array.from(deviceMap.values());
 	}
 
 	async renameDevice(mac: string, hostname: string): Promise<void> {
@@ -682,6 +719,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: { isTest: false, cmd: "queryDeviceAccessControlList" },
 		});
+		assertSession(res.data, "queryDeviceAccessControlList");
 		const names = splitList(res.data?.BlackNameList);
 		const blocked: BlockedDevice[] = splitList(res.data?.BlackMacList).map((mac, i) => ({
 			hostname: names[i] || mac,

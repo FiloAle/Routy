@@ -20,7 +20,7 @@ import {
   DemoRouterApi,
   isDemoCredentials,
 } from '../services/demo-router-api';
-import { RouterApi, DataUsage } from '../services/router-api';
+import { RouterApi, DataUsage, SessionExpiredError } from '../services/router-api';
 import { DeviceIconId, isDeviceIconId } from '../constants/deviceIcons';
 import { Conversation, SmsMessage } from '../utils/sms';
 import { t } from '../i18n';
@@ -230,8 +230,35 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     [getDisplayName]
   );
 
-  const lastLoginRef = useRef<number>(0);
-  const LOGIN_RENEWAL_MS = 4 * 60 * 1000; // 4 minuti
+  // Kept in sync so a re-login from a long-lived callback uses the current password.
+  const passwordRef = useRef(password);
+  useEffect(() => {
+    passwordRef.current = password;
+  }, [password]);
+
+  // One re-login shared by every read that finds the session expired at the same time.
+  const reloginRef = useRef<Promise<void> | null>(null);
+
+  // Runs a protected read; if the router says the session expired (it can drop it
+  // on its own or when someone logs into its dashboard), logs in again and retries once.
+  const withSession = useCallback(async <T,>(read: () => Promise<T>): Promise<T> => {
+    try {
+      return await read();
+    } catch (e) {
+      if (!(e instanceof SessionExpiredError)) throw e;
+      console.log(`[RouterContext] ${t('dashboard.renewing')}`);
+      if (!reloginRef.current) {
+        reloginRef.current = apiRef.current.login(passwordRef.current).finally(() => {
+          reloginRef.current = null;
+        });
+      }
+      await reloginRef.current;
+      return read();
+    }
+  }, []);
+
+  // setInterval doesn't wait for the previous tick, so a slow one could overlap the next.
+  const pollInFlightRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -242,27 +269,28 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAndUpdate = useCallback(async () => {
     if (!mountedRef.current || authStatus !== 'logged_in') return;
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
     const generationAtStart = smsMutationRef.current.generation;
 
     try {
-      // Check if we need to renew session
-      const now = Date.now();
-      if (now - lastLoginRef.current > LOGIN_RENEWAL_MS) {
-        console.log(`[RouterContext] ${t('dashboard.renewing')}`);
-        await apiRef.current.login(password);
-        lastLoginRef.current = now;
-      }
-
-      // Fetch SMS, Data Usage and Devices in parallel
-      const [convs, usage, devs] = await Promise.all([
-        apiRef.current.fetchConversations(readIdsRef.current),
-        apiRef.current.fetchDataUsage(),
-        apiRef.current.fetchDevices(),
+      // Each read stands on its own: one that fails leaves its piece of state as it was,
+      // instead of replacing it with the empty data the router sends without a session.
+      const [convs, usage, devs] = await Promise.allSettled([
+        withSession(() => apiRef.current.fetchConversations(readIdsRef.current)),
+        withSession(() => apiRef.current.fetchDataUsage()),
+        withSession(() => apiRef.current.fetchDevices()),
       ]);
 
       if (!mountedRef.current) return;
-      setDataUsage(usage);
-      setDevices(devs);
+      if (usage.status === 'fulfilled') setDataUsage(usage.value);
+      else console.warn('[fetchAndUpdate] data usage error:', usage.reason);
+      if (devs.status === 'fulfilled') setDevices(devs.value);
+      else console.warn('[fetchAndUpdate] devices error:', devs.reason);
+      if (convs.status === 'rejected') {
+        console.warn('[fetchAndUpdate] SMS error:', convs.reason);
+        return;
+      }
 
       // Discard the SMS list if a local change started or finished while it was being fetched.
       const isStale = () =>
@@ -270,13 +298,15 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         smsMutationRef.current.pending > 0;
       if (isStale()) return;
 
-      const enriched = enrichWithContacts(convs);
+      const enriched = enrichWithContacts(convs.value);
       await detectAndNotify(enriched);
       if (mountedRef.current && !isStale()) setConversations(enriched);
     } catch (e) {
       console.warn('[fetchAndUpdate] error:', e);
+    } finally {
+      pollInFlightRef.current = false;
     }
-  }, [authStatus, detectAndNotify, enrichWithContacts]);
+  }, [authStatus, detectAndNotify, enrichWithContacts, withSession]);
 
 
 
@@ -384,7 +414,6 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
             await apiRef.current.login(pw);
             if (mountedRef.current) {
               setAuthStatus('logged_in');
-              lastLoginRef.current = Date.now();
               const convs = await apiRef.current.fetchConversations(readIdsRef.current);
               const enriched = enrichWithContacts(convs);
               
@@ -442,7 +471,6 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           await apiRef.current.login(password);
           if (mountedRef.current) {
             setAuthStatus('logged_in');
-            lastLoginRef.current = Date.now();
           }
         } catch (e: any) {
           if (mountedRef.current) {
@@ -538,7 +566,6 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         convs.forEach((c) => c.messages.forEach((m) => knownIdsRef.current.add(m.id)));
       }
       setAuthStatus('logged_in');
-      lastLoginRef.current = Date.now();
       return true;
     } catch (e: any) {
       setAuthStatus('error');
@@ -561,7 +588,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'logged_in') return;
     setIsLoadingData(true);
     try {
-      const usage = await apiRef.current.fetchDataUsage();
+      const usage = await withSession(() => apiRef.current.fetchDataUsage());
       if (mountedRef.current) {
         setDataUsage(usage);
         console.log('[RouterContext] ppp_status:', usage.pppStatus);
@@ -586,7 +613,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingData(false);
     }
-  }, [authStatus]);
+  }, [authStatus, withSession]);
 
   const connectNetwork = useCallback(async () => {
     try {
@@ -676,13 +703,13 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingDevices(true);
     try {
       const [devs, blocked, own] = await Promise.all([
-        apiRef.current.fetchDevices(),
+        withSession(() => apiRef.current.fetchDevices()),
         // The device list stays usable even if the blacklist or the own MAC can't be read.
-        apiRef.current.fetchBlockedDevices().catch((e) => {
+        withSession(() => apiRef.current.fetchBlockedDevices()).catch((e) => {
           console.warn('[loadDevices] blacklist error:', e);
           return null;
         }),
-        apiRef.current.fetchOwnMac().catch((e) => {
+        withSession(() => apiRef.current.fetchOwnMac()).catch((e) => {
           console.warn('[loadDevices] own MAC error:', e);
           return null;
         }),
@@ -697,7 +724,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingDevices(false);
     }
-  }, [authStatus]);
+  }, [authStatus, withSession]);
 
   const renameDevice = useCallback(
     async (mac: string, hostname: string) => {

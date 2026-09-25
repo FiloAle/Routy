@@ -5,7 +5,7 @@ Piano di implementazione delle prossime funzionalità di Routy.
 | # | Funzionalità | Area | Stato |
 |---|---|---|---|
 | 1 | Dimenticare dispositivi disconnessi | Dispositivi | Fatto |
-| 2 | SSID 2.4 GHz / 5 GHz separati | Impostazioni › Rete e consumi | Fatto, da provare sul router |
+| 2 | SSID 2.4GHz / 5GHz separati | Impostazioni › Rete e consumi | Fatto, da provare sul router |
 | 3 | Pannello "Modifica": icona e nome | Dispositivi | Fatto, da provare sul router |
 | 4 | Bloccare i connessi ed etichetta "Tu" | Dispositivi | Fatto, da provare sul router |
 
@@ -91,27 +91,27 @@ Accanto a "Dimentica" (arancione) c'è **Blocca** (rosso, `nosign`): aggiunge il
 
 ---
 
-## 2. SSID 2.4 GHz e 5 GHz separati
+## 2. SSID 2.4GHz e 5GHz separati
 
 ### Obiettivo
 
-In **Impostazioni › Rete e consumi**, mostrare due righe, **SSID 2.4 GHz** e **SSID 5 GHz**, solo quando il router restituisce due SSID **diversi e non vuoti**. In tutti gli altri casi resta la riga **SSID** attuale, senza indicare la banda.
+In **Impostazioni › Rete e consumi**, mostrare due righe, **SSID 2.4GHz** e **SSID 5GHz**, solo quando il router restituisce due SSID **diversi e non vuoti**. In tutti gli altri casi resta la riga **SSID** attuale, senza indicare la banda.
 
 ### Contesto
 
 - Oggi `fetchDataUsage()` chiede solo `wifi_chip1_ssid1_ssid` e lo mappa in `ssid: data.wifi_chip1_ssid1_ssid || "Unknown"`.
 - Comandi goform:
-  - `wifi_chip1_ssid1_ssid` = 2.4 GHz
-  - `wifi_chip2_ssid1_ssid` = 5 GHz
+  - `wifi_chip1_ssid1_ssid` = 2.4GHz
+  - `wifi_chip2_ssid1_ssid` = 5GHz
 - Con un SSID unico per tutte le bande, uno dei due valori arriva **vuoto**.
 
 ### Regole di visualizzazione
 
 Valori considerati dopo `trim()`:
 
-| 2.4 GHz | 5 GHz | Risultato |
+| 2.4GHz | 5GHz | Risultato |
 |---|---|---|
-| `A` | `B` (≠ A) | Due righe: `SSID 2.4 GHz: A`, `SSID 5 GHz: B` |
+| `A` | `B` (≠ A) | Due righe: `SSID 2.4GHz: A`, `SSID 5GHz: B` |
 | `A` | `A` | Una riga: `SSID: A` |
 | `A` | vuoto | Una riga: `SSID: A` |
 | vuoto | `B` | Una riga: `SSID: B` |
@@ -137,8 +137,8 @@ export function getSsidEntries(ssid24: string, ssid5: string): SsidEntry[] {
   const b = ssid5.trim();
   if (a && b && a !== b) {
     return [
-      { label: "SSID 2.4 GHz", value: a },
-      { label: "SSID 5 GHz", value: b },
+      { label: "SSID 2.4GHz", value: a },
+      { label: "SSID 5GHz", value: b },
     ];
   }
   const single = a || b;

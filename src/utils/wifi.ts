@@ -10,8 +10,8 @@ export function getSsidEntries(ssid24: string, ssid5: string): SsidEntry[] {
 	const b = ssid5.trim();
 	if (a && b && a !== b) {
 		return [
-			{ label: "SSID 2.4 GHz", value: a },
-			{ label: "SSID 5 GHz", value: b },
+			{ label: "SSID 2.4GHz", value: a },
+			{ label: "SSID 5GHz", value: b },
 		];
 	}
 	const single = a || b;
