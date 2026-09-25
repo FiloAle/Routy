@@ -1,10 +1,4 @@
-import {
-	DarkTheme,
-	DefaultTheme,
-	ThemeProvider,
-} from "@react-navigation/native";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import React from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -13,7 +7,11 @@ import * as SplashScreen from "expo-splash-screen";
 import { RouterProvider } from "@/context/router-context";
 import { registerBackgroundFetchAsync } from "@/services/background-fetch-service";
 
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
+import { setAlertTintColor } from "../../modules/routy-ui-modifiers";
+
+// Primary buttons of native alerts use the app blue instead of the system one.
+setAlertTintColor(Colors.routyBlue);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +23,7 @@ SplashScreen.setOptions({
 });
 
 export default function RootLayout() {
+	const palette = useThemePalette();
 	const colorScheme = useColorScheme();
 
 	React.useEffect(() => {
@@ -66,7 +65,6 @@ export default function RootLayout() {
 			<ThemeProvider
 				value={colorScheme === "dark" ? customDarkTheme : customDefaultTheme}
 			>
-				<StatusBar style="light" />
 				<RouterProvider>
 					<Stack>
 						<Stack.Screen name="index" options={{ headerShown: false }} />
@@ -81,7 +79,7 @@ export default function RootLayout() {
 								headerTransparent: true,
 								headerStyle: { backgroundColor: Colors.routyTransparent },
 								headerShadowVisible: false,
-								headerTintColor: Colors.routyWhite,
+								headerTintColor: palette.text,
 								headerBackTitle: "Tutti",
 							}}
 						/>

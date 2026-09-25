@@ -1,19 +1,23 @@
-import { Dimensions, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Colors } from "../constants/Colors";
 import { Layout } from "./globalStyles";
 
 export const messageStyles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.plainBackground,
 	},
 	centerContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: Colors.routyBlack,
+		backgroundColor: Colors.plainBackground,
 		gap: 12,
 		padding: 24,
+	},
+	listHost: {
+		flex: 1,
+		backgroundColor: Colors.plainBackground,
 	},
 	statusText: {
 		color: Colors.routyGray,
@@ -46,100 +50,6 @@ export const messageStyles = StyleSheet.create({
 		fontWeight: "600",
 		fontSize: 15,
 	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		gap: 12,
-	},
-	rowContent: {
-		flex: 1,
-		gap: 2,
-	},
-	rowHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	rowName: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: Colors.routyWhite,
-		flex: 1,
-		marginRight: 8,
-	},
-	rowDate: {
-		fontSize: 13,
-		color: Colors.routyGray,
-	},
-	rowFooter: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	rowPreview: {
-		fontSize: 14,
-		color: Colors.routyGray,
-		flex: 1,
-		marginRight: 4,
-	},
-	rowPreviewUnread: {
-		color: Colors.routyWhite,
-		fontWeight: "600",
-	},
-	rowRightSide: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	unreadDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		backgroundColor: Colors.routyBlue,
-		marginTop: 1,
-	},
-	avatar: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	avatarText: {
-		fontSize: 24,
-		color: Colors.routyWhite,
-		fontWeight: "700",
-		fontFamily: "ui-rounded",
-		marginTop: -2,
-		textAlign: "center",
-	},
-	separator: {
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: Colors.routyLightGray,
-		marginLeft: 78,
-	},
-	deleteActionWrapper: {
-		justifyContent: "center",
-		alignItems: "flex-end",
-		paddingHorizontal: 12,
-		backgroundColor: "transparent",
-		overflow: "hidden",
-	},
-	deleteAction: {
-		backgroundColor: Colors.routyRed,
-		height: 50,
-		justifyContent: "center",
-		alignItems: "center",
-		overflow: "hidden",
-	},
-	deleteActionButton: {
-		flex: 1,
-		width: "100%",
-		justifyContent: "center",
-		alignItems: "center",
-	},
 	header: {
 		position: "absolute",
 		top: 0,
@@ -154,24 +64,23 @@ export const messageStyles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
+	headerAction: {
+		// Spans the title's box (same insets as `header`) and centers the button on it.
+		position: "absolute",
+		top: 60,
+		bottom: 8,
+		right: 16,
+		justifyContent: "center",
+	},
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "700",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		letterSpacing: 0.4,
-	},
-	composeButton: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		overflow: "hidden",
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: -2,
 	},
 	modalContainer: {
 		flex: 1,
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 	},
 	modalHeader: {
 		flexDirection: "row",
@@ -183,7 +92,7 @@ export const messageStyles = StyleSheet.create({
 	modalTitle: {
 		fontSize: 17,
 		fontWeight: "600",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		marginBottom: 2,
 	},
 	closeButtonContainer: {
@@ -202,6 +111,8 @@ export const messageStyles = StyleSheet.create({
 		marginHorizontal: 20,
 		borderRadius: 99,
 		overflow: "hidden",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: Colors.glassBorder,
 	},
 	recipientField: {
 		flexDirection: "row",
@@ -217,22 +128,22 @@ export const messageStyles = StyleSheet.create({
 	recipientInput: {
 		flex: 1,
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		paddingVertical: 4,
 	},
 	suggestionsContainer: {
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		maxHeight: 200,
 	},
 	suggestionItem: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: Colors.routyLightGray,
+		borderBottomColor: Colors.separator,
 	},
 	suggestionName: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	suggestionNumber: {
@@ -247,7 +158,7 @@ export const messageStyles = StyleSheet.create({
 	},
 	selectedRecipientName: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	selectedRecipientNumber: {
@@ -259,23 +170,9 @@ export const messageStyles = StyleSheet.create({
 		width: 24,
 		height: 24,
 		borderRadius: 12,
-		backgroundColor: "rgba(255,255,255,0.1)",
+		backgroundColor: Colors.faintFill,
 		justifyContent: "center",
 		alignItems: "center",
-	},
-	emptyContent: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingTop: 100,
-		gap: 12,
-	},
-	emptyIcon: {
-		fontSize: 40,
-	},
-	emptyText: {
-		color: Colors.routyGray,
-		fontSize: 16,
 	},
 	listContent: {
 		paddingHorizontal: 8,
@@ -301,6 +198,9 @@ export const messageStyles = StyleSheet.create({
 	bubbleRowSent: {
 		justifyContent: "flex-end",
 	},
+	bubbleRowGroupStart: {
+		marginTop: 8,
+	},
 	bubble: {
 		maxWidth: "75%",
 		paddingHorizontal: 14,
@@ -309,15 +209,18 @@ export const messageStyles = StyleSheet.create({
 		borderRadius: Layout.borderRadius - 4,
 	},
 	bubbleReceived: {
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.bubbleReceived,
 	},
 	bubbleSent: {
 		backgroundColor: Colors.routyBlue,
 	},
 	bubbleText: {
 		fontSize: 16,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		lineHeight: 22,
+	},
+	bubbleTextSent: {
+		color: Colors.routyWhite,
 	},
 	headerGradient: {
 		position: "absolute",
@@ -333,16 +236,22 @@ export const messageStyles = StyleSheet.create({
 		flex: 1,
 		marginBottom: -90,
 	},
+	chatListHidden: {
+		opacity: 0,
+	},
+	// Covers the transparent header, where the chat list draws its top edge blur.
+	headerEdge: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		height: Layout.headerOffset,
+	},
 	keyboardAvoidingView: {
 		flex: 1,
 	},
 	headerComposeIcon: {
 		marginTop: -2,
-	},
-	listContainer: {
-		minHeight: Dimensions.get("window").height - Layout.headerOffset - 90,
-		paddingBottom: 100,
-		paddingHorizontal: 0,
 	},
 });
 

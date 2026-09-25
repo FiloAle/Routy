@@ -14,6 +14,7 @@ import { SmsMessage } from "@/utils/sms";
 import { MessageInputBar } from "@/components/MessageInputBar";
 import i18n, { t } from "@/i18n";
 import { messageStyles } from "@/styles/messageStyles";
+import { ScrollEdgeContainer } from "../../../modules/routy-ui-modifiers";
 
 // ── Day label separator ───────────────────────────────────────────────────────
 
@@ -60,9 +61,11 @@ function DaySeparator({ date }: { date: Date }) {
 function MessageBubble({
 	message,
 	showDay,
+	startsGroup,
 }: {
 	message: SmsMessage;
 	showDay: boolean;
+	startsGroup: boolean;
 }) {
 	return (
 		<>
@@ -71,6 +74,7 @@ function MessageBubble({
 				style={[
 					messageStyles.bubbleRow,
 					message.isSent && messageStyles.bubbleRowSent,
+					startsGroup && messageStyles.bubbleRowGroupStart,
 				]}
 			>
 				<View
@@ -81,7 +85,14 @@ function MessageBubble({
 							: messageStyles.bubbleReceived,
 					]}
 				>
-					<Text style={messageStyles.bubbleText}>{message.content}</Text>
+					<Text
+						style={[
+							messageStyles.bubbleText,
+							message.isSent && messageStyles.bubbleTextSent,
+						]}
+					>
+						{message.content}
+					</Text>
 				</View>
 			</View>
 		</>
@@ -107,8 +118,13 @@ export default function ChatScreen() {
 	const conversation = conversations.find((c) => c.number === number);
 	const messages = conversation?.messages ?? [];
 
-	const isInitialLoad = useRef(true);
+	// Hidden until the first jump to the end, so the chat opens on its latest message
+	// instead of showing the oldest ones and scrolling down.
+	const [isReady, setIsReady] = useState(false);
 	const contentHeightRef = useRef(0);
+	// Rendering every message in the first pass gives the final content height at once,
+	// so a single scroll reaches the end; later batches would each move it further.
+	const [initialNumToRender] = useState(() => Math.max(messages.length, 10));
 
 	useEffect(() => {
 		const keyboardEvent =
@@ -160,6 +176,13 @@ export default function ChatScreen() {
 		return !isSameCalendarDay(prev.date, curr.date);
 	};
 
+	// Extra space when the sender changes; consecutive messages stay tight.
+	const startsGroup = (index: number) => {
+		const prev = messages[index - 1];
+		const curr = messages[index];
+		return !!prev && !!curr && prev.isSent !== curr.isSent && !shouldShowDay(index);
+	};
+
 	return (
 		<View style={messageStyles.container}>
 			<Stack.Screen
@@ -176,24 +199,27 @@ export default function ChatScreen() {
 			>
 				<FlatList
 					ref={listRef}
-					style={messageStyles.chatList}
+					style={[messageStyles.chatList, !isReady && messageStyles.chatListHidden]}
+					initialNumToRender={initialNumToRender}
 					showsVerticalScrollIndicator={false}
 					data={messages}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item, index }) => (
-						<MessageBubble message={item} showDay={shouldShowDay(index)} />
+						<MessageBubble
+							message={item}
+							showDay={shouldShowDay(index)}
+							startsGroup={startsGroup(index)}
+						/>
 					)}
 					contentContainerStyle={messageStyles.listContent}
 					onContentSizeChange={(w, h) => {
 						contentHeightRef.current = h;
-						listRef.current?.scrollToOffset({
-							offset: h,
-							animated: !isInitialLoad.current,
-						});
-						isInitialLoad.current = false;
+						// Animated only for new messages, once the chat is on screen.
+						listRef.current?.scrollToOffset({ offset: h, animated: isReady });
+						if (!isReady) requestAnimationFrame(() => setIsReady(true));
 					}}
 					onLayout={() => {
-						if (!isInitialLoad.current && contentHeightRef.current > 0) {
+						if (isReady && contentHeightRef.current > 0) {
 							setTimeout(() => {
 								listRef.current?.scrollToOffset({
 									offset: contentHeightRef.current,
@@ -212,6 +238,9 @@ export default function ChatScreen() {
 					bottomOffset={8}
 				/>
 			</KeyboardAvoidingView>
+
+			{/* The header's blur, drawn by the list, slides in with the chat instead of popping in after. */}
+			<ScrollEdgeContainer style={messageStyles.headerEdge} />
 		</View>
 	);
 }

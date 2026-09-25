@@ -3,6 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouterApi } from './router-api';
+import { isDemoCredentials } from './demo-router-api';
 import { contactsService } from './contacts-service';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-messages';
@@ -25,6 +26,11 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     if (!savedUrl || !savedPw) {
       console.log('[BackgroundTask] Missing credentials, skipping.');
+      return BackgroundTask.BackgroundTaskResult.Success;
+    }
+
+    if (isDemoCredentials(savedUrl, savedPw)) {
+      console.log('[BackgroundTask] Demo mode, skipping.');
       return BackgroundTask.BackgroundTaskResult.Success;
     }
 

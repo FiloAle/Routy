@@ -1,10 +1,8 @@
 import { Link, Stack } from "expo-router";
-import { NavArrowRight } from "iconoir-react-native";
 import React, { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	Platform,
 	Text,
 	TextInput,
 	View,
@@ -14,20 +12,25 @@ import {
 	Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { SymbolView } from "expo-symbols";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "@/context/router-context";
+import { isDemoCredentials } from "@/services/demo-router-api";
 import { SectionLabel } from "@/components/SectionLabel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles } from "@/styles/globalStyles";
 import { settingsStyles } from "@/styles/settingsStyles";
+import { getSsidEntries } from "@/utils/wifi";
 
 export default function SettingsScreen() {
 	const {
 		routerUrl,
 		password,
 		saveSettings,
+		exitDemo,
+		isDemoMode,
 		login,
 		authStatus,
 		dataUsage,
@@ -45,22 +48,27 @@ export default function SettingsScreen() {
 		dataLimitUnit,
 		setDataLimit,
 	} = useRouter();
+	const palette = useThemePalette();
 
 	const getDisplayUrl = (url: string) => {
 		return url.replace(/^https?:\/\//i, "");
 	};
 
 	const [urlInput, setUrlInput] = useState(getDisplayUrl(routerUrl));
-
-	useEffect(() => {
-		setUrlInput(getDisplayUrl(routerUrl));
-	}, [routerUrl]);
-
 	const [passwordInput, setPasswordInput] = useState(password);
 
-	useEffect(() => {
+	// Reset the fields when the saved values change (e.g. loaded at startup or after
+	// leaving demo mode). Done while rendering, so there's no extra effect pass.
+	const [syncedUrl, setSyncedUrl] = useState(routerUrl);
+	if (syncedUrl !== routerUrl) {
+		setSyncedUrl(routerUrl);
+		setUrlInput(getDisplayUrl(routerUrl));
+	}
+	const [syncedPassword, setSyncedPassword] = useState(password);
+	if (syncedPassword !== password) {
+		setSyncedPassword(password);
 		setPasswordInput(password);
-	}, [password]);
+	}
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [limitSelection, setLimitSelection] = useState({ start: 0, end: 0 });
@@ -102,6 +110,10 @@ export default function SettingsScreen() {
 		await saveSettings(url, passwordInput.trim());
 		const success = await login(passwordInput.trim());
 		setIsSaving(false);
+		if (success && isDemoCredentials(url, passwordInput.trim())) {
+			Alert.alert(t("settings.demo_enabled"));
+			return;
+		}
 		Alert.alert(
 			success
 				? t("settings.login_success_title")
@@ -119,7 +131,7 @@ export default function SettingsScreen() {
 			} else {
 				await connectNetwork();
 			}
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("settings.error_conn"));
 		}
 	};
@@ -128,27 +140,27 @@ export default function SettingsScreen() {
 		if (!nightMode) return;
 		try {
 			await setNightMode(enabled, nightMode.start, nightMode.end);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
 
-	const handleNightModeStartChange = async (event: any, date?: Date) => {
-		if (!nightMode || !date) return;
+	const handleNightModeStartChange = async (_event: unknown, date: Date) => {
+		if (!nightMode) return;
 		const newStart = dateToTimeString(date);
 		try {
 			await setNightMode(nightMode.enabled, newStart, nightMode.end);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
 
-	const handleNightModeEndChange = async (event: any, date?: Date) => {
-		if (!nightMode || !date) return;
+	const handleNightModeEndChange = async (_event: unknown, date: Date) => {
+		if (!nightMode) return;
 		const newEnd = dateToTimeString(date);
 		try {
 			await setNightMode(nightMode.enabled, nightMode.start, newEnd);
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("common.error_generic"));
 		}
 	};
@@ -163,7 +175,7 @@ export default function SettingsScreen() {
 					try {
 						await reboot();
 						Alert.alert(t("common.success"), t("settings.reboot_success"));
-					} catch (error) {
+					} catch {
 						Alert.alert(t("common.error"), t("settings.reboot_error"));
 					}
 				},
@@ -171,9 +183,8 @@ export default function SettingsScreen() {
 		]);
 	};
 
-	const unitAnim = React.useRef(
-		new Animated.Value(dataLimitUnit === "GB" ? 0 : 1),
-	).current;
+	// Created once; state rather than a ref, since it's read while rendering.
+	const [unitAnim] = useState(() => new Animated.Value(dataLimitUnit === "GB" ? 0 : 1));
 
 	useEffect(() => {
 		Animated.spring(unitAnim, {
@@ -189,10 +200,10 @@ export default function SettingsScreen() {
 		outputRange: [2, 42], // Adjust based on button width
 	});
 
-	const scrollY = React.useRef(new Animated.Value(0)).current;
+	const [scrollY] = useState(() => new Animated.Value(0));
 
 	const titleOpacity = scrollY.interpolate({
-		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
+		inputRange: [0, 40],
 		outputRange: [1, 0],
 		extrapolate: "clamp",
 	});
@@ -202,7 +213,7 @@ export default function SettingsScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
-				colors={["rgba(0,0,0,0.8)", "transparent"]}
+				colors={[`${palette.background}CC`, `${palette.background}00`]}
 				style={settingsStyles.headerGradient}
 				pointerEvents="none"
 			/>
@@ -222,15 +233,12 @@ export default function SettingsScreen() {
 				<Animated.ScrollView
 					contentContainerStyle={[
 						globalStyles.scroll,
-						{ paddingTop: Platform.OS === "ios" ? 0 : 112 },
 					]}
 					onScroll={Animated.event(
 						[{ nativeEvent: { contentOffset: { y: scrollY } } }],
 						{ useNativeDriver: true },
 					)}
 					scrollEventThrottle={16}
-					contentInset={{ top: 112 }}
-					contentOffset={{ x: 0, y: -112 }}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>
@@ -273,8 +281,12 @@ export default function SettingsScreen() {
 							</View>
 						</View>
 						<PrimaryButton
-							label={t("settings.save_and_connect")}
-							onPress={handleSave}
+							label={
+								isDemoMode
+									? t("settings.exit_demo")
+									: t("settings.save_and_connect")
+							}
+							onPress={isDemoMode ? exitDemo : handleSave}
 							isLoading={isSaving}
 						/>
 					</View>
@@ -283,15 +295,16 @@ export default function SettingsScreen() {
 					<View style={globalStyles.section}>
 						<SectionLabel>{t("settings.network")}</SectionLabel>
 						<View style={globalStyles.card}>
-							{dataUsage?.ssid && (
-								<>
-									<View style={globalStyles.infoRow}>
-										<Text style={globalStyles.infoLabel}>SSID</Text>
-										<Text style={globalStyles.infoValue}>{dataUsage.ssid}</Text>
-									</View>
-									<View style={globalStyles.divider} />
-								</>
-							)}
+							{dataUsage &&
+								getSsidEntries(dataUsage.ssid24, dataUsage.ssid5).map((entry) => (
+									<React.Fragment key={entry.label}>
+										<View style={globalStyles.infoRow}>
+											<Text style={globalStyles.infoLabel}>{entry.label}</Text>
+											<Text style={globalStyles.infoValue}>{entry.value}</Text>
+										</View>
+										<View style={globalStyles.divider} />
+									</React.Fragment>
+								))}
 							<View style={globalStyles.field}>
 								<Text style={globalStyles.fieldLabel}>
 									{t("settings.data_network")}
@@ -303,7 +316,7 @@ export default function SettingsScreen() {
 									}
 									onValueChange={toggleNetwork}
 									trackColor={{
-										false: Colors.routyLightGray,
+										false: Colors.fill,
 										true: Colors.routyBlue,
 									}}
 									disabled={
@@ -343,13 +356,12 @@ export default function SettingsScreen() {
 												? t("settings.dns_manual")
 												: t("settings.dns_automatic")}
 										</Text>
-										<NavArrowRight
-											width={20}
-											height={20}
-											strokeWidth={2}
-											color={Colors.routyGray}
-											opacity={0.5}
-											style={{ marginBottom: -2, marginRight: -2 }}
+										<SymbolView
+											name="chevron.right"
+											size={13}
+											weight="semibold"
+											tintColor={palette.secondaryText}
+											style={{ opacity: 0.5, marginLeft: 2 }}
 										/>
 									</View>
 								</TouchableOpacity>
@@ -450,7 +462,7 @@ export default function SettingsScreen() {
 									value={nightMode?.enabled || false}
 									onValueChange={toggleNightMode}
 									trackColor={{
-										false: Colors.routyLightGray,
+										false: Colors.fill,
 										true: Colors.routyBlue,
 									}}
 								/>
@@ -466,8 +478,7 @@ export default function SettingsScreen() {
 									value={timeStringToDate(nightMode?.start || "00:00")}
 									mode="time"
 									display="default"
-									onChange={handleNightModeStartChange}
-									themeVariant="dark"
+									onValueChange={handleNightModeStartChange}
 								/>
 							</View>
 
@@ -482,8 +493,7 @@ export default function SettingsScreen() {
 									value={timeStringToDate(nightMode?.end || "00:00")}
 									mode="time"
 									display="default"
-									onChange={handleNightModeEndChange}
-									themeVariant="dark"
+									onValueChange={handleNightModeEndChange}
 								/>
 							</View>
 						</View>

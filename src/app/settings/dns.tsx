@@ -1,4 +1,4 @@
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import {
 	ActivityIndicator,
@@ -10,14 +10,15 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Check } from "iconoir-react-native";
+import { SymbolView } from "expo-symbols";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
-import { globalStyles, Layout } from "@/styles/globalStyles";
+import { Colors, useThemePalette } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
 import { SectionLabel } from "@/components/SectionLabel";
 
 export default function DnsScreen() {
+	const palette = useThemePalette();
 	const { dataUsage, setDns } = useRouter();
 
 	const [initialState, setInitialState] = useState({
@@ -60,7 +61,7 @@ export default function DnsScreen() {
 				preferDns: mode === "manual" ? preferDns.trim() : "",
 				standbyDns: mode === "manual" ? standbyDns.trim() : "",
 			});
-		} catch (error) {
+		} catch {
 			Alert.alert(t("settings.attention"), t("settings.dns_error_msg"));
 		} finally {
 			setIsSaving(false);
@@ -76,7 +77,7 @@ export default function DnsScreen() {
 					headerTransparent: true,
 					headerShadowVisible: false,
 					headerBackButtonDisplayMode: "minimal",
-					headerTitleStyle: { color: Colors.routyWhite },
+					headerTitleStyle: { color: palette.text },
 					headerRight: () => (
 						<TouchableOpacity
 							onPress={handleSave}
@@ -87,11 +88,11 @@ export default function DnsScreen() {
 							}}
 						>
 							{isSaving ? (
-								<ActivityIndicator size="small" color={Colors.routyWhite} />
+								<ActivityIndicator size="small" color={Colors.text} />
 							) : (
 								<Text
 									style={{
-										color: hasChanges ? Colors.routyWhite : Colors.routyGray,
+										color: hasChanges ? Colors.text : Colors.routyGray,
 										fontWeight: "600",
 										fontSize: 15,
 									}}
@@ -106,11 +107,8 @@ export default function DnsScreen() {
 
 			<ScrollView
 				showsVerticalScrollIndicator={false}
-				contentInset={{ top: Layout.headerOffset }}
-				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
 					globalStyles.scrollNoTab,
 				]}
 			>
@@ -125,12 +123,7 @@ export default function DnsScreen() {
 								{t("settings.dns_automatic")}
 							</Text>
 							{mode === "auto" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 						<View style={globalStyles.divider} />
@@ -142,12 +135,7 @@ export default function DnsScreen() {
 								{t("settings.dns_manual")}
 							</Text>
 							{mode === "manual" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 					</View>
@@ -167,7 +155,7 @@ export default function DnsScreen() {
 									globalStyles.fieldInput,
 									{
 										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
+											mode === "manual" ? Colors.text : Colors.routyGray,
 									},
 								]}
 								value={preferDns}
@@ -190,7 +178,7 @@ export default function DnsScreen() {
 									globalStyles.fieldInput,
 									{
 										color:
-											mode === "manual" ? Colors.routyWhite : Colors.routyGray,
+											mode === "manual" ? Colors.text : Colors.routyGray,
 									},
 								]}
 								value={standbyDns}

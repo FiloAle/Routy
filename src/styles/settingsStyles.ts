@@ -16,7 +16,7 @@ export const settingsStyles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "700",
-		color: Colors.routyWhite,
+		color: Colors.text,
 		letterSpacing: 0.4,
 	},
 	headerGradient: {
@@ -29,7 +29,7 @@ export const settingsStyles = StyleSheet.create({
 	},
 	unitSelector: {
 		flexDirection: "row",
-		backgroundColor: "rgba(255, 255, 255, 0.05)",
+		backgroundColor: Colors.subtleFill,
 		borderRadius: 24,
 		padding: 2,
 	},

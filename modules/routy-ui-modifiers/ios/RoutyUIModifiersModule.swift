@@ -1,0 +1,170 @@
+import ExpoModulesCore
+import ExpoUI
+import SwiftUI
+
+/// Pushes a scrollable view's content down without clipping it: the content still scrolls
+/// under overlays placed above it (like a custom header), and the pull-to-refresh control
+/// appears below the inset instead of behind the overlay.
+internal struct ScrollTopInsetModifier: ViewModifier, Record {
+  @Field var top: CGFloat = 0
+
+  func body(content: Content) -> some View {
+    content.safeAreaInset(edge: .top, spacing: 0) {
+      Color.clear.frame(height: top)
+    }
+  }
+}
+
+/// Keeps text as written: grouped list section headers are uppercased by default,
+/// and @expo/ui's textCase modifier can't reset it to nil.
+internal struct TextCaseNoneModifier: ViewModifier, Record {
+  func body(content: Content) -> some View {
+    content.textCase(nil)
+  }
+}
+
+/// Draws SF Symbols in one color: some, like `homepod.and.homepod.mini`, default to
+/// hierarchical rendering, and @expo/ui has no symbolRenderingMode modifier.
+internal struct SymbolMonochromeModifier: ViewModifier, Record {
+  func body(content: Content) -> some View {
+    content.symbolRenderingMode(.monochrome)
+  }
+}
+
+public final class SymbolImageViewProps: UIBaseViewProps {
+  @Field var systemName: String = ""
+}
+
+/// An SF Symbol drawn from a UIImage, so it keeps the variant it's named after.
+/// Swipe actions turn symbol images into their `.fill` variant, ignoring `.symbolVariant`.
+public struct SymbolImageView: ExpoSwiftUI.View {
+  @ObservedObject public var props: SymbolImageViewProps
+
+  public init(props: SymbolImageViewProps) {
+    self.props = props
+  }
+
+  public var body: some View {
+    if let image = UIImage(systemName: props.systemName) {
+      Image(uiImage: image.withRenderingMode(.alwaysTemplate))
+    }
+  }
+}
+
+/// Makes the screen's scroll view draw its top edge effect (the soft blur under the
+/// navigation bar) below this view. The navigation bar asks for the same effect, but
+/// UIKit only applies it once a push transition ends, so on its own the blur pops in
+/// after the screen has slid in; this view is part of the screen and slides with it.
+public final class ScrollEdgeContainerView: ExpoView {
+  // The edge effect spans the container that holds the interaction, and this view's own
+  // frame belongs to React Native's layout. So the interaction lives on an inner container
+  // sized here, down to the bottom of the navigation bar: the blur then ends where the
+  // bar's own one does, whatever the device's status bar height.
+  private let edgeContainer = UIView()
+  // An empty container draws nothing: a clear label gives the effect something to follow.
+  private let shapeLabel = UILabel()
+  private var interaction: AnyObject?
+
+  public required init(appContext: AppContext? = nil) {
+    super.init(appContext: appContext)
+    isUserInteractionEnabled = false
+    shapeLabel.text = "\u{00A0}"
+    shapeLabel.textColor = .clear
+    shapeLabel.isAccessibilityElement = false
+    edgeContainer.isUserInteractionEnabled = false
+    edgeContainer.addSubview(shapeLabel)
+    addSubview(edgeContainer)
+  }
+
+  public override func layoutSubviews() {
+    super.layoutSubviews()
+    let height = navigationBarBottom() ?? bounds.height
+    edgeContainer.frame = CGRect(x: 0, y: 0, width: bounds.width, height: height)
+    shapeLabel.frame = edgeContainer.bounds
+    attachIfNeeded()
+  }
+
+  /// Bottom of the enclosing navigation bar in this view's coordinates. It depends on
+  /// the device (status bar height), so a fixed height would overshoot on some.
+  private func navigationBarBottom() -> CGFloat? {
+    var responder: UIResponder? = self
+    while let current = responder {
+      if let controller = current as? UIViewController, let navigation = controller.navigationController {
+        let bar = navigation.navigationBar
+        let bottom = bar.convert(bar.bounds, to: self).maxY
+        return bottom > 0 ? bottom : nil
+      }
+      responder = current.next
+    }
+    return nil
+  }
+
+  public override func didMoveToWindow() {
+    super.didMoveToWindow()
+    // The navigation bar may only be reachable now, so lay out the shape again.
+    setNeedsLayout()
+    attachIfNeeded()
+  }
+
+  private func attachIfNeeded() {
+    guard #available(iOS 26.0, *), interaction == nil, window != nil,
+      let scrollView = screenScrollView() else { return }
+    let edgeInteraction = UIScrollEdgeElementContainerInteraction()
+    edgeInteraction.scrollView = scrollView
+    edgeInteraction.edge = .top
+    edgeContainer.addInteraction(edgeInteraction)
+    interaction = edgeInteraction
+  }
+
+  /// The first scroll view, breadth-first, in the enclosing react-native-screens screen.
+  private func screenScrollView() -> UIScrollView? {
+    var root: UIView = self
+    while let parent = root.superview,
+      !String(describing: type(of: root)).contains("RNSScreenView") {
+      root = parent
+    }
+    var queue: [UIView] = [root]
+    while !queue.isEmpty {
+      let view = queue.removeFirst()
+      if let scrollView = view as? UIScrollView { return scrollView }
+      queue.append(contentsOf: view.subviews)
+    }
+    return nil
+  }
+}
+
+public class RoutyUIModifiersModule: Module {
+  public func definition() -> ModuleDefinition {
+    Name("RoutyUIModifiers")
+
+    // Alerts take their accent (the primary button's fill, plain button text) from
+    // the tint; destructive buttons keep the system red, which UIKit doesn't expose.
+    Function("setAlertTintColor") { (color: UIColor) in
+      DispatchQueue.main.async {
+        UIView.appearance(whenContainedInInstancesOf: [UIAlertController.self]).tintColor = color
+      }
+    }
+
+    ExpoUIView(SymbolImageView.self)
+
+    View(ScrollEdgeContainerView.self) {}
+
+    OnCreate {
+      ViewModifierRegistry.register("routyScrollTopInset") { params, appContext, _ in
+        return try ScrollTopInsetModifier(from: params, appContext: appContext)
+      }
+      ViewModifierRegistry.register("routyTextCaseNone") { params, appContext, _ in
+        return try TextCaseNoneModifier(from: params, appContext: appContext)
+      }
+      ViewModifierRegistry.register("routySymbolMonochrome") { params, appContext, _ in
+        return try SymbolMonochromeModifier(from: params, appContext: appContext)
+      }
+    }
+
+    OnDestroy {
+      ViewModifierRegistry.unregister("routyScrollTopInset")
+      ViewModifierRegistry.unregister("routyTextCaseNone")
+      ViewModifierRegistry.unregister("routySymbolMonochrome")
+    }
+  }
+}

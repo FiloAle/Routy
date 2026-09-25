@@ -1,24 +1,24 @@
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	Platform,
 	ScrollView,
 	Text,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Check } from "iconoir-react-native";
+import { SymbolView } from "expo-symbols";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
-import { Colors } from "@/constants/Colors";
-import { globalStyles, Layout } from "@/styles/globalStyles";
+import { Colors, useThemePalette } from "@/constants/Colors";
+import { globalStyles } from "@/styles/globalStyles";
 import { SectionLabel } from "@/components/SectionLabel";
 
 const SELECTABLE_BANDS = ["B1", "B3", "B7", "B8", "B20", "B28", "B32", "B38"];
 
 export default function BandsScreen() {
+	const palette = useThemePalette();
 	const { dataUsage, setLteBands } = useRouter();
 
 	const getDecodedBands = () => {
@@ -93,7 +93,7 @@ export default function BandsScreen() {
 				mode: mode,
 				bands: mode === "manual" ? selectedBands : SELECTABLE_BANDS,
 			});
-		} catch (error) {
+		} catch {
 			Alert.alert(t("settings.attention"), t("settings.bands_error_msg"));
 		} finally {
 			setIsSaving(false);
@@ -109,7 +109,7 @@ export default function BandsScreen() {
 					headerTransparent: true,
 					headerShadowVisible: false,
 					headerBackButtonDisplayMode: "minimal",
-					headerTitleStyle: { color: Colors.routyWhite },
+					headerTitleStyle: { color: palette.text },
 					headerRight: () => (
 						<TouchableOpacity
 							onPress={handleSave}
@@ -120,11 +120,11 @@ export default function BandsScreen() {
 							}}
 						>
 							{isSaving ? (
-								<ActivityIndicator size="small" color={Colors.routyWhite} />
+								<ActivityIndicator size="small" color={Colors.text} />
 							) : (
 								<Text
 									style={{
-										color: hasChanges ? Colors.routyWhite : Colors.routyGray,
+										color: hasChanges ? Colors.text : Colors.routyGray,
 										fontWeight: "600",
 										fontSize: 15,
 									}}
@@ -139,11 +139,8 @@ export default function BandsScreen() {
 
 			<ScrollView
 				showsVerticalScrollIndicator={false}
-				contentInset={{ top: Layout.headerOffset }}
-				contentOffset={{ x: 0, y: -Layout.headerOffset }}
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "android" ? Layout.headerOffset : 0 },
 					globalStyles.scrollNoTab,
 				]}
 			>
@@ -158,12 +155,7 @@ export default function BandsScreen() {
 								{t("settings.bands_automatic")}
 							</Text>
 							{mode === "auto" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 						<View style={globalStyles.divider} />
@@ -175,12 +167,7 @@ export default function BandsScreen() {
 								{t("settings.bands_manual")}
 							</Text>
 							{mode === "manual" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 					</View>
@@ -201,12 +188,7 @@ export default function BandsScreen() {
 								>
 									<Text style={globalStyles.fieldLabel}>{band}</Text>
 									{selectedBands.includes(band) && (
-										<Check
-											width={20}
-											height={20}
-											strokeWidth={2.5}
-											color={Colors.routyBlue}
-										/>
+										<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 									)}
 								</TouchableOpacity>
 							</React.Fragment>

@@ -1,12 +1,11 @@
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, Stack } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Alert,
 	Animated,
 	Linking,
-	Platform,
 	RefreshControl,
 	Text,
 	TouchableOpacity,
@@ -16,7 +15,7 @@ import Svg, { Circle } from "react-native-svg";
 
 import { DashboardCard } from "@/components/DashboardCard";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Colors } from "@/constants/Colors";
+import { Colors, useThemePalette } from "@/constants/Colors";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { dashboardStyles } from "@/styles/dashboardStyles";
@@ -42,6 +41,7 @@ export default function HomeScreen() {
 		dataLimitValue,
 		dataLimitUnit,
 	} = useRouter();
+	const palette = useThemePalette();
 
 	const [speedUnit, setSpeedUnit] = React.useState<"Kbps" | "Mbps">("Kbps");
 
@@ -70,9 +70,8 @@ export default function HomeScreen() {
 		return Math.round(val).toString();
 	};
 
-	const animatedStrokeOffset = React.useRef(
-		new Animated.Value(CIRCUMFERENCE),
-	).current;
+	// Created once; state rather than a ref, since it's read while rendering.
+	const [animatedStrokeOffset] = useState(() => new Animated.Value(CIRCUMFERENCE));
 
 	useEffect(() => {
 		Animated.timing(animatedStrokeOffset, {
@@ -80,7 +79,7 @@ export default function HomeScreen() {
 			duration: 1000,
 			useNativeDriver: true,
 		}).start();
-	}, [percentage]);
+	}, [percentage, animatedStrokeOffset]);
 
 	const getLteItalyLink = (
 		mcc: string | undefined,
@@ -154,10 +153,10 @@ export default function HomeScreen() {
 		return Math.trunc(cellVal / 256).toString();
 	};
 
-	const scrollY = React.useRef(new Animated.Value(0)).current;
+	const [scrollY] = useState(() => new Animated.Value(0));
 
 	const titleOpacity = scrollY.interpolate({
-		inputRange: Platform.OS === "ios" ? [-112, -72] : [0, 40],
+		inputRange: [0, 40],
 		outputRange: [1, 0],
 		extrapolate: "clamp",
 	});
@@ -167,7 +166,7 @@ export default function HomeScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			<LinearGradient
-				colors={["rgba(0,0,0,0.8)", "transparent"]}
+				colors={[`${palette.background}CC`, `${palette.background}00`]}
 				style={dashboardStyles.headerGradient}
 				pointerEvents="none"
 			/>
@@ -186,20 +185,19 @@ export default function HomeScreen() {
 			<Animated.ScrollView
 				contentContainerStyle={[
 					globalStyles.scroll,
-					{ paddingTop: Platform.OS === "ios" ? 0 : 112 },
 				]}
 				onScroll={Animated.event(
 					[{ nativeEvent: { contentOffset: { y: scrollY } } }],
 					{ useNativeDriver: true },
 				)}
 				scrollEventThrottle={16}
-				contentInset={{ top: 112 }}
-				contentOffset={{ x: 0, y: -112 }}
+				showsVerticalScrollIndicator={false}
 				refreshControl={
 					<RefreshControl
 						refreshing={isLoadingData}
 						onRefresh={loadDataUsage}
 						tintColor={Colors.routyGray}
+						progressViewOffset={112}
 					/>
 				}
 			>

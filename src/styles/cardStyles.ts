@@ -5,7 +5,7 @@ import { Layout } from "./globalStyles";
 export const cardStyles = StyleSheet.create({
 	card: {
 		flex: 1,
-		backgroundColor: Colors.routyDarkGray,
+		backgroundColor: Colors.card,
 		borderRadius: Layout.borderRadius,
 		paddingHorizontal: 16,
 		paddingTop: 13,
@@ -24,12 +24,12 @@ export const cardStyles = StyleSheet.create({
 	},
 	value: {
 		fontSize: 17,
-		color: Colors.routyWhite,
+		color: Colors.text,
 		fontWeight: "600",
 		fontFamily: "ui-rounded",
 	},
 	chevron: {
-		marginRight: -4,
+		marginRight: -1.5,
 	},
 	pressable: {
 		flex: 1,

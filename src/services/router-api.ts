@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import { create as createAxios, type AxiosInstance } from "axios";
 import { t } from "../i18n";
 import CryptoJS from "crypto-js";
 
@@ -25,7 +25,8 @@ export interface DataUsage {
 	realtimeTxThrpt: string; // Kbps
 	pppStatus: string; // ppp_connected, disconnected, etc.
 	wanIp: string;
-	ssid: string;
+	ssid24: string; // wifi_chip1_ssid1_ssid, "" if missing
+	ssid5: string; // wifi_chip2_ssid1_ssid, "" if missing
 	cellId: string;
 	enbId: string;
 	mcc: string;
@@ -43,6 +44,43 @@ export interface Device {
 	type: string; // 'cable' or 'wireless'
 }
 
+// With no valid session the router doesn't fail: protected reads come back with
+// the command mapped to "" (e.g. {"sms_data_total":""}), and in multi-field reads
+// the protected fields are "" while public ones like ppp_status still arrive.
+export class SessionExpiredError extends Error {
+	constructor(cmd: string) {
+		super(`Router session expired (${cmd})`);
+		this.name = "SessionExpiredError";
+	}
+}
+
+// The SMS list came back empty while the router still counts messages: its SMS
+// module was busy, so the list says nothing about what's stored.
+export class SmsListUnavailableError extends Error {
+	constructor() {
+		super("SMS list temporarily unavailable");
+		this.name = "SmsListUnavailableError";
+	}
+}
+
+function assertSession(data: any, cmd: string) {
+	if (data?.[cmd] === "") throw new SessionExpiredError(cmd);
+}
+
+export const isDisconnected = (device: Pick<Device, "ip">) => !device.ip || device.ip === "-";
+
+// An entry of the router's Wi-Fi MAC blacklist.
+export interface BlockedDevice {
+	hostname: string;
+	mac: string;
+}
+
+// The router refuses more entries than this (wifi/station_info.js).
+export const MAX_BLOCKED_DEVICES = 32;
+
+const splitList = (value: unknown) =>
+	typeof value === "string" && value !== "" ? value.split(";") : [];
+
 export class RouterApi {
 	private client: AxiosInstance;
 	private cookies: string = "";
@@ -51,7 +89,7 @@ export class RouterApi {
 	constructor(baseUrl: string, timeoutMs: number = 10000) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
-		this.client = axios.create({
+		this.client = createAxios({
 			baseURL: this.baseUrl,
 			timeout: timeoutMs,
 			headers: {
@@ -177,7 +215,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: {
 				isTest: false,
-				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual,lte_band_lock",
+				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,wifi_chip2_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual,lte_band_lock",
 				multi_data: "1",
 			},
 		});
@@ -188,6 +226,8 @@ export class RouterApi {
 		);
 
 		const data = res.data ?? {};
+		// A protected field that is always a number with a valid session.
+		if (data.monthly_rx_bytes === "") throw new SessionExpiredError("monthly_rx_bytes");
 
 		// Parse PCell band (e.g. "B1", "B3"...)
 		const pcell = data.lte_ca_pcell_band
@@ -248,7 +288,8 @@ export class RouterApi {
 			realtimeTxThrpt: toKbps(data.realtime_tx_thrpt),
 			pppStatus: data.ppp_status,
 			wanIp: data.wan_ipaddr,
-			ssid: data.wifi_chip1_ssid1_ssid || "Unknown",
+			ssid24: (data.wifi_chip1_ssid1_ssid ?? "").trim(),
+			ssid5: (data.wifi_chip2_ssid1_ssid ?? "").trim(),
 			cellId: data.Z_eNB_id || "-",
 			enbId,
 			mcc: data.mcc || "",
@@ -275,8 +316,22 @@ export class RouterApi {
 			},
 		});
 
-		const messages: RawSmsMessage[] = res.data?.messages ?? [];
+		assertSession(res.data, "sms_data_total");
+		const messages: RawSmsMessage[] = Array.isArray(res.data?.messages) ? res.data.messages : [];
+		if (messages.length === 0 && (await this.countStoredSms()) > 0) {
+			throw new SmsListUnavailableError();
+		}
 		return groupByConversation(messages, readIds);
+	}
+
+	// Messages stored on the router (received, sent and drafts), as the dashboard counts them.
+	private async countStoredSms(): Promise<number> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "sms_capacity_info" },
+		});
+		assertSession(res.data, "sms_capacity_info");
+		const n = (key: string) => parseInt(res.data?.[key], 10) || 0;
+		return n("sms_nv_rev_total") + n("sms_nv_send_total") + n("sms_nv_draftbox_total");
 	}
 
 	async sendSms(number: string, text: string): Promise<void> {
@@ -570,58 +625,160 @@ export class RouterApi {
 		}
 	}
 
+	// Throws instead of returning [] on failure, so callers keep the last good list.
 	async fetchDevices(): Promise<Device[]> {
-		try {
-			// Fetch hostNameList
-			const resHost = await this.client.get("goform/goform_get_cmd_process", {
-				params: { isTest: false, cmd: "hostNameList" },
+		// Fetch hostNameList
+		const resHost = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "hostNameList" },
+		});
+
+		// Fetch station_list
+		const resStation = await this.client.get(
+			"goform/goform_get_cmd_process",
+			{
+				params: { isTest: false, cmd: "station_list" },
+			},
+		);
+
+		assertSession(resHost.data, "hostNameList");
+		assertSession(resStation.data, "station_list");
+		const hostNames: any[] = resHost.data?.devices || [];
+		const stations: any[] = resStation.data?.station_list || [];
+
+		const deviceMap = new Map<string, Device>();
+
+		stations.forEach((s: any) => {
+			const mac = (s.mac_addr || s.mac || "").toUpperCase();
+			if (!mac) return;
+			deviceMap.set(mac, {
+				hostname: s.hostname || mac,
+				ip: s.ip_addr || s.ip || "-",
+				mac: mac,
+				type: s.connect_type === "wired" ? "cable" : "wireless",
 			});
+		});
 
-			// Fetch station_list
-			const resStation = await this.client.get(
-				"goform/goform_get_cmd_process",
-				{
-					params: { isTest: false, cmd: "station_list" },
-				},
-			);
-
-			const hostNames: any[] = resHost.data?.devices || [];
-			const stations: any[] = resStation.data?.station_list || [];
-
-			const deviceMap = new Map<string, Device>();
-
-			stations.forEach((s: any) => {
-				const mac = (s.mac_addr || s.mac || "").toUpperCase();
-				if (!mac) return;
+		hostNames.forEach((h: any) => {
+			const mac = (h.mac || h.mac_addr || "").toUpperCase();
+			if (!mac) return;
+			const existing = deviceMap.get(mac);
+			if (existing) {
+				if (h.hostname && h.hostname !== existing.mac)
+					existing.hostname = h.hostname;
+			} else {
 				deviceMap.set(mac, {
-					hostname: s.hostname || mac,
-					ip: s.ip_addr || s.ip || "-",
+					hostname: h.hostname || mac,
+					ip: "-",
 					mac: mac,
-					type: s.connect_type === "wired" ? "cable" : "wireless",
+					type: "wireless",
 				});
-			});
+			}
+		});
 
-			hostNames.forEach((h: any) => {
-				const mac = (h.mac || h.mac_addr || "").toUpperCase();
-				if (!mac) return;
-				const existing = deviceMap.get(mac);
-				if (existing) {
-					if (h.hostname && h.hostname !== existing.mac)
-						existing.hostname = h.hostname;
-				} else {
-					deviceMap.set(mac, {
-						hostname: h.hostname || mac,
-						ip: "-",
-						mac: mac,
-						type: "wireless",
-					});
-				}
-			});
+		return Array.from(deviceMap.values());
+	}
 
-			return Array.from(deviceMap.values());
-		} catch (e) {
-			console.warn("[RouterApi] fetchDevices error:", e);
-			return [];
+	async renameDevice(mac: string, hostname: string): Promise<void> {
+		const adToken = await this.getADToken();
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "EDIT_HOSTNAME",
+			mac,
+			hostname,
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending renameDevice params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response renameDevice:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Device rename failed: ${res.data?.result}`);
+		}
+	}
+
+	// MAC of the client making the request, i.e. the phone running Routy.
+	async fetchOwnMac(): Promise<string | null> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "get_user_mac_addr" },
+		});
+		const mac = res.data?.get_user_mac_addr;
+		return typeof mac === "string" && mac !== "" ? mac.toUpperCase() : null;
+	}
+
+	// ── BLACKLIST ───────────────────────────────────────────────────────────
+	// Wi-Fi MAC filter: MACs and names are two parallel `;`-separated lists.
+	// MACs keep the router's own spelling, so rewriting the list never alters them.
+
+	private async fetchAccessControl() {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "queryDeviceAccessControlList" },
+		});
+		assertSession(res.data, "queryDeviceAccessControlList");
+		const names = splitList(res.data?.BlackNameList);
+		const blocked: BlockedDevice[] = splitList(res.data?.BlackMacList).map((mac, i) => ({
+			hostname: names[i] || mac,
+			mac,
+		}));
+		return { aclMode: String(res.data?.AclMode ?? ""), blocked };
+	}
+
+	async fetchBlockedDevices(): Promise<BlockedDevice[]> {
+		return (await this.fetchAccessControl()).blocked;
+	}
+
+	// Writing the blacklist switches the router to blacklist mode. With a whitelist
+	// in use ("1") that would open the network to everyone, so refuse instead.
+	private async fetchEditableBlacklist(): Promise<BlockedDevice[]> {
+		const { aclMode, blocked } = await this.fetchAccessControl();
+		if (aclMode === "1") throw new Error("The router uses a Wi-Fi whitelist");
+		return blocked;
+	}
+
+	async blockDevice(mac: string, hostname: string): Promise<void> {
+		const blocked = await this.fetchEditableBlacklist();
+		if (blocked.some((d) => d.mac.toUpperCase() === mac.toUpperCase())) return;
+		if (blocked.length >= MAX_BLOCKED_DEVICES) throw new Error("Blacklist is full");
+		await this.setBlockedDevices([...blocked, { hostname, mac }]);
+	}
+
+	async unblockDevice(mac: string): Promise<void> {
+		const blocked = await this.fetchEditableBlacklist();
+		await this.setBlockedDevices(
+			blocked.filter((d) => d.mac.toUpperCase() !== mac.toUpperCase()),
+		);
+	}
+
+	private async setBlockedDevices(blocked: BlockedDevice[]): Promise<void> {
+		const adToken = await this.getADToken();
+		// Same payload as the router's dashboard: blacklist mode, no whitelist.
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "setDeviceAccessControlList",
+			AclMode: "2",
+			WhiteMacList: "",
+			WhiteNameList: "",
+			BlackMacList: blocked.map((d) => d.mac).join(";"),
+			BlackNameList: blocked.map((d) => d.hostname).join(";"),
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending setBlockedDevices params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response setBlockedDevices:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Blacklist update failed: ${res.data?.result}`);
 		}
 	}
 }

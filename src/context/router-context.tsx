@@ -13,7 +13,22 @@ import React, {
 } from 'react';
 
 import { contactsService } from '../services/contacts-service';
-import { RouterApi, DataUsage } from '../services/router-api';
+import {
+  DEMO_CONTACTS,
+  DEMO_DEVICE_MACS,
+  DEMO_ID_PREFIX,
+  DemoRouterApi,
+  isDemoCredentials,
+} from '../services/demo-router-api';
+import {
+  BlockedDevice,
+  DataUsage,
+  Device,
+  RouterApi,
+  SessionExpiredError,
+  isDisconnected,
+} from '../services/router-api';
+import { DeviceIconId, isDeviceIconId } from '../constants/deviceIcons';
 import { Conversation, SmsMessage } from '../utils/sms';
 import { t } from '../i18n';
 
@@ -23,8 +38,15 @@ const STORAGE_KEY_KNOWN_IDS = '@routy/known_sms_ids';
 const STORAGE_KEY_READ_IDS = '@routy/read_ids';
 const STORAGE_KEY_DATA_LIMIT_VALUE = '@routy/data_limit_value';
 const STORAGE_KEY_DATA_LIMIT_UNIT = '@routy/data_limit_unit';
+// MACs (upper case) of disconnected devices the user chose to forget.
+const STORAGE_KEY_HIDDEN_DEVICES = '@routy/hidden_devices';
+// Icons chosen by the user, keyed by upper-case MAC.
+const STORAGE_KEY_DEVICE_ICONS = '@routy/device_icons';
 const DEFAULT_URL = 'http://192.168.0.1';
 const POLL_INTERVAL_MS = 3_000;
+
+const createRouterApi = (url: string, pw: string): RouterApi =>
+  isDemoCredentials(url, pw) ? new DemoRouterApi() : new RouterApi(url);
 
 export type AuthStatus = 'idle' | 'loading' | 'logged_in' | 'error';
 
@@ -33,6 +55,7 @@ interface RouterContextValue {
   password: string;
   authStatus: AuthStatus;
   authError: string | null;
+  isDemoMode: boolean;
   conversations: Conversation[];
   dataUsage: DataUsage | null;
   devices: Device[];
@@ -62,10 +85,20 @@ interface RouterContextValue {
   setDataLimit: (value: string, unit: "GB" | "TB") => Promise<void>;
 
   saveSettings: (url: string, pw: string) => Promise<void>;
+  exitDemo: () => Promise<void>;
   login: (customPassword?: string) => Promise<boolean>;
   loadSms: () => Promise<void>;
   loadDataUsage: () => Promise<void>;
   loadDevices: () => Promise<void>;
+  renameDevice: (mac: string, hostname: string) => Promise<void>;
+  hiddenDeviceMacs: Set<string>;
+  hideDevice: (mac: string) => Promise<void>;
+  blockedDevices: BlockedDevice[];
+  blockDevice: (mac: string, hostname: string) => Promise<void>;
+  unblockDevice: (mac: string) => Promise<void>;
+  ownMac: string | null;
+  deviceIcons: Record<string, DeviceIconId>;
+  setDeviceIcon: (mac: string, id: DeviceIconId | null) => Promise<void>;
   sendSms: (number: string, text: string) => Promise<void>;
   markAsRead: (number: string) => Promise<void>;
   deleteConversation: (number: string) => Promise<void>;
@@ -75,7 +108,6 @@ interface RouterContextValue {
 
 const RouterContext = createContext<RouterContextValue | null>(null);
 
-import { Device } from '../services/router-api';
 
 // Configure notifications (foreground support)
 Notifications.setNotificationHandler({
@@ -95,6 +127,10 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [dataUsage, setDataUsage] = useState<DataUsage | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [hiddenDeviceMacs, setHiddenDeviceMacs] = useState<Set<string>>(new Set());
+  const [blockedDevices, setBlockedDevices] = useState<BlockedDevice[]>([]);
+  const [ownMac, setOwnMac] = useState<string | null>(null);
+  const [deviceIcons, setDeviceIcons] = useState<Record<string, DeviceIconId>>({});
   const [isLoadingSms, setIsLoadingSms] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
@@ -104,6 +140,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     "idle" | "connecting" | "connected" | "disconnecting" | "disconnected" | "error"
   >("idle");
   const [softwareVersion, setSoftwareVersion] = useState<string | null>(null);
+  // The version is read once per router; a ref keeps loadDataUsage from depending on it.
+  const softwareVersionRequestedRef = useRef(false);
   const [softwareModel, setSoftwareModel] = useState<string | null>(null);
   const [nightMode, setNightModeState] = useState<{
     enabled: boolean;
@@ -113,12 +151,28 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [dataLimitValue, setDataLimitValueState] = useState('1');
   const [dataLimitUnit, setDataLimitUnitState] = useState<'GB' | 'TB'>('TB');
   const expoRouter = useExpoRouter();
+  const isDemoMode = isDemoCredentials(routerUrl, password);
 
   const apiRef = useRef<RouterApi>(new RouterApi(DEFAULT_URL));
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const readIdsRef = useRef<Set<string>>(new Set());
+  // Mirrors `hiddenDeviceMacs` for callbacks that must not depend on it.
+  const hiddenDeviceMacsRef = useRef<Set<string>>(new Set());
+  const deviceIconsRef = useRef<Record<string, DeviceIconId>>({});
   const mountedRef = useRef(true);
+  // Tracks optimistic SMS changes, so a poll that raced one doesn't overwrite it with stale data.
+  const smsMutationRef = useRef({ generation: 0, pending: 0 });
+
+  const beginSmsMutation = useCallback(() => {
+    smsMutationRef.current.generation += 1;
+    smsMutationRef.current.pending += 1;
+  }, []);
+
+  const endSmsMutation = useCallback(() => {
+    smsMutationRef.current.pending -= 1;
+    smsMutationRef.current.generation += 1;
+  }, []);
 
   // Handle notification clicks
   useEffect(() => {
@@ -135,7 +189,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   }, [expoRouter]);
 
   const getDisplayName = useCallback(
-    (number: string) => contactsService.getName(number) ?? number,
+    (number: string) =>
+      contactsService.getName(number) ??
+      // Read the api instance (not state) so the init closure sees demo mode too.
+      (apiRef.current instanceof DemoRouterApi ? DEMO_CONTACTS[number] : undefined) ??
+      number,
     []
   );
 
@@ -143,9 +201,9 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     (convs: Conversation[]) =>
       convs.map((c) => ({
         ...c,
-        displayName: contactsService.getName(c.number) ?? c.number,
+        displayName: getDisplayName(c.number),
       })),
-    []
+    [getDisplayName]
   );
 
   const detectAndNotify = useCallback(
@@ -180,8 +238,35 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     [getDisplayName]
   );
 
-  const lastLoginRef = useRef<number>(0);
-  const LOGIN_RENEWAL_MS = 4 * 60 * 1000; // 4 minuti
+  // Kept in sync so a re-login from a long-lived callback uses the current password.
+  const passwordRef = useRef(password);
+  useEffect(() => {
+    passwordRef.current = password;
+  }, [password]);
+
+  // One re-login shared by every read that finds the session expired at the same time.
+  const reloginRef = useRef<Promise<void> | null>(null);
+
+  // Runs a protected read; if the router says the session expired (it can drop it
+  // on its own or when someone logs into its dashboard), logs in again and retries once.
+  const withSession = useCallback(async <T,>(read: () => Promise<T>): Promise<T> => {
+    try {
+      return await read();
+    } catch (e) {
+      if (!(e instanceof SessionExpiredError)) throw e;
+      console.log(`[RouterContext] ${t('dashboard.renewing')}`);
+      if (!reloginRef.current) {
+        reloginRef.current = apiRef.current.login(passwordRef.current).finally(() => {
+          reloginRef.current = null;
+        });
+      }
+      await reloginRef.current;
+      return read();
+    }
+  }, []);
+
+  // setInterval doesn't wait for the previous tick, so a slow one could overlap the next.
+  const pollInFlightRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -192,36 +277,44 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAndUpdate = useCallback(async () => {
     if (!mountedRef.current || authStatus !== 'logged_in') return;
-    
-    try {
-      // Check if we need to renew session
-      const now = Date.now();
-      if (now - lastLoginRef.current > LOGIN_RENEWAL_MS) {
-        console.log(`[RouterContext] ${t('dashboard.renewing')}`);
-        await apiRef.current.login(password);
-        lastLoginRef.current = now;
-      }
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
+    const generationAtStart = smsMutationRef.current.generation;
 
-      // Fetch SMS, Data Usage and Devices in parallel
-      const [convs, usage, devs] = await Promise.all([
-        apiRef.current.fetchConversations(readIdsRef.current),
-        apiRef.current.fetchDataUsage(),
-        apiRef.current.fetchDevices(),
+    try {
+      // Each read stands on its own: one that fails leaves its piece of state as it was,
+      // instead of replacing it with the empty data the router sends without a session.
+      const [convs, usage, devs] = await Promise.allSettled([
+        withSession(() => apiRef.current.fetchConversations(readIdsRef.current)),
+        withSession(() => apiRef.current.fetchDataUsage()),
+        withSession(() => apiRef.current.fetchDevices()),
       ]);
 
-      const enriched = enrichWithContacts(convs);
-      
-      await detectAndNotify(enriched);
-
-      if (mountedRef.current) {
-        setConversations(enriched);
-        setDataUsage(usage);
-        setDevices(devs);
+      if (!mountedRef.current) return;
+      if (usage.status === 'fulfilled') setDataUsage(usage.value);
+      else console.warn('[fetchAndUpdate] data usage error:', usage.reason);
+      if (devs.status === 'fulfilled') setDevices(devs.value);
+      else console.warn('[fetchAndUpdate] devices error:', devs.reason);
+      if (convs.status === 'rejected') {
+        console.warn('[fetchAndUpdate] SMS error:', convs.reason);
+        return;
       }
+
+      // Discard the SMS list if a local change started or finished while it was being fetched.
+      const isStale = () =>
+        smsMutationRef.current.generation !== generationAtStart ||
+        smsMutationRef.current.pending > 0;
+      if (isStale()) return;
+
+      const enriched = enrichWithContacts(convs.value);
+      await detectAndNotify(enriched);
+      if (mountedRef.current && !isStale()) setConversations(enriched);
     } catch (e) {
       console.warn('[fetchAndUpdate] error:', e);
+    } finally {
+      pollInFlightRef.current = false;
     }
-  }, [authStatus, detectAndNotify, enrichWithContacts]);
+  }, [authStatus, detectAndNotify, enrichWithContacts, withSession]);
 
 
 
@@ -237,11 +330,13 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const [savedUrl, savedPw, knownRaw, readRaw] = await Promise.all([
+        const [savedUrl, savedPw, knownRaw, readRaw, hiddenRaw, iconsRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_URL),
           AsyncStorage.getItem(STORAGE_KEY_PASSWORD),
           AsyncStorage.getItem(STORAGE_KEY_KNOWN_IDS),
           AsyncStorage.getItem(STORAGE_KEY_READ_IDS),
+          AsyncStorage.getItem(STORAGE_KEY_HIDDEN_DEVICES),
+          AsyncStorage.getItem(STORAGE_KEY_DEVICE_ICONS),
         ]);
 
         const url = savedUrl ?? DEFAULT_URL;
@@ -251,7 +346,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           setRouterUrl(url);
           if (pw) setPassword(pw);
         }
-        apiRef.current = new RouterApi(url);
+        apiRef.current = createRouterApi(url, pw);
 
         if (knownRaw) {
           try {
@@ -279,6 +374,31 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           } catch { readIdsRef.current = new Set(); }
         }
 
+        if (hiddenRaw) {
+          try {
+            const macs = JSON.parse(hiddenRaw);
+            if (Array.isArray(macs)) {
+              hiddenDeviceMacsRef.current = new Set(macs);
+              if (mountedRef.current) setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
+            }
+          } catch { /* keep the empty set */ }
+        }
+
+        if (iconsRaw) {
+          try {
+            const parsed = JSON.parse(iconsRaw);
+            // Ids removed from the catalog are dropped: those devices get their automatic icon.
+            const icons: Record<string, DeviceIconId> = {};
+            if (parsed && typeof parsed === 'object') {
+              for (const [mac, id] of Object.entries(parsed)) {
+                if (isDeviceIconId(id)) icons[mac] = id;
+              }
+            }
+            deviceIconsRef.current = icons;
+            if (mountedRef.current) setDeviceIcons(icons);
+          } catch { /* keep no icons */ }
+        }
+
         // 1. Notifications Permissions
         try {
           await Notifications.requestPermissionsAsync();
@@ -302,7 +422,6 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
             await apiRef.current.login(pw);
             if (mountedRef.current) {
               setAuthStatus('logged_in');
-              lastLoginRef.current = Date.now();
               const convs = await apiRef.current.fetchConversations(readIdsRef.current);
               const enriched = enrichWithContacts(convs);
               
@@ -360,7 +479,6 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           await apiRef.current.login(password);
           if (mountedRef.current) {
             setAuthStatus('logged_in');
-            lastLoginRef.current = Date.now();
           }
         } catch (e: any) {
           if (mountedRef.current) {
@@ -382,15 +500,64 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       stopPolling();
       setRouterUrl(url);
       setPassword(pw);
-      apiRef.current = new RouterApi(url);
+      apiRef.current = createRouterApi(url, pw);
       setAuthStatus('idle');
       setAuthError(null);
       setConversations([]);
+      // Re-read from the new router (or the demo) instead of keeping the old model.
+      setSoftwareVersion(null);
+      softwareVersionRequestedRef.current = false;
+      setSoftwareModel(null);
       await AsyncStorage.setItem(STORAGE_KEY_URL, url);
       await AsyncStorage.setItem(STORAGE_KEY_PASSWORD, pw);
     },
     [stopPolling]
   );
+
+  const exitDemo = useCallback(async () => {
+    stopPolling();
+    setRouterUrl(DEFAULT_URL);
+    setPassword('');
+    apiRef.current = new RouterApi(DEFAULT_URL);
+    setAuthStatus('idle');
+    setAuthError(null);
+    setConversations([]);
+    setDataUsage(null);
+    setDevices([]);
+    setBlockedDevices([]);
+    setOwnMac(null);
+    setNetworkStatus('idle');
+    setSoftwareVersion(null);
+    softwareVersionRequestedRef.current = false;
+    setSoftwareModel(null);
+    setNightModeState(null);
+
+    // Forget the fake SMS ids so a later demo session starts fresh.
+    const isRealId = (id: string) => !id.startsWith(DEMO_ID_PREFIX);
+    knownIdsRef.current = new Set(Array.from(knownIdsRef.current).filter(isRealId));
+    readIdsRef.current = new Set(Array.from(readIdsRef.current).filter(isRealId));
+
+    // Same for demo devices forgotten during the session.
+    const hiddenRealMacs = Array.from(hiddenDeviceMacsRef.current).filter(
+      (mac) => !DEMO_DEVICE_MACS.includes(mac),
+    );
+    hiddenDeviceMacsRef.current = new Set(hiddenRealMacs);
+    setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
+    const realIcons = Object.fromEntries(
+      Object.entries(deviceIconsRef.current).filter(([mac]) => !DEMO_DEVICE_MACS.includes(mac)),
+    );
+    deviceIconsRef.current = realIcons;
+    setDeviceIcons(realIcons);
+
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_KEY_URL),
+      AsyncStorage.removeItem(STORAGE_KEY_PASSWORD),
+      AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIdsRef.current))),
+      AsyncStorage.setItem(STORAGE_KEY_READ_IDS, JSON.stringify(Array.from(readIdsRef.current))),
+      AsyncStorage.setItem(STORAGE_KEY_HIDDEN_DEVICES, JSON.stringify(hiddenRealMacs)),
+      AsyncStorage.setItem(STORAGE_KEY_DEVICE_ICONS, JSON.stringify(realIcons)),
+    ]);
+  }, [stopPolling]);
 
   const login = useCallback(async (customPassword?: string): Promise<boolean> => {
     const pwToUse = customPassword ?? password;
@@ -403,8 +570,12 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
       await apiRef.current.login(pwToUse);
+      if (apiRef.current instanceof DemoRouterApi) {
+        // Treat the seeded demo SMS as already seen, so they don't all fire notifications.
+        const convs = await apiRef.current.fetchConversations();
+        convs.forEach((c) => c.messages.forEach((m) => knownIdsRef.current.add(m.id)));
+      }
       setAuthStatus('logged_in');
-      lastLoginRef.current = Date.now();
       return true;
     } catch (e: any) {
       setAuthStatus('error');
@@ -427,7 +598,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'logged_in') return;
     setIsLoadingData(true);
     try {
-      const usage = await apiRef.current.fetchDataUsage();
+      const usage = await withSession(() => apiRef.current.fetchDataUsage());
       if (mountedRef.current) {
         setDataUsage(usage);
         console.log('[RouterContext] ppp_status:', usage.pppStatus);
@@ -438,13 +609,21 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           setNetworkStatus("disconnected");
         }
 
-        if (!softwareVersion) {
-          apiRef.current.fetchSoftwareVersion().then(({ model, version }) => {
-            if (mountedRef.current) {
-              setSoftwareVersion(version);
-              setSoftwareModel(model);
-            }
-          });
+        if (!softwareVersionRequestedRef.current) {
+          softwareVersionRequestedRef.current = true;
+          apiRef.current
+            .fetchSoftwareVersion()
+            .then(({ model, version }) => {
+              if (mountedRef.current) {
+                setSoftwareVersion(version);
+                setSoftwareModel(model);
+              }
+            })
+            .catch((e) => {
+              // Try again on the next refresh.
+              softwareVersionRequestedRef.current = false;
+              console.warn('[loadDataUsage] software version error:', e);
+            });
         }
       }
     } catch (e) {
@@ -452,7 +631,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingData(false);
     }
-  }, [authStatus]);
+  }, [authStatus, withSession]);
 
   const connectNetwork = useCallback(async () => {
     try {
@@ -541,24 +720,119 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'logged_in') return;
     setIsLoadingDevices(true);
     try {
-      const devs = await apiRef.current.fetchDevices();
-      if (mountedRef.current) setDevices(devs);
+      const [devs, blocked, own] = await Promise.all([
+        withSession(() => apiRef.current.fetchDevices()),
+        // The device list stays usable even if the blacklist or the own MAC can't be read.
+        withSession(() => apiRef.current.fetchBlockedDevices()).catch((e) => {
+          console.warn('[loadDevices] blacklist error:', e);
+          return null;
+        }),
+        withSession(() => apiRef.current.fetchOwnMac()).catch((e) => {
+          console.warn('[loadDevices] own MAC error:', e);
+          return null;
+        }),
+      ]);
+      if (mountedRef.current) {
+        setDevices(devs);
+        if (blocked) setBlockedDevices(blocked);
+        if (own) setOwnMac(own);
+      }
     } catch (e) {
       console.warn('[loadDevices] error:', e);
     } finally {
       setIsLoadingDevices(false);
     }
-  }, [authStatus]);
+  }, [authStatus, withSession]);
+
+  const renameDevice = useCallback(
+    async (mac: string, hostname: string) => {
+      try {
+        await apiRef.current.renameDevice(mac, hostname);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[renameDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
+
+  const saveHiddenDeviceMacs = useCallback(async (macs: Set<string>) => {
+    hiddenDeviceMacsRef.current = macs;
+    setHiddenDeviceMacs(macs);
+    await AsyncStorage.setItem(STORAGE_KEY_HIDDEN_DEVICES, JSON.stringify(Array.from(macs)));
+  }, []);
+
+  const hideDevice = useCallback(
+    (mac: string) =>
+      saveHiddenDeviceMacs(new Set(hiddenDeviceMacsRef.current).add(mac.toUpperCase())),
+    [saveHiddenDeviceMacs],
+  );
+
+  const setDeviceIcon = useCallback(async (mac: string, id: DeviceIconId | null) => {
+    const icons = { ...deviceIconsRef.current };
+    if (id) icons[mac.toUpperCase()] = id;
+    else delete icons[mac.toUpperCase()];
+    deviceIconsRef.current = icons;
+    setDeviceIcons(icons);
+    await AsyncStorage.setItem(STORAGE_KEY_DEVICE_ICONS, JSON.stringify(icons));
+  }, []);
+
+  // A device is forgotten only while offline: once it reconnects it's known again.
+  useEffect(() => {
+    const reconnected = devices
+      .filter((d) => !isDisconnected(d))
+      .map((d) => d.mac.toUpperCase())
+      .filter((mac) => hiddenDeviceMacsRef.current.has(mac));
+    if (reconnected.length === 0) return;
+    const remaining = new Set(hiddenDeviceMacsRef.current);
+    reconnected.forEach((mac) => remaining.delete(mac));
+    saveHiddenDeviceMacs(remaining).catch((e) => console.warn('[hiddenDevices] error:', e));
+  }, [devices, saveHiddenDeviceMacs]);
+
+  const blockDevice = useCallback(
+    async (mac: string, hostname: string) => {
+      try {
+        await apiRef.current.blockDevice(mac, hostname);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[blockDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
+
+  const unblockDevice = useCallback(
+    async (mac: string) => {
+      try {
+        await apiRef.current.unblockDevice(mac);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[unblockDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
 
   const sendSms = useCallback(
-    async (number: string, text: string) => apiRef.current.sendSms(number, text),
-    []
+    async (number: string, text: string) => {
+      beginSmsMutation();
+      try {
+        await apiRef.current.sendSms(number, text);
+      } finally {
+        endSmsMutation();
+      }
+    },
+    [beginSmsMutation, endSmsMutation]
   );
 
   const markAsRead = useCallback(async (number: string) => {
     const conv = conversations.find(c => c.number === number);
     if (!conv || conv.unreadCount === 0) return;
 
+    beginSmsMutation();
     setConversations(prev => prev.map(c => 
       c.number === number ? { ...c, unreadCount: 0 } : c
     ));
@@ -573,25 +847,30 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       await apiRef.current.markAsRead(receivedIds);
     } catch (e) {
       console.warn('[markAsRead] API failed:', e);
+    } finally {
+      endSmsMutation();
     }
-  }, [conversations]);
+  }, [conversations, beginSmsMutation, endSmsMutation]);
 
   const deleteConversation = useCallback(async (number: string) => {
     const conv = conversations.find(c => c.number === number);
     if (!conv) return;
 
     // Optimistic update
+    beginSmsMutation();
     setConversations(prev => prev.filter(c => c.number !== number));
 
     try {
       const msgIds = conv.messages.map(m => m.id);
       await apiRef.current.deleteSms(msgIds);
+      endSmsMutation();
     } catch (e) {
       console.warn('[deleteConversation] API failed:', e);
+      endSmsMutation();
       // Revert if failed (optional, but good for UX)
       await loadSms(); 
     }
-  }, [conversations, loadSms]);
+  }, [conversations, loadSms, beginSmsMutation, endSmsMutation]);
 
   const addOptimisticMessage = useCallback((number: string, msg: SmsMessage) => {
     setConversations((prev) => {
@@ -613,6 +892,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       ];
     });
     knownIdsRef.current.add(msg.id);
+    // Drop any poll already in flight: it can't contain this message yet.
+    smsMutationRef.current.generation += 1;
   }, [getDisplayName]);
 
   const setDataLimit = useCallback(async (value: string, unit: "GB" | "TB") => {
@@ -631,6 +912,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         password,
         authStatus,
         authError,
+        isDemoMode,
         conversations,
         dataUsage,
         devices,
@@ -652,10 +934,20 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         dataLimitUnit,
         setDataLimit,
         saveSettings,
+        exitDemo,
         login,
         loadSms,
         loadDataUsage,
         loadDevices,
+        renameDevice,
+        hiddenDeviceMacs,
+        hideDevice,
+        blockedDevices,
+        blockDevice,
+        unblockDevice,
+        ownMac,
+        deviceIcons,
+        setDeviceIcon,
         sendSms,
         markAsRead,
         deleteConversation,

@@ -7,11 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "routy",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#208AEF"
-    },
     "ios": {
       "icon": "./assets/routy.icon",
       "bundleIdentifier": "com.filippoalessandrini.routy",
@@ -26,7 +21,8 @@
         "BGTaskSchedulerPermittedIdentifiers": [
           "com.expo.modules.backgroundtask.processing"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIViewControllerBasedStatusBarAppearance": true
       }
     },
     "locales": {
@@ -38,6 +34,8 @@
       "expo-background-task",
       "expo-task-manager",
       "./withRemovePushEntitlement",
+      "./withPodsDeploymentTarget",
+      "./withSceneLifecycle",
       [
         "expo-notifications",
         {
@@ -58,7 +56,11 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 240
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-localization",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
