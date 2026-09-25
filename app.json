@@ -34,6 +34,7 @@
       "expo-task-manager",
       "./withRemovePushEntitlement",
       "./withPodsDeploymentTarget",
+      "./withSceneLifecycle",
       [
         "expo-notifications",
         {
