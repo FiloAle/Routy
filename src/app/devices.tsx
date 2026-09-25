@@ -175,6 +175,13 @@ export default function DevicesScreen() {
 	const blockedMacs = new Set(blockedDevices.map((d) => d.mac.toUpperCase()));
 	const isBlocked = (d: Device) => blockedMacs.has(d.mac.toUpperCase());
 
+	// The phone running Routy first, then by name: case- and accent-insensitive,
+	// with numbers in order ("iPhone 2" before "iPhone 10"); the MAC breaks ties.
+	const byName = (a: Device, b: Device) =>
+		Number(isOwn(b)) - Number(isOwn(a)) ||
+		a.hostname.localeCompare(b.hostname, undefined, { sensitivity: "base", numeric: true }) ||
+		a.mac.localeCompare(b.mac);
+
 	// Each device shows up in one group only; "blocked" wins over the others.
 	const groups: { kind: GroupKind; title: string; data: Device[] }[] = [
 		{
@@ -203,7 +210,9 @@ export default function DevicesScreen() {
 					},
 			),
 		},
-	].filter((g) => g.data.length > 0);
+	]
+		.map((g) => ({ ...g, data: [...g.data].sort(byName) }))
+		.filter((g) => g.data.length > 0);
 
 	const editButton = (device: Device) => (
 		<Button
