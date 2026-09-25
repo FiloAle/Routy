@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, Stack } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Alert,
 	Animated,
@@ -70,9 +70,8 @@ export default function HomeScreen() {
 		return Math.round(val).toString();
 	};
 
-	const animatedStrokeOffset = React.useRef(
-		new Animated.Value(CIRCUMFERENCE),
-	).current;
+	// Created once; state rather than a ref, since it's read while rendering.
+	const [animatedStrokeOffset] = useState(() => new Animated.Value(CIRCUMFERENCE));
 
 	useEffect(() => {
 		Animated.timing(animatedStrokeOffset, {
@@ -80,7 +79,7 @@ export default function HomeScreen() {
 			duration: 1000,
 			useNativeDriver: true,
 		}).start();
-	}, [percentage]);
+	}, [percentage, animatedStrokeOffset]);
 
 	const getLteItalyLink = (
 		mcc: string | undefined,
@@ -154,7 +153,7 @@ export default function HomeScreen() {
 		return Math.trunc(cellVal / 256).toString();
 	};
 
-	const scrollY = React.useRef(new Animated.Value(0)).current;
+	const [scrollY] = useState(() => new Animated.Value(0));
 
 	const titleOpacity = scrollY.interpolate({
 		inputRange: [0, 40],
@@ -192,6 +191,7 @@ export default function HomeScreen() {
 					{ useNativeDriver: true },
 				)}
 				scrollEventThrottle={16}
+				showsVerticalScrollIndicator={false}
 				refreshControl={
 					<RefreshControl
 						refreshing={isLoadingData}

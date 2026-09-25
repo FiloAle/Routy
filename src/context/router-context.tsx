@@ -20,7 +20,14 @@ import {
   DemoRouterApi,
   isDemoCredentials,
 } from '../services/demo-router-api';
-import { RouterApi, DataUsage, SessionExpiredError } from '../services/router-api';
+import {
+  BlockedDevice,
+  DataUsage,
+  Device,
+  RouterApi,
+  SessionExpiredError,
+  isDisconnected,
+} from '../services/router-api';
 import { DeviceIconId, isDeviceIconId } from '../constants/deviceIcons';
 import { Conversation, SmsMessage } from '../utils/sms';
 import { t } from '../i18n';
@@ -101,7 +108,6 @@ interface RouterContextValue {
 
 const RouterContext = createContext<RouterContextValue | null>(null);
 
-import { BlockedDevice, Device, isDisconnected } from '../services/router-api';
 
 // Configure notifications (foreground support)
 Notifications.setNotificationHandler({
@@ -134,6 +140,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     "idle" | "connecting" | "connected" | "disconnecting" | "disconnected" | "error"
   >("idle");
   const [softwareVersion, setSoftwareVersion] = useState<string | null>(null);
+  // The version is read once per router; a ref keeps loadDataUsage from depending on it.
+  const softwareVersionRequestedRef = useRef(false);
   const [softwareModel, setSoftwareModel] = useState<string | null>(null);
   const [nightMode, setNightModeState] = useState<{
     enabled: boolean;
@@ -498,6 +506,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       setConversations([]);
       // Re-read from the new router (or the demo) instead of keeping the old model.
       setSoftwareVersion(null);
+      softwareVersionRequestedRef.current = false;
       setSoftwareModel(null);
       await AsyncStorage.setItem(STORAGE_KEY_URL, url);
       await AsyncStorage.setItem(STORAGE_KEY_PASSWORD, pw);
@@ -519,6 +528,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setOwnMac(null);
     setNetworkStatus('idle');
     setSoftwareVersion(null);
+    softwareVersionRequestedRef.current = false;
     setSoftwareModel(null);
     setNightModeState(null);
 
@@ -599,13 +609,21 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
           setNetworkStatus("disconnected");
         }
 
-        if (!softwareVersion) {
-          apiRef.current.fetchSoftwareVersion().then(({ model, version }) => {
-            if (mountedRef.current) {
-              setSoftwareVersion(version);
-              setSoftwareModel(model);
-            }
-          });
+        if (!softwareVersionRequestedRef.current) {
+          softwareVersionRequestedRef.current = true;
+          apiRef.current
+            .fetchSoftwareVersion()
+            .then(({ model, version }) => {
+              if (mountedRef.current) {
+                setSoftwareVersion(version);
+                setSoftwareModel(model);
+              }
+            })
+            .catch((e) => {
+              // Try again on the next refresh.
+              softwareVersionRequestedRef.current = false;
+              console.warn('[loadDataUsage] software version error:', e);
+            });
         }
       }
     } catch (e) {

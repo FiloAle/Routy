@@ -31,6 +31,7 @@ import {
 	padding,
 	refreshable,
 	scrollContentBackground,
+	scrollIndicators,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "@/context/router-context";
@@ -325,6 +326,7 @@ export default function DevicesScreen() {
 						listStyle("insetGrouped"),
 						scrollContentBackground("hidden"),
 						listSectionSpacing(8),
+						scrollIndicators("hidden"),
 						refreshable(loadDevices),
 					]}
 				>

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import { create as createAxios, type AxiosInstance } from "axios";
 import { t } from "../i18n";
 import CryptoJS from "crypto-js";
 
@@ -89,7 +89,7 @@ export class RouterApi {
 	constructor(baseUrl: string, timeoutMs: number = 10000) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
-		this.client = axios.create({
+		this.client = createAxios({
 			baseURL: this.baseUrl,
 			timeout: timeoutMs,
 			headers: {

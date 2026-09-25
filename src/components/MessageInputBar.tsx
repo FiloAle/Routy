@@ -60,10 +60,6 @@ export function MessageInputBar({
 	const finalBottomPadding =
 		bottomOffset !== undefined ? bottomOffset : Platform.OS === "ios" ? 34 : 12;
 
-	// The button absolute position needs to match the baseline of the input
-	// Baseline is finalBottomPadding + paddingVertical of the bar (12)
-	const buttonBottom = finalBottomPadding;
-
 	return (
 		<View
 			style={[

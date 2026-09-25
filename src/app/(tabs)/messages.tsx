@@ -302,14 +302,18 @@ export default function MessagesScreen() {
 		number: string;
 	} | null>(null);
 
-	React.useEffect(() => {
+	// Clear the draft when the compose sheet closes. Done while rendering, so
+	// there's no extra effect pass.
+	const [wasModalVisible, setWasModalVisible] = React.useState(isModalVisible);
+	if (wasModalVisible !== isModalVisible) {
+		setWasModalVisible(isModalVisible);
 		if (!isModalVisible) {
 			setRecipient("");
 			setMessageText("");
 			setSuggestions([]);
 			setSelectedContact(null);
 		}
-	}, [isModalVisible]);
+	}
 
 	const handleRecipientChange = (text: string) => {
 		setRecipient(text);
@@ -363,7 +367,7 @@ export default function MessagesScreen() {
 			setSelectedContact(null);
 			setMessageText("");
 			loadSms();
-		} catch (error) {
+		} catch {
 			Alert.alert(t("common.error"), t("messages.error_send"));
 		} finally {
 			setIsSending(false);
