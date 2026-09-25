@@ -15,6 +15,7 @@ import React, {
 import { contactsService } from '../services/contacts-service';
 import {
   DEMO_CONTACTS,
+  DEMO_DEVICE_MACS,
   DEMO_ID_PREFIX,
   DemoRouterApi,
   isDemoCredentials,
@@ -29,6 +30,8 @@ const STORAGE_KEY_KNOWN_IDS = '@routy/known_sms_ids';
 const STORAGE_KEY_READ_IDS = '@routy/read_ids';
 const STORAGE_KEY_DATA_LIMIT_VALUE = '@routy/data_limit_value';
 const STORAGE_KEY_DATA_LIMIT_UNIT = '@routy/data_limit_unit';
+// MACs (upper case) of disconnected devices the user chose to forget.
+const STORAGE_KEY_HIDDEN_DEVICES = '@routy/hidden_devices';
 const DEFAULT_URL = 'http://192.168.0.1';
 const POLL_INTERVAL_MS = 3_000;
 
@@ -78,6 +81,11 @@ interface RouterContextValue {
   loadDataUsage: () => Promise<void>;
   loadDevices: () => Promise<void>;
   renameDevice: (mac: string, hostname: string) => Promise<void>;
+  hiddenDeviceMacs: Set<string>;
+  hideDevice: (mac: string) => Promise<void>;
+  blockedDevices: BlockedDevice[];
+  blockDevice: (mac: string, hostname: string) => Promise<void>;
+  unblockDevice: (mac: string) => Promise<void>;
   sendSms: (number: string, text: string) => Promise<void>;
   markAsRead: (number: string) => Promise<void>;
   deleteConversation: (number: string) => Promise<void>;
@@ -87,7 +95,7 @@ interface RouterContextValue {
 
 const RouterContext = createContext<RouterContextValue | null>(null);
 
-import { Device } from '../services/router-api';
+import { BlockedDevice, Device, isDisconnected } from '../services/router-api';
 
 // Configure notifications (foreground support)
 Notifications.setNotificationHandler({
@@ -107,6 +115,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [dataUsage, setDataUsage] = useState<DataUsage | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [hiddenDeviceMacs, setHiddenDeviceMacs] = useState<Set<string>>(new Set());
+  const [blockedDevices, setBlockedDevices] = useState<BlockedDevice[]>([]);
   const [isLoadingSms, setIsLoadingSms] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
@@ -131,6 +141,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const readIdsRef = useRef<Set<string>>(new Set());
+  // Mirrors `hiddenDeviceMacs` for callbacks that must not depend on it.
+  const hiddenDeviceMacsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
   // Tracks optimistic SMS changes, so a poll that raced one doesn't overwrite it with stale data.
   const smsMutationRef = useRef({ generation: 0, pending: 0 });
@@ -271,11 +283,12 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const [savedUrl, savedPw, knownRaw, readRaw] = await Promise.all([
+        const [savedUrl, savedPw, knownRaw, readRaw, hiddenRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_URL),
           AsyncStorage.getItem(STORAGE_KEY_PASSWORD),
           AsyncStorage.getItem(STORAGE_KEY_KNOWN_IDS),
           AsyncStorage.getItem(STORAGE_KEY_READ_IDS),
+          AsyncStorage.getItem(STORAGE_KEY_HIDDEN_DEVICES),
         ]);
 
         const url = savedUrl ?? DEFAULT_URL;
@@ -311,6 +324,16 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
             const ids = JSON.parse(readRaw);
             readIdsRef.current = new Set(Array.isArray(ids) ? ids : []);
           } catch { readIdsRef.current = new Set(); }
+        }
+
+        if (hiddenRaw) {
+          try {
+            const macs = JSON.parse(hiddenRaw);
+            if (Array.isArray(macs)) {
+              hiddenDeviceMacsRef.current = new Set(macs);
+              if (mountedRef.current) setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
+            }
+          } catch { /* keep the empty set */ }
         }
 
         // 1. Notifications Permissions
@@ -439,6 +462,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setConversations([]);
     setDataUsage(null);
     setDevices([]);
+    setBlockedDevices([]);
     setNetworkStatus('idle');
     setSoftwareVersion(null);
     setSoftwareModel(null);
@@ -449,11 +473,19 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     knownIdsRef.current = new Set(Array.from(knownIdsRef.current).filter(isRealId));
     readIdsRef.current = new Set(Array.from(readIdsRef.current).filter(isRealId));
 
+    // Same for demo devices forgotten during the session.
+    const hiddenRealMacs = Array.from(hiddenDeviceMacsRef.current).filter(
+      (mac) => !DEMO_DEVICE_MACS.includes(mac),
+    );
+    hiddenDeviceMacsRef.current = new Set(hiddenRealMacs);
+    setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
+
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY_URL),
       AsyncStorage.removeItem(STORAGE_KEY_PASSWORD),
       AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIdsRef.current))),
       AsyncStorage.setItem(STORAGE_KEY_READ_IDS, JSON.stringify(Array.from(readIdsRef.current))),
+      AsyncStorage.setItem(STORAGE_KEY_HIDDEN_DEVICES, JSON.stringify(hiddenRealMacs)),
     ]);
   }, [stopPolling]);
 
@@ -611,8 +643,18 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'logged_in') return;
     setIsLoadingDevices(true);
     try {
-      const devs = await apiRef.current.fetchDevices();
-      if (mountedRef.current) setDevices(devs);
+      const [devs, blocked] = await Promise.all([
+        apiRef.current.fetchDevices(),
+        // The device list stays usable even if the blacklist can't be read.
+        apiRef.current.fetchBlockedDevices().catch((e) => {
+          console.warn('[loadDevices] blacklist error:', e);
+          return null;
+        }),
+      ]);
+      if (mountedRef.current) {
+        setDevices(devs);
+        if (blocked) setBlockedDevices(blocked);
+      }
     } catch (e) {
       console.warn('[loadDevices] error:', e);
     } finally {
@@ -627,6 +669,56 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         await loadDevices();
       } catch (e) {
         console.warn("[renameDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
+
+  const saveHiddenDeviceMacs = useCallback(async (macs: Set<string>) => {
+    hiddenDeviceMacsRef.current = macs;
+    setHiddenDeviceMacs(macs);
+    await AsyncStorage.setItem(STORAGE_KEY_HIDDEN_DEVICES, JSON.stringify(Array.from(macs)));
+  }, []);
+
+  const hideDevice = useCallback(
+    (mac: string) =>
+      saveHiddenDeviceMacs(new Set(hiddenDeviceMacsRef.current).add(mac.toUpperCase())),
+    [saveHiddenDeviceMacs],
+  );
+
+  // A device is forgotten only while offline: once it reconnects it's known again.
+  useEffect(() => {
+    const reconnected = devices
+      .filter((d) => !isDisconnected(d))
+      .map((d) => d.mac.toUpperCase())
+      .filter((mac) => hiddenDeviceMacsRef.current.has(mac));
+    if (reconnected.length === 0) return;
+    const remaining = new Set(hiddenDeviceMacsRef.current);
+    reconnected.forEach((mac) => remaining.delete(mac));
+    saveHiddenDeviceMacs(remaining).catch((e) => console.warn('[hiddenDevices] error:', e));
+  }, [devices, saveHiddenDeviceMacs]);
+
+  const blockDevice = useCallback(
+    async (mac: string, hostname: string) => {
+      try {
+        await apiRef.current.blockDevice(mac, hostname);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[blockDevice] error:", e);
+        throw e;
+      }
+    },
+    [loadDevices],
+  );
+
+  const unblockDevice = useCallback(
+    async (mac: string) => {
+      try {
+        await apiRef.current.unblockDevice(mac);
+        await loadDevices();
+      } catch (e) {
+        console.warn("[unblockDevice] error:", e);
         throw e;
       }
     },
@@ -757,6 +849,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         loadDataUsage,
         loadDevices,
         renameDevice,
+        hiddenDeviceMacs,
+        hideDevice,
+        blockedDevices,
+        blockDevice,
+        unblockDevice,
         sendSms,
         markAsRead,
         deleteConversation,

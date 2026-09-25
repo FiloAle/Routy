@@ -43,6 +43,20 @@ export interface Device {
 	type: string; // 'cable' or 'wireless'
 }
 
+export const isDisconnected = (device: Device) => !device.ip || device.ip === "-";
+
+// An entry of the router's Wi-Fi MAC blacklist.
+export interface BlockedDevice {
+	hostname: string;
+	mac: string;
+}
+
+// The router refuses more entries than this (wifi/station_info.js).
+export const MAX_BLOCKED_DEVICES = 32;
+
+const splitList = (value: unknown) =>
+	typeof value === "string" && value !== "" ? value.split(";") : [];
+
 export class RouterApi {
 	private client: AxiosInstance;
 	private cookies: string = "";
@@ -646,6 +660,76 @@ export class RouterApi {
 
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
 			throw new Error(`Device rename failed: ${res.data?.result}`);
+		}
+	}
+
+	// ── BLACKLIST ───────────────────────────────────────────────────────────
+	// Wi-Fi MAC filter: MACs and names are two parallel `;`-separated lists.
+	// MACs keep the router's own spelling, so rewriting the list never alters them.
+
+	private async fetchAccessControl() {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "queryDeviceAccessControlList" },
+		});
+		const names = splitList(res.data?.BlackNameList);
+		const blocked: BlockedDevice[] = splitList(res.data?.BlackMacList).map((mac, i) => ({
+			hostname: names[i] || mac,
+			mac,
+		}));
+		return { aclMode: String(res.data?.AclMode ?? ""), blocked };
+	}
+
+	async fetchBlockedDevices(): Promise<BlockedDevice[]> {
+		return (await this.fetchAccessControl()).blocked;
+	}
+
+	// Writing the blacklist switches the router to blacklist mode. With a whitelist
+	// in use ("1") that would open the network to everyone, so refuse instead.
+	private async fetchEditableBlacklist(): Promise<BlockedDevice[]> {
+		const { aclMode, blocked } = await this.fetchAccessControl();
+		if (aclMode === "1") throw new Error("The router uses a Wi-Fi whitelist");
+		return blocked;
+	}
+
+	async blockDevice(mac: string, hostname: string): Promise<void> {
+		const blocked = await this.fetchEditableBlacklist();
+		if (blocked.some((d) => d.mac.toUpperCase() === mac.toUpperCase())) return;
+		if (blocked.length >= MAX_BLOCKED_DEVICES) throw new Error("Blacklist is full");
+		await this.setBlockedDevices([...blocked, { hostname, mac }]);
+	}
+
+	async unblockDevice(mac: string): Promise<void> {
+		const blocked = await this.fetchEditableBlacklist();
+		await this.setBlockedDevices(
+			blocked.filter((d) => d.mac.toUpperCase() !== mac.toUpperCase()),
+		);
+	}
+
+	private async setBlockedDevices(blocked: BlockedDevice[]): Promise<void> {
+		const adToken = await this.getADToken();
+		// Same payload as the router's dashboard: blacklist mode, no whitelist.
+		const params = new URLSearchParams({
+			isTest: "false",
+			goformId: "setDeviceAccessControlList",
+			AclMode: "2",
+			WhiteMacList: "",
+			WhiteNameList: "",
+			BlackMacList: blocked.map((d) => d.mac).join(";"),
+			BlackNameList: blocked.map((d) => d.hostname).join(";"),
+			AD: adToken,
+		});
+
+		console.log("[RouterApi] Sending setBlockedDevices params:", params.toString());
+
+		const res = await this.client.post(
+			"goform/goform_set_cmd_process",
+			params.toString(),
+		);
+
+		console.log("[RouterApi] Response setBlockedDevices:", res.data);
+
+		if (res.data?.result !== "success" && res.data?.result !== "0") {
+			throw new Error(`Blacklist update failed: ${res.data?.result}`);
 		}
 	}
 }

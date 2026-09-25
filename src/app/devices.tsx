@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Alert, View } from "react-native";
 import {
 	Button,
@@ -16,6 +16,7 @@ import {
 	ZStack,
 } from "@expo/ui/swift-ui";
 import {
+	accessibilityLabel,
 	font,
 	foregroundStyle,
 	frame,
@@ -35,12 +36,10 @@ import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles } from "@/styles/globalStyles";
-import { Device } from "@/services/router-api";
-import { textCaseNone } from "../../modules/routy-ui-modifiers";
+import { Device, MAX_BLOCKED_DEVICES, isDisconnected } from "@/services/router-api";
+import { SymbolImage, textCaseNone } from "../../modules/routy-ui-modifiers";
 
 type Palette = ReturnType<typeof useThemePalette>;
-
-const isDisconnected = (device: Device) => !device.ip || device.ip === "-";
 
 // Same rules as the router's own dashboard (wifi/station_info.js).
 function hostnameError(hostname: string): string | null {
@@ -87,25 +86,61 @@ function promptRename(
 	);
 }
 
+function confirmAction({
+	title,
+	message,
+	destructive = true,
+	errorMessage,
+	action,
+}: {
+	title: string;
+	message: string;
+	destructive?: boolean;
+	errorMessage: string;
+	action: () => Promise<void>;
+}) {
+	Alert.alert(title, message, [
+		{ text: t("common.cancel"), style: "cancel" },
+		{
+			text: t("common.confirm"),
+			style: destructive ? "destructive" : "default",
+			// A non-destructive confirmation is the primary button.
+			isPreferred: !destructive,
+			onPress: async () => {
+				try {
+					await action();
+				} catch {
+					Alert.alert(t("common.error"), errorMessage);
+				}
+			},
+		},
+	]);
+}
+
+type GroupKind = "connected" | "disconnected" | "blocked";
+
 function DeviceRow({
 	device,
+	kind,
 	palette,
-	modifiers,
 }: {
 	device: Device;
+	kind: GroupKind;
 	palette: Palette;
-	modifiers?: React.ComponentProps<typeof HStack>["modifiers"];
 }) {
 	const disconnected = isDisconnected(device);
-	const color = disconnected ? palette.secondaryText : palette.text;
-	const symbol = disconnected
-		? "wifi.slash"
-		: device.type === "cable"
-			? "desktopcomputer"
-			: "wifi";
+	const color = kind === "connected" ? palette.text : palette.secondaryText;
+	const symbol =
+		kind === "blocked"
+			? "nosign"
+			: disconnected
+				? "wifi.slash"
+				: device.type === "cable"
+					? "desktopcomputer"
+					: "wifi";
 
 	return (
-		<HStack spacing={12} modifiers={modifiers}>
+		<HStack spacing={12}>
 			<ZStack modifiers={[frame({ width: 40, height: 40 })]}>
 				<RoundedRectangle
 					cornerRadius={10}
@@ -136,12 +171,128 @@ function DeviceRow({
 
 export default function DevicesScreen() {
 	const palette = useThemePalette();
-	const { devices, isLoadingDevices, loadDevices, renameDevice } = useRouter();
+	const {
+		devices,
+		isLoadingDevices,
+		loadDevices,
+		renameDevice,
+		hiddenDeviceMacs,
+		hideDevice,
+		blockedDevices,
+		blockDevice,
+		unblockDevice,
+	} = useRouter();
 
-	const groups = [
-		{ title: t("devices.connected"), data: devices.filter((d) => !isDisconnected(d)) },
-		{ title: t("devices.disconnected"), data: devices.filter(isDisconnected) },
+	// Polling keeps `devices` fresh but not the blacklist, which only this screen needs.
+	useEffect(() => {
+		loadDevices();
+	}, [loadDevices]);
+
+	const blockedMacs = new Set(blockedDevices.map((d) => d.mac.toUpperCase()));
+	const isBlocked = (d: Device) => blockedMacs.has(d.mac.toUpperCase());
+
+	// Each device shows up in one group only; "blocked" wins over the others.
+	const groups: { kind: GroupKind; title: string; data: Device[] }[] = [
+		{
+			kind: "connected" as const,
+			title: t("devices.connected"),
+			data: devices.filter((d) => !isDisconnected(d) && !isBlocked(d)),
+		},
+		{
+			kind: "disconnected" as const,
+			title: t("devices.disconnected"),
+			data: devices.filter(
+				(d) => isDisconnected(d) && !isBlocked(d) && !hiddenDeviceMacs.has(d.mac.toUpperCase()),
+			),
+		},
+		{
+			kind: "blocked" as const,
+			title: t("devices.blocked"),
+			// Prefer the router's current entry (it has renames); the blacklist may list devices it no longer knows.
+			data: blockedDevices.map(
+				(b) =>
+					devices.find((d) => d.mac.toUpperCase() === b.mac.toUpperCase()) ?? {
+						hostname: b.hostname,
+						ip: "-",
+						mac: b.mac.toUpperCase(),
+						type: "wireless",
+					},
+			),
+		},
 	].filter((g) => g.data.length > 0);
+
+	const actionsFor = (kind: GroupKind, device: Device) => {
+		const name = device.hostname;
+		switch (kind) {
+			case "connected":
+				return (
+					<Button
+						label={t("devices.rename")}
+						systemImage="pencil"
+						// Icon only; the label stays as the VoiceOver name.
+						modifiers={[labelStyle("iconOnly"), tint(Colors.routyBlue)]}
+						onPress={() => promptRename(device, renameDevice)}
+					/>
+				);
+			case "disconnected":
+				// The first action sits at the edge and runs on a full swipe.
+				return (
+					<>
+						<Button
+							label={t("devices.block")}
+							systemImage="nosign"
+							modifiers={[labelStyle("iconOnly"), tint(Colors.routyRed)]}
+							onPress={() => {
+								if (blockedDevices.length >= MAX_BLOCKED_DEVICES) {
+									Alert.alert(
+										t("common.error"),
+										t("devices.block_limit", { max: MAX_BLOCKED_DEVICES }),
+									);
+									return;
+								}
+								confirmAction({
+									title: t("devices.block_title", { name }),
+									message: t("devices.block_message"),
+									errorMessage: t("devices.block_failed"),
+									action: () => blockDevice(device.mac, device.hostname),
+								});
+							}}
+						/>
+						{/* Swipe actions fill their symbols; SymbolImage keeps the outline. */}
+						<Button
+							modifiers={[tint(Colors.routyOrange), accessibilityLabel(t("devices.forget"))]}
+							onPress={() =>
+								confirmAction({
+									title: t("devices.forget_title", { name }),
+									message: t("devices.forget_message"),
+									errorMessage: t("common.error_generic"),
+									action: () => hideDevice(device.mac),
+								})
+							}
+						>
+							<SymbolImage systemName="eye.slash" />
+						</Button>
+					</>
+				);
+			case "blocked":
+				return (
+					<Button
+						label={t("devices.unblock")}
+						systemImage="checkmark"
+						modifiers={[labelStyle("iconOnly"), tint(Colors.routyGreen)]}
+						onPress={() =>
+							confirmAction({
+								title: t("devices.unblock_title", { name }),
+								message: t("devices.unblock_message"),
+								destructive: false,
+								errorMessage: t("devices.unblock_failed"),
+								action: () => unblockDevice(device.mac),
+							})
+						}
+					/>
+				);
+		}
+	};
 
 	// Each device is its own inset-grouped section, so the system draws it as a separate card.
 	const cardModifiers = [
@@ -192,23 +343,14 @@ export default function DevicesScreen() {
 									) : undefined
 								}
 							>
-								{/* Only connected devices can be renamed: disconnected rows keep their swipe for "forget". */}
-								{isDisconnected(device) ? (
-									<DeviceRow device={device} palette={palette} modifiers={cardModifiers} />
-								) : (
-									<SwipeActions modifiers={cardModifiers}>
-										<DeviceRow device={device} palette={palette} />
-										<SwipeActions.Actions edge="leading">
-											<Button
-												label={t("devices.rename")}
-												systemImage="pencil"
-												// Icon only; the label stays as the VoiceOver name.
-												modifiers={[labelStyle("iconOnly"), tint(Colors.routyBlue)]}
-												onPress={() => promptRename(device, renameDevice)}
-											/>
-										</SwipeActions.Actions>
-									</SwipeActions>
-								)}
+								{/* Trailing only: a swipe to the right stays the system back gesture.
+								    No `destructive` role: SwiftUI would remove the row before the confirmation alert. */}
+								<SwipeActions modifiers={cardModifiers}>
+									<DeviceRow device={device} kind={group.kind} palette={palette} />
+									<SwipeActions.Actions edge="trailing">
+										{actionsFor(group.kind, device)}
+									</SwipeActions.Actions>
+								</SwipeActions>
 							</Section>
 						)),
 					)}

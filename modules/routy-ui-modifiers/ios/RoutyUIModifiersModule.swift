@@ -23,9 +23,31 @@ internal struct TextCaseNoneModifier: ViewModifier, Record {
   }
 }
 
+public final class SymbolImageViewProps: UIBaseViewProps {
+  @Field var systemName: String = ""
+}
+
+/// An SF Symbol drawn from a UIImage, so it keeps the variant it's named after.
+/// Swipe actions turn symbol images into their `.fill` variant, ignoring `.symbolVariant`.
+public struct SymbolImageView: ExpoSwiftUI.View {
+  @ObservedObject public var props: SymbolImageViewProps
+
+  public init(props: SymbolImageViewProps) {
+    self.props = props
+  }
+
+  public var body: some View {
+    if let image = UIImage(systemName: props.systemName) {
+      Image(uiImage: image.withRenderingMode(.alwaysTemplate))
+    }
+  }
+}
+
 public class RoutyUIModifiersModule: Module {
   public func definition() -> ModuleDefinition {
     Name("RoutyUIModifiers")
+
+    ExpoUIView(SymbolImageView.self)
 
     OnCreate {
       ViewModifierRegistry.register("routyScrollTopInset") { params, appContext, _ in

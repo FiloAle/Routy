@@ -4,7 +4,7 @@ Piano di implementazione delle prossime funzionalità di Routy.
 
 | # | Funzionalità | Area | Stato |
 |---|---|---|---|
-| 1 | Dimenticare dispositivi disconnessi | Dispositivi | Da fare |
+| 1 | Dimenticare dispositivi disconnessi | Dispositivi | Fatto |
 | 2 | SSID 2.4 GHz / 5 GHz separati | Impostazioni › Rete e consumi | Da fare |
 | 3 | Icona personalizzata dei dispositivi | Dispositivi | Da fare |
 
@@ -19,13 +19,15 @@ Nella schermata **Dispositivi**, uno swipe verso sinistra su un dispositivo dell
 > **Vuoi dimenticare questo dispositivo?**
 > `Annulla` · `Conferma`
 
-Con **Conferma** il dispositivo sparisce dalla lista dei disconnessi e non ricompare più, anche dopo riavvii dell'app o del router.
+Con **Conferma** il dispositivo sparisce dalla lista dei disconnessi finché resta offline, anche dopo riavvii dell'app o del router. Quando si riconnette torna noto e non è più dimenticato.
+
+Accanto a "Dimentica" (arancione) c'è **Blocca** (rosso, `nosign`): aggiunge il MAC alla blacklist Wi-Fi del router (`setDeviceAccessControlList`). I bloccati hanno una sezione **Bloccati**, visibile solo se non vuota, con lo swipe verde **Riabilita**.
 
 ### Contesto
 
 - I disconnessi sono le voci di `hostNameList` (memoria del router) senza IP. Li produce `RouterApi.fetchDevices()` in [router-api.ts](../src/services/router-api.ts), unendo `station_list` e `hostNameList` per MAC.
 - [devices.tsx](../src/app/devices.tsx) è una `List` SwiftUI (`@expo/ui`) in stile `insetGrouped` con **una `Section` per dispositivo**, così ogni dispositivo è una card separata. La separazione connessi/disconnessi usa `isDisconnected(d)` (`!d.ip || d.ip === "-"`).
-- Non conosciamo un comando goform affidabile per cancellare voci da `hostNameList` sull'MF289F. L'occultamento quindi è **locale**, persistito in AsyncStorage e indicizzato per **MAC**, l'identificativo stabile che l'app già usa come `key`.
+- La web UI del router non ha un comando per cancellare voci da `hostNameList`: `DEL_DEVICE` è `removeChildGroup` del parental control, non la memoria dei dispositivi. L'occultamento quindi è **locale**, persistito in AsyncStorage e indicizzato per **MAC**, l'identificativo stabile che l'app già usa come `key`.
 
 ### Implementazione
 
@@ -38,7 +40,7 @@ Con **Conferma** il dispositivo sparisce dalla lista dei disconnessi e non ricom
 **2. Filtro e swipe action, in [devices.tsx](../src/app/devices.tsx)**
 - Filtro del gruppo Disconnessi: `devices.filter(d => isDisconnected(d) && !hiddenDeviceMacs.has(d.mac.toUpperCase()))`.
 - I Connessi **non** vengono filtrati: un dispositivo dimenticato che torna online compare sempre tra i Connessi.
-- Solo le righe disconnesse vengono avvolte in `SwipeActions`, come nella lista Messaggi. I modifier della card (`listRowInsets`, `listRowBackground`) vanno spostati da `DeviceRow` al `SwipeActions`, che diventa la riga:
+- Ogni riga è avvolta in `SwipeActions` con i modifier della card. L'azione è sempre `trailing`, così lo swipe verso destra resta libero per il gesto indietro di iOS: "Dimentica" sui disconnessi, "Rinomina" (`EDIT_HOSTNAME`) sui connessi. Per i disconnessi:
   ```tsx
   <SwipeActions modifiers={cardModifiers}>
     <DeviceRow device={device} palette={palette} />
@@ -60,7 +62,6 @@ Con **Conferma** il dispositivo sparisce dalla lista dei disconnessi e non ricom
     { text: t("common.confirm"), style: "destructive", onPress: () => hideDevice(device.mac) },
   ]);
   ```
-- Le righe connesse restano senza azioni.
 - Il gruppo "Disconnessi" sparisce da solo quando è vuoto: il `.filter(g => g.data.length > 0)` c'è già.
 
 **3. Testi, in [it.json](../src/i18n/locales/it.json) e [en.json](../src/i18n/locales/en.json)**
@@ -72,21 +73,20 @@ Con **Conferma** il dispositivo sparisce dalla lista dei disconnessi e non ricom
 
 **4. Modalità demo, in [demo-router-api.ts](../src/services/demo-router-api.ts)**
 - `fetchDevices()` restituisce già 3 dispositivi disconnessi (`ip: "-"`), quindi la funzione è testabile senza router.
-- In `exitDemo()` rimuovere dal set nascosto i MAC dei dispositivi demo, così una nuova sessione demo riparte pulita.
+- In `exitDemo()` rimuovere dal set nascosto i MAC dei dispositivi demo (`DEMO_DEVICE_MACS`), così una nuova sessione demo riparte pulita.
 
 ### Casi limite
 
 | Caso | Comportamento |
 |---|---|
-| Dispositivo dimenticato torna online | Compare tra i Connessi; il flag resta, quindi quando si disconnette sparisce di nuovo |
+| Dispositivo dimenticato torna online | Compare tra i Connessi e il flag viene tolto: se si disconnette di nuovo, torna tra i Disconnessi |
 | MAC con case diverso tra `station_list` e `hostNameList` | Già normalizzato in `fetchDevices()`; `hideDevice` normalizza comunque |
 | Tutti i disconnessi dimenticati | Sezione "Disconnessi" nascosta |
 | Cambio router nelle impostazioni | Il set è globale; i MAC sono univoci, nessun conflitto |
 
 ### Decisioni aperte
 
-- **Ripristino:** è fuori scope. Se servirà, basterà una voce "Ripristina dispositivi dimenticati" nelle Impostazioni che svuota la chiave.
-- **Auto-ripristino al ritorno online:** di default no, perché la richiesta è "permanentemente". In alternativa si può togliere il flag quando il MAC compare tra i connessi.
+- **Ripristino manuale:** è fuori scope. Se servirà, basterà una voce "Ripristina dispositivi dimenticati" nelle Impostazioni che svuota la chiave.
 
 ---
 

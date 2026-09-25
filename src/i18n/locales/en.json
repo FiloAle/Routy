@@ -110,7 +110,20 @@
 		"rename_title": "Rename device",
 		"rename_required": "Enter a name.",
 		"rename_invalid": "The name can't start or end with a space, or contain + ; \" \\",
-		"rename_failed": "Couldn't rename the device."
+		"rename_failed": "Couldn't rename the device.",
+		"forget": "Forget",
+		"forget_title": "Forget %{name}?",
+		"forget_message": "The device will be forgotten, but it will be listed again the next time it connects to the network.",
+		"blocked": "Blocked",
+		"block": "Block",
+		"block_title": "Block %{name} from the network?",
+		"block_message": "You can allow it to connect again at any time.",
+		"block_failed": "Couldn't block the device.",
+		"block_limit": "You can block up to %{max} devices.",
+		"unblock": "Allow",
+		"unblock_title": "Allow %{name} to connect again?",
+		"unblock_message": "The device will be able to connect to the network again.",
+		"unblock_failed": "Couldn't allow the device."
 	},
 	"common": {
 		"error": "Error",
@@ -120,6 +133,10 @@
 		"copied": "Copied",
 		"copied_link": "Link copied to clipboard.",
 		"cancel": "Cancel",
-		"save": "Save"
+		"save": "Save",
+		"confirm": "Confirm",
+		"confirm_reboot": "Do you want to reboot the router?",
+		"error_generic": "Something went wrong. Please try again.",
+		"success": "Done"
 	}
 }
