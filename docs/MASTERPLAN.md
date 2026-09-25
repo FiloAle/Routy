@@ -5,9 +5,9 @@ Piano di implementazione delle prossime funzionalità di Routy.
 | # | Funzionalità | Area | Stato |
 |---|---|---|---|
 | 1 | Dimenticare dispositivi disconnessi | Dispositivi | Fatto |
-| 2 | SSID 2.4 GHz / 5 GHz separati | Impostazioni › Rete e consumi | Da fare |
-| 3 | Pannello "Modifica": icona e nome | Dispositivi | Da fare |
-| 4 | Bloccare i connessi ed etichetta "Tu" | Dispositivi | Da fare |
+| 2 | SSID 2.4 GHz / 5 GHz separati | Impostazioni › Rete e consumi | Fatto, da provare sul router |
+| 3 | Pannello "Modifica": icona e nome | Dispositivi | Fatto, da provare sul router |
+| 4 | Bloccare i connessi ed etichetta "Tu" | Dispositivi | Fatto, da provare sul router |
 
 ---
 
@@ -184,7 +184,7 @@ Lo swipe **Modifica** (matita blu, oggi "Rinomina" e solo sui connessi) su un di
 └──────────────────────────────┘
 ```
 
-- **Icona in alto al centro.** Il tap espande sotto di sé la griglia dei simboli, un secondo tap la richiude. Scegliere un simbolo aggiorna subito l'anteprima in alto e richiude la griglia.
+- **Icona in alto al centro.** Il tap espande sotto di sé la griglia dei simboli, un secondo tap la richiude. Scegliere un simbolo aggiorna subito l'anteprima in alto; la griglia resta aperta, così si possono confrontare più icone, e si chiude solo col focus sul campo del nome.
 - **Campo del nome.** Contiene il nome attuale e, al tap, apre la tastiera per modificarlo.
 - **Annulla / Conferma.** Nulla viene salvato finché non si conferma: Annulla, o il pannello chiuso col trascinamento, scarta le modifiche.
 
@@ -205,7 +205,7 @@ Tutti i pezzi esistono in `@expo/ui` (SDK 57), senza codice nativo nuovo:
 | Pezzo | Componente |
 |---|---|
 | Pannello dal basso | `BottomSheet` con `fitToContents`, che adatta l'altezza al contenuto, e `presentationDragIndicator("visible")` |
-| Espansione animata della griglia | `withAnimation` attorno al cambio di stato |
+| Espansione animata della griglia | Modifier `animation(Animation.easeInOut(...), gridOpen)` sul contenuto del pannello |
 | Griglia dei simboli | `Grid` con `Grid.Row` |
 | Campo del nome | `TextField` con `useNativeState(nomeAttuale)` per il testo iniziale e `onTextChange` |
 | Pulsanti | `Button` con `buttonStyle("bordered")` e `buttonStyle("borderedProminent")` |
@@ -231,13 +231,15 @@ Tutti i pezzi esistono in `@expo/ui` (SDK 57), senza codice nativo nuovo:
 | 4 | `computer` | `desktopcomputer` | iOS 13 |
 | 5 | `macbook` | `macbook` (fallback `laptopcomputer`) | iOS 17 (fallback iOS 14) |
 | 6 | `tv` | `tv` | iOS 13 |
-| 7 | `speaker` | `homepod.and.homepod.mini` (fallback `homepod.2`) | iOS 18 (fallback iOS 14) |
-| 8 | `console` | `gamecontroller` | iOS 13 |
-| 9 | `printer` | `printer` | iOS 13 |
-| 10 | `light` | `lightbulb` | iOS 13 |
-| 11 | `doorbell` | `video.doorbell` | iOS 16 |
-| 12 | `plug` | `poweroutlet.type.b` | iOS 16 |
-| 13 | `wifi` | `wifi` | iOS 13 |
+| 7 | `mediastick` | `mediastick` | iOS 15 |
+| 8 | `speaker` | `homepod.and.homepod.mini` (fallback `homepod.2`) | iOS 18 (fallback iOS 14) |
+| 9 | `console` | `gamecontroller` | iOS 13 |
+| 10 | `drive` | `externaldrive` | iOS 14 |
+| 11 | `printer` | `printer` | iOS 13 |
+| 12 | `light` | `lightbulb` | iOS 13 |
+| 13 | `doorbell` | `video.doorbell` | iOS 16 |
+| 14 | `plug` | `poweroutlet.type.b` | iOS 16 |
+| 15 | `wifi` | `wifi` | iOS 13 |
 
 Disponibilità verificata nel catalogo `CoreGlyphs` di iOS 27. L'app supporta da iOS 16.4, quindi due simboli hanno un fallback: `macbook` richiede iOS 17 (sotto si usa `laptopcomputer`) e `homepod.and.homepod.mini` richiede iOS 18 (sotto si usa `homepod.2`). `Image(systemName:)` con un nome inesistente non mostra nulla, quindi la scelta va fatta in JS con `Platform.Version`.
 
@@ -254,8 +256,10 @@ export const DEVICE_ICONS = [
   { id: "computer", symbol: "desktopcomputer" },
   { id: "macbook", symbol: "macbook", legacySymbol: "laptopcomputer", minIOS: 17 },
   { id: "tv", symbol: "tv" },
+  { id: "mediastick", symbol: "mediastick" },
   { id: "speaker", symbol: "homepod.and.homepod.mini", legacySymbol: "homepod.2", minIOS: 18 },
   { id: "console", symbol: "gamecontroller" },
+  { id: "drive", symbol: "externaldrive" },
   { id: "printer", symbol: "printer" },
   { id: "light", symbol: "lightbulb" },
   { id: "doorbell", symbol: "video.doorbell" },
@@ -271,12 +275,15 @@ const NAME_RULES: { match: RegExp; id: DeviceIconId }[] = [
   { match: /iphone/i, id: "iphone" },
   { match: /ipad/i, id: "ipad" },
   { match: /macbook/i, id: "macbook" },
+  { match: /stick/i, id: "mediastick" }, // prima di "tv": "FireTV-Stick" è una chiavetta
+  { match: /tv/i, id: "tv" },
+  { match: /nas|drive/i, id: "drive" },
 ];
 export function inferIconFromName(hostname: string): DeviceIconId | null;
 ```
 
 **Icona automatica.** È l'icona che il dispositivo ha quando non ne è stata scelta una a mano. Si decide in quest'ordine:
-1. dal **nome** con `inferIconFromName`: "iPhone di Filippo" → `iphone`, "iPad" → `ipad`, "MacBook-Pro" → `macbook`;
+1. dal **nome** con `inferIconFromName`: "iPhone di Filippo" → `iphone`, "iPad" → `ipad`, "MacBook-Pro" → `macbook`, "Amazon-FireTV-Stick" → `mediastick`, "Smart-TV" → `tv`, "NAS" e "My-Drive" → `drive`. Se il nome contiene sia "stick" sia "tv" vince `mediastick`;
 2. altrimenti dal **tipo di connessione**, come oggi: `wifi` per wireless, `desktopcomputer` per cavo.
 
 Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul nome si possono estendere in futuro (per esempio "Watch" → `watch`, "iMac" → `computer`) aggiungendo righe a `NAME_RULES`.
@@ -299,15 +306,15 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 **4. Pannello, nuovo componente `DeviceEditSheet`**
 - Stato della schermata: `editing: Device | null`. Lo swipe "Modifica" lo imposta, la chiusura del pannello lo azzera.
 - Stato interno del pannello: `draftIcon: DeviceIconId | null` (con `null` = automatica), `nameState = useNativeState(device.hostname)` e `gridOpen: boolean`.
-- **Icona in alto:** `Button` con `buttonStyle("plain")`. Dentro c'è uno `ZStack` con `Circle` di 72pt in `palette.fill` e il simbolo a 32pt. Il tap esegue `withAnimation` su `gridOpen` e chiude la tastiera.
+- **Icona in alto:** `Button` con `buttonStyle("plain")`. Dentro c'è uno `ZStack` con `Circle` di 72pt in `Colors.routyBlue` e il simbolo bianco a 32pt, come la cella selezionata della griglia. Il tap esegue `withAnimation` su `gridOpen` e chiude la tastiera.
 - **Griglia**, visibile solo con `gridOpen`:
-  - 14 celle su 4 colonne: **Automatica** per prima (`sparkles`), poi i 13 simboli nell'ordine della tabella.
+  - 16 celle su 4 colonne: **Automatica** per prima (`sparkles`), poi i 15 simboli nell'ordine della tabella.
   - Celle da 44pt, spaziature di 12pt.
-  - La cella selezionata ha l'anello di 2pt in `palette.secondaryText`, come in Promemoria.
-  - Il tap su una cella imposta `draftIcon` e richiude la griglia.
+  - La cella selezionata ha l'anello di 2pt e il cerchio pieno in `Colors.routyBlue`, lo stesso blu del pulsante Conferma, con il simbolo in bianco.
+  - Il tap su una cella imposta `draftIcon`; la griglia resta aperta.
 - **Campo del nome:** `TextField` in `textFieldStyle("roundedBorder")`. `onFocusChange(true)` richiude la griglia.
 - **Errore del nome:** sotto il campo, in `Colors.routyRed`, mostra il testo di `hostnameError` mentre si scrive. Sostituisce l'alert d'errore che riapre il prompt.
-- **Pulsanti:** Annulla (`bordered`) e Conferma (`borderedProminent`, pulsante primario).
+- **Pulsanti:** Annulla (`bordered`) e Conferma (`borderedProminent` con `tint(Colors.routyBlue)`, pulsante primario).
   - Conferma è disabilitato se il nome non è valido o se non è cambiato nulla.
   - Mentre salva mostra un `ProgressView` e resta disabilitato.
 - **Conferma** salva solo ciò che è cambiato:
@@ -320,7 +327,7 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 - `devices.change_icon`: "Cambia icona" / "Change icon" (VoiceOver dell'icona in alto)
 - `devices.automatic_icon`: "Icona automatica" / "Automatic icon"
 - `devices.name_placeholder`: "Nome del dispositivo" / "Device name"
-- `devices.icons.<id>` per VoiceOver: iPhone, iPad, Apple Watch, Computer, MacBook, TV, Altoparlante / Speaker, Console, Stampante / Printer, Lampadina / Light bulb, Campanello / Doorbell, Presa / Smart plug, Wi-Fi.
+- `devices.icons.<id>` per VoiceOver: iPhone, iPad, Apple Watch, Computer, MacBook, TV, Chiavetta multimediale / Media stick, Altoparlante / Speaker, Console, Disco esterno / External drive, Stampante / Printer, Lampadina / Light bulb, Campanello / Doorbell, Presa / Smart plug, Wi-Fi.
 - Da rimuovere: `devices.rename_title` (il pannello non ha titolo).
 
 **6. Modalità demo**
@@ -332,7 +339,7 @@ Una scelta manuale ha sempre la precedenza sull'icona automatica. Le regole sul 
 |---|---|
 | iOS 16 e icona "MacBook" | `laptopcomputer` al posto di `macbook` |
 | iOS 16–17 e icona "Altoparlante" | `homepod.2` al posto di `homepod.and.homepod.mini` |
-| Nome con più corrispondenze (es. "iPhone-MacBook") | Vince la prima regola in `NAME_RULES` |
+| Nome con più corrispondenze (es. "iPhone-MacBook", "FireTV-Stick") | Vince la prima regola in `NAME_RULES`: per "stick" e "tv" vince `mediastick` |
 | Rinomina dal pannello, icona automatica | L'anteprima in alto segue il nome mentre si scrive: "iPad" → `ipad` |
 | Il router rinomina il dispositivo | L'icona automatica si aggiorna col nuovo nome; una scelta manuale resta |
 | ID salvato non più presente nel catalogo | Ignorato: si torna all'icona automatica |
@@ -414,14 +421,14 @@ Il dispositivo su cui gira Routy si riconosce dal MAC e mostra, subito dopo il n
 4. **Controlli:** `npx tsc --noEmit`, `npx expo lint` (nessun nuovo errore nei file toccati), `npx expo export --platform ios`.
 5. **Prova sul simulatore in modalità demo:**
    - [ ] Impostazioni in demo: due righe SSID
-   - [ ] Icone automatiche in demo: "iPhone di Filippo" → iPhone, "iPad" → iPad, "MacBook-Pro" → MacBook
+   - [ ] Icone automatiche in demo: "iPhone di Filippo" → iPhone, "iPad" → iPad, "MacBook-Pro" → MacBook, "Smart-TV" → TV, "NAS" → disco esterno
    - [ ] Swipe su un connesso via Wi-Fi: Modifica e Blocca; via cavo e sul proprio dispositivo ("iPhone di Filippo" in demo) solo Modifica
    - [ ] Blocca su un connesso: alert, poi la riga passa tra i Bloccati
    - [ ] "iPhone di Filippo" in demo: "Tu" in grigio dopo il nome, sulla stessa riga; con un nome lungo si accorcia solo il nome
    - [ ] Swipe su un disconnesso: da sinistra Modifica, Dimentica, Blocca
    - [ ] Swipe "Modifica" su un connesso e su un disconnesso: si apre il pannello con icona e nome attuali, griglia chiusa
-   - [ ] Tap sull'icona: la griglia si apre con Automatica + 13 simboli nell'ordine previsto; secondo tap la chiude
-   - [ ] Scelta di un simbolo: anteprima aggiornata, griglia chiusa, niente ancora salvato
+   - [ ] Tap sull'icona: la griglia si apre con Automatica + 15 simboli nell'ordine previsto; secondo tap la chiude
+   - [ ] Scelta di un simbolo: anteprima aggiornata, anello blu sulla cella, griglia ancora aperta, niente salvato
    - [ ] Tap sul campo: tastiera aperta e griglia chiusa; il pannello resta visibile sopra la tastiera
    - [ ] Nome non valido: errore sotto il campo, Conferma disabilitato
    - [ ] Annulla, o pannello trascinato giù: nessuna modifica

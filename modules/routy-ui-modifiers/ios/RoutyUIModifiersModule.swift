@@ -23,6 +23,14 @@ internal struct TextCaseNoneModifier: ViewModifier, Record {
   }
 }
 
+/// Draws SF Symbols in one color: some, like `homepod.and.homepod.mini`, default to
+/// hierarchical rendering, and @expo/ui has no symbolRenderingMode modifier.
+internal struct SymbolMonochromeModifier: ViewModifier, Record {
+  func body(content: Content) -> some View {
+    content.symbolRenderingMode(.monochrome)
+  }
+}
+
 public final class SymbolImageViewProps: UIBaseViewProps {
   @Field var systemName: String = ""
 }
@@ -47,6 +55,14 @@ public class RoutyUIModifiersModule: Module {
   public func definition() -> ModuleDefinition {
     Name("RoutyUIModifiers")
 
+    // Alerts take their accent (the primary button's fill, plain button text) from
+    // the tint; destructive buttons keep the system red, which UIKit doesn't expose.
+    Function("setAlertTintColor") { (color: UIColor) in
+      DispatchQueue.main.async {
+        UIView.appearance(whenContainedInInstancesOf: [UIAlertController.self]).tintColor = color
+      }
+    }
+
     ExpoUIView(SymbolImageView.self)
 
     OnCreate {
@@ -56,11 +72,15 @@ public class RoutyUIModifiersModule: Module {
       ViewModifierRegistry.register("routyTextCaseNone") { params, appContext, _ in
         return try TextCaseNoneModifier(from: params, appContext: appContext)
       }
+      ViewModifierRegistry.register("routySymbolMonochrome") { params, appContext, _ in
+        return try SymbolMonochromeModifier(from: params, appContext: appContext)
+      }
     }
 
     OnDestroy {
       ViewModifierRegistry.unregister("routyScrollTopInset")
       ViewModifierRegistry.unregister("routyTextCaseNone")
+      ViewModifierRegistry.unregister("routySymbolMonochrome")
     }
   }
 }

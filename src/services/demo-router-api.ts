@@ -201,7 +201,8 @@ export class DemoRouterApi extends RouterApi {
 			realtimeTxThrpt: this.pppConnected ? jitter(950) : "0.0",
 			pppStatus: this.pppConnected ? "ppp_connected" : "ppp_disconnected",
 			wanIp: this.pppConnected ? "100.64.12.34" : "",
-			ssid: "Routy-Demo",
+			ssid24: "Routy-Demo",
+			ssid5: "Routy-Demo-5G",
 			cellId: "25600513",
 			enbId: "100002",
 			mcc: "222",
@@ -220,6 +221,11 @@ export class DemoRouterApi extends RouterApi {
 		await this.delay();
 		const device = this.devices.find((d) => d.mac === mac.toUpperCase());
 		if (device) device.hostname = hostname;
+	}
+
+	// The demo phone is "iPhone di Filippo".
+	async fetchOwnMac(): Promise<string | null> {
+		return DEMO_DEVICES[0].mac;
 	}
 
 	async fetchBlockedDevices(): Promise<BlockedDevice[]> {

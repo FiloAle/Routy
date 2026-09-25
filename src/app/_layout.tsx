@@ -9,6 +9,10 @@ import { RouterProvider } from "@/context/router-context";
 import { registerBackgroundFetchAsync } from "@/services/background-fetch-service";
 
 import { Colors, useThemePalette } from "@/constants/Colors";
+import { setAlertTintColor } from "../../modules/routy-ui-modifiers";
+
+// Primary buttons of native alerts use the app blue instead of the system one.
+setAlertTintColor(Colors.routyBlue);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

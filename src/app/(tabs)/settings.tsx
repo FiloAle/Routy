@@ -22,6 +22,7 @@ import { t } from "@/i18n";
 import { Colors, useThemePalette } from "@/constants/Colors";
 import { globalStyles } from "@/styles/globalStyles";
 import { settingsStyles } from "@/styles/settingsStyles";
+import { getSsidEntries } from "@/utils/wifi";
 
 export default function SettingsScreen() {
 	const {
@@ -291,15 +292,16 @@ export default function SettingsScreen() {
 					<View style={globalStyles.section}>
 						<SectionLabel>{t("settings.network")}</SectionLabel>
 						<View style={globalStyles.card}>
-							{dataUsage?.ssid && (
-								<>
-									<View style={globalStyles.infoRow}>
-										<Text style={globalStyles.infoLabel}>SSID</Text>
-										<Text style={globalStyles.infoValue}>{dataUsage.ssid}</Text>
-									</View>
-									<View style={globalStyles.divider} />
-								</>
-							)}
+							{dataUsage &&
+								getSsidEntries(dataUsage.ssid24, dataUsage.ssid5).map((entry) => (
+									<React.Fragment key={entry.label}>
+										<View style={globalStyles.infoRow}>
+											<Text style={globalStyles.infoLabel}>{entry.label}</Text>
+											<Text style={globalStyles.infoValue}>{entry.value}</Text>
+										</View>
+										<View style={globalStyles.divider} />
+									</React.Fragment>
+								))}
 							<View style={globalStyles.field}>
 								<Text style={globalStyles.fieldLabel}>
 									{t("settings.data_network")}

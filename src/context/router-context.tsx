@@ -21,6 +21,7 @@ import {
   isDemoCredentials,
 } from '../services/demo-router-api';
 import { RouterApi, DataUsage } from '../services/router-api';
+import { DeviceIconId, isDeviceIconId } from '../constants/deviceIcons';
 import { Conversation, SmsMessage } from '../utils/sms';
 import { t } from '../i18n';
 
@@ -32,6 +33,8 @@ const STORAGE_KEY_DATA_LIMIT_VALUE = '@routy/data_limit_value';
 const STORAGE_KEY_DATA_LIMIT_UNIT = '@routy/data_limit_unit';
 // MACs (upper case) of disconnected devices the user chose to forget.
 const STORAGE_KEY_HIDDEN_DEVICES = '@routy/hidden_devices';
+// Icons chosen by the user, keyed by upper-case MAC.
+const STORAGE_KEY_DEVICE_ICONS = '@routy/device_icons';
 const DEFAULT_URL = 'http://192.168.0.1';
 const POLL_INTERVAL_MS = 3_000;
 
@@ -86,6 +89,9 @@ interface RouterContextValue {
   blockedDevices: BlockedDevice[];
   blockDevice: (mac: string, hostname: string) => Promise<void>;
   unblockDevice: (mac: string) => Promise<void>;
+  ownMac: string | null;
+  deviceIcons: Record<string, DeviceIconId>;
+  setDeviceIcon: (mac: string, id: DeviceIconId | null) => Promise<void>;
   sendSms: (number: string, text: string) => Promise<void>;
   markAsRead: (number: string) => Promise<void>;
   deleteConversation: (number: string) => Promise<void>;
@@ -117,6 +123,8 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [hiddenDeviceMacs, setHiddenDeviceMacs] = useState<Set<string>>(new Set());
   const [blockedDevices, setBlockedDevices] = useState<BlockedDevice[]>([]);
+  const [ownMac, setOwnMac] = useState<string | null>(null);
+  const [deviceIcons, setDeviceIcons] = useState<Record<string, DeviceIconId>>({});
   const [isLoadingSms, setIsLoadingSms] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
@@ -143,6 +151,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
   const readIdsRef = useRef<Set<string>>(new Set());
   // Mirrors `hiddenDeviceMacs` for callbacks that must not depend on it.
   const hiddenDeviceMacsRef = useRef<Set<string>>(new Set());
+  const deviceIconsRef = useRef<Record<string, DeviceIconId>>({});
   const mountedRef = useRef(true);
   // Tracks optimistic SMS changes, so a poll that raced one doesn't overwrite it with stale data.
   const smsMutationRef = useRef({ generation: 0, pending: 0 });
@@ -283,12 +292,13 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const [savedUrl, savedPw, knownRaw, readRaw, hiddenRaw] = await Promise.all([
+        const [savedUrl, savedPw, knownRaw, readRaw, hiddenRaw, iconsRaw] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_URL),
           AsyncStorage.getItem(STORAGE_KEY_PASSWORD),
           AsyncStorage.getItem(STORAGE_KEY_KNOWN_IDS),
           AsyncStorage.getItem(STORAGE_KEY_READ_IDS),
           AsyncStorage.getItem(STORAGE_KEY_HIDDEN_DEVICES),
+          AsyncStorage.getItem(STORAGE_KEY_DEVICE_ICONS),
         ]);
 
         const url = savedUrl ?? DEFAULT_URL;
@@ -334,6 +344,21 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
               if (mountedRef.current) setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
             }
           } catch { /* keep the empty set */ }
+        }
+
+        if (iconsRaw) {
+          try {
+            const parsed = JSON.parse(iconsRaw);
+            // Ids removed from the catalog are dropped: those devices get their automatic icon.
+            const icons: Record<string, DeviceIconId> = {};
+            if (parsed && typeof parsed === 'object') {
+              for (const [mac, id] of Object.entries(parsed)) {
+                if (isDeviceIconId(id)) icons[mac] = id;
+              }
+            }
+            deviceIconsRef.current = icons;
+            if (mountedRef.current) setDeviceIcons(icons);
+          } catch { /* keep no icons */ }
         }
 
         // 1. Notifications Permissions
@@ -463,6 +488,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     setDataUsage(null);
     setDevices([]);
     setBlockedDevices([]);
+    setOwnMac(null);
     setNetworkStatus('idle');
     setSoftwareVersion(null);
     setSoftwareModel(null);
@@ -479,6 +505,11 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     );
     hiddenDeviceMacsRef.current = new Set(hiddenRealMacs);
     setHiddenDeviceMacs(hiddenDeviceMacsRef.current);
+    const realIcons = Object.fromEntries(
+      Object.entries(deviceIconsRef.current).filter(([mac]) => !DEMO_DEVICE_MACS.includes(mac)),
+    );
+    deviceIconsRef.current = realIcons;
+    setDeviceIcons(realIcons);
 
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY_URL),
@@ -486,6 +517,7 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem(STORAGE_KEY_KNOWN_IDS, JSON.stringify(Array.from(knownIdsRef.current))),
       AsyncStorage.setItem(STORAGE_KEY_READ_IDS, JSON.stringify(Array.from(readIdsRef.current))),
       AsyncStorage.setItem(STORAGE_KEY_HIDDEN_DEVICES, JSON.stringify(hiddenRealMacs)),
+      AsyncStorage.setItem(STORAGE_KEY_DEVICE_ICONS, JSON.stringify(realIcons)),
     ]);
   }, [stopPolling]);
 
@@ -643,17 +675,22 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'logged_in') return;
     setIsLoadingDevices(true);
     try {
-      const [devs, blocked] = await Promise.all([
+      const [devs, blocked, own] = await Promise.all([
         apiRef.current.fetchDevices(),
-        // The device list stays usable even if the blacklist can't be read.
+        // The device list stays usable even if the blacklist or the own MAC can't be read.
         apiRef.current.fetchBlockedDevices().catch((e) => {
           console.warn('[loadDevices] blacklist error:', e);
+          return null;
+        }),
+        apiRef.current.fetchOwnMac().catch((e) => {
+          console.warn('[loadDevices] own MAC error:', e);
           return null;
         }),
       ]);
       if (mountedRef.current) {
         setDevices(devs);
         if (blocked) setBlockedDevices(blocked);
+        if (own) setOwnMac(own);
       }
     } catch (e) {
       console.warn('[loadDevices] error:', e);
@@ -686,6 +723,15 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
       saveHiddenDeviceMacs(new Set(hiddenDeviceMacsRef.current).add(mac.toUpperCase())),
     [saveHiddenDeviceMacs],
   );
+
+  const setDeviceIcon = useCallback(async (mac: string, id: DeviceIconId | null) => {
+    const icons = { ...deviceIconsRef.current };
+    if (id) icons[mac.toUpperCase()] = id;
+    else delete icons[mac.toUpperCase()];
+    deviceIconsRef.current = icons;
+    setDeviceIcons(icons);
+    await AsyncStorage.setItem(STORAGE_KEY_DEVICE_ICONS, JSON.stringify(icons));
+  }, []);
 
   // A device is forgotten only while offline: once it reconnects it's known again.
   useEffect(() => {
@@ -854,6 +900,9 @@ export function RouterProvider({ children }: { children: React.ReactNode }) {
         blockedDevices,
         blockDevice,
         unblockDevice,
+        ownMac,
+        deviceIcons,
+        setDeviceIcon,
         sendSms,
         markAsRead,
         deleteConversation,

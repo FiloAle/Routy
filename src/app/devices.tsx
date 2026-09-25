@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import {
 	Button,
@@ -21,6 +21,7 @@ import {
 	foregroundStyle,
 	frame,
 	labelStyle,
+	layoutPriority,
 	lineLimit,
 	listRowBackground,
 	listRowInsets,
@@ -35,56 +36,13 @@ import {
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { Colors, useThemePalette } from "@/constants/Colors";
+import { DeviceIconId, deviceSymbol } from "@/constants/deviceIcons";
+import { DeviceEditSheet } from "@/components/DeviceEditSheet";
 import { globalStyles } from "@/styles/globalStyles";
 import { Device, MAX_BLOCKED_DEVICES, isDisconnected } from "@/services/router-api";
-import { SymbolImage, textCaseNone } from "../../modules/routy-ui-modifiers";
+import { SymbolImage, symbolMonochrome, textCaseNone } from "../../modules/routy-ui-modifiers";
 
 type Palette = ReturnType<typeof useThemePalette>;
-
-// Same rules as the router's own dashboard (wifi/station_info.js).
-function hostnameError(hostname: string): string | null {
-	if (hostname === "") return t("devices.rename_required");
-	if (hostname.startsWith(" ") || hostname.endsWith(" ") || /[+;"\\]/.test(hostname))
-		return t("devices.rename_invalid");
-	return null;
-}
-
-// Asks for the new name; an invalid one reopens the prompt so it can be fixed.
-function promptRename(
-	device: Device,
-	renameDevice: (mac: string, hostname: string) => Promise<void>,
-	current = device.hostname,
-) {
-	Alert.prompt(
-		t("devices.rename_title"),
-		device.mac,
-		[
-			{ text: t("common.cancel"), style: "cancel" },
-			{
-				text: t("common.save"),
-				isPreferred: true,
-				onPress: async (value?: string) => {
-					const hostname = value ?? "";
-					if (hostname === device.hostname) return;
-					const error = hostnameError(hostname);
-					if (error) {
-						Alert.alert(t("common.error"), error, [
-							{ text: "OK", onPress: () => promptRename(device, renameDevice, hostname) },
-						]);
-						return;
-					}
-					try {
-						await renameDevice(device.mac, hostname);
-					} catch {
-						Alert.alert(t("common.error"), t("devices.rename_failed"));
-					}
-				},
-			},
-		],
-		"plain-text",
-		current,
-	);
-}
 
 function confirmAction({
 	title,
@@ -122,22 +80,19 @@ type GroupKind = "connected" | "disconnected" | "blocked";
 function DeviceRow({
 	device,
 	kind,
+	manualIcon,
+	isOwn,
 	palette,
 }: {
 	device: Device;
 	kind: GroupKind;
+	manualIcon: DeviceIconId | null;
+	isOwn: boolean;
 	palette: Palette;
 }) {
 	const disconnected = isDisconnected(device);
 	const color = kind === "connected" ? palette.text : palette.secondaryText;
-	const symbol =
-		kind === "blocked"
-			? "nosign"
-			: disconnected
-				? "wifi.slash"
-				: device.type === "cable"
-					? "desktopcomputer"
-					: "wifi";
+	const symbol = kind === "blocked" ? "nosign" : deviceSymbol(device, manualIcon);
 
 	return (
 		<HStack spacing={12}>
@@ -146,18 +101,33 @@ function DeviceRow({
 					cornerRadius={10}
 					modifiers={[foregroundStyle(palette.fill)]}
 				/>
-				<Image systemName={symbol} color={color} modifiers={[font({ size: 18 })]} />
+				<Image systemName={symbol} color={color} modifiers={[font({ size: 18 }), symbolMonochrome()]} />
 			</ZStack>
 			<VStack alignment="leading" spacing={2}>
-				<SwiftText
-					modifiers={[
-						font({ size: 17, weight: "semibold" }),
-						foregroundStyle(color),
-						lineLimit(1),
-					]}
-				>
-					{device.hostname}
-				</SwiftText>
+				<HStack spacing={6}>
+					<SwiftText
+						modifiers={[
+							font({ size: 17, weight: "semibold" }),
+							foregroundStyle(color),
+							lineLimit(1),
+						]}
+					>
+						{device.hostname}
+					</SwiftText>
+					{isOwn && (
+						// Two separate texts: with a long name the name gets the ellipsis, not the label.
+						<SwiftText
+							modifiers={[
+								font({ size: 17 }),
+								foregroundStyle(palette.secondaryText),
+								lineLimit(1),
+								layoutPriority(1),
+							]}
+						>
+							{t("devices.this_device")}
+						</SwiftText>
+					)}
+				</HStack>
 				<SwiftText
 					modifiers={[font({ size: 13 }), foregroundStyle(palette.secondaryText)]}
 				>
@@ -181,7 +151,21 @@ export default function DevicesScreen() {
 		blockedDevices,
 		blockDevice,
 		unblockDevice,
+		ownMac,
+		deviceIcons,
+		setDeviceIcon,
 	} = useRouter();
+
+	// `editing` outlives `editOpen`, so the sheet keeps its content while it slides away.
+	const [editing, setEditing] = useState<Device | null>(null);
+	const [editOpen, setEditOpen] = useState(false);
+	const openEditor = (device: Device) => {
+		setEditing(device);
+		setEditOpen(true);
+	};
+
+	const manualIconOf = (d: Device) => deviceIcons[d.mac.toUpperCase()] ?? null;
+	const isOwn = (d: Device) => ownMac !== null && d.mac.toUpperCase() === ownMac;
 
 	// Polling keeps `devices` fresh but not the blacklist, which only this screen needs.
 	useEffect(() => {
@@ -221,76 +205,88 @@ export default function DevicesScreen() {
 		},
 	].filter((g) => g.data.length > 0);
 
+	const editButton = (device: Device) => (
+		<Button
+			key="edit"
+			label={t("devices.edit")}
+			systemImage="pencil"
+			// Icon only; the label stays as the VoiceOver name.
+			modifiers={[labelStyle("iconOnly"), tint(Colors.routyBlue)]}
+			onPress={() => openEditor(device)}
+		/>
+	);
+
+	const blockButton = (device: Device, warnAboutSelf: boolean) => (
+		<Button
+			key="block"
+			label={t("devices.block")}
+			systemImage="nosign"
+			modifiers={[labelStyle("iconOnly"), tint(Colors.routyRed)]}
+			onPress={() => {
+				if (blockedDevices.length >= MAX_BLOCKED_DEVICES) {
+					Alert.alert(t("common.error"), t("devices.block_limit", { max: MAX_BLOCKED_DEVICES }));
+					return;
+				}
+				const message = t("devices.block_message");
+				confirmAction({
+					title: t("devices.block_title", { name: device.hostname }),
+					message: warnAboutSelf ? `${message}\n\n${t("devices.block_self_warning")}` : message,
+					errorMessage: t("devices.block_failed"),
+					action: () => blockDevice(device.mac, device.hostname),
+				});
+			}}
+		/>
+	);
+
+	// Swipe actions fill their symbols; SymbolImage keeps the outline.
+	const forgetButton = (device: Device) => (
+		<Button
+			key="forget"
+			modifiers={[tint(Colors.routyOrange), accessibilityLabel(t("devices.forget"))]}
+			onPress={() =>
+				confirmAction({
+					title: t("devices.forget_title", { name: device.hostname }),
+					message: t("devices.forget_message"),
+					errorMessage: t("common.error_generic"),
+					action: () => hideDevice(device.mac),
+				})
+			}
+		>
+			<SymbolImage systemName="eye.slash" />
+		</Button>
+	);
+
+	const unblockButton = (device: Device) => (
+		<Button
+			key="unblock"
+			label={t("devices.unblock")}
+			systemImage="checkmark"
+			modifiers={[labelStyle("iconOnly"), tint(Colors.routyGreen)]}
+			onPress={() =>
+				confirmAction({
+					title: t("devices.unblock_title", { name: device.hostname }),
+					message: t("devices.unblock_message"),
+					destructive: false,
+					errorMessage: t("devices.unblock_failed"),
+					action: () => unblockDevice(device.mac),
+				})
+			}
+		/>
+	);
+
+	// The first action sits at the edge and runs on a full swipe, so each list reads
+	// from the edge inwards: on screen, left to right, it's the other way round.
 	const actionsFor = (kind: GroupKind, device: Device) => {
-		const name = device.hostname;
 		switch (kind) {
-			case "connected":
-				return (
-					<Button
-						label={t("devices.rename")}
-						systemImage="pencil"
-						// Icon only; the label stays as the VoiceOver name.
-						modifiers={[labelStyle("iconOnly"), tint(Colors.routyBlue)]}
-						onPress={() => promptRename(device, renameDevice)}
-					/>
-				);
+			case "connected": {
+				// The Wi-Fi blacklist can't stop a cable, and blocking yourself cuts you off the router.
+				const blockable = device.type !== "cable" && !isOwn(device);
+				return [blockable && blockButton(device, ownMac === null), editButton(device)];
+			}
 			case "disconnected":
-				// The first action sits at the edge and runs on a full swipe.
-				return (
-					<>
-						<Button
-							label={t("devices.block")}
-							systemImage="nosign"
-							modifiers={[labelStyle("iconOnly"), tint(Colors.routyRed)]}
-							onPress={() => {
-								if (blockedDevices.length >= MAX_BLOCKED_DEVICES) {
-									Alert.alert(
-										t("common.error"),
-										t("devices.block_limit", { max: MAX_BLOCKED_DEVICES }),
-									);
-									return;
-								}
-								confirmAction({
-									title: t("devices.block_title", { name }),
-									message: t("devices.block_message"),
-									errorMessage: t("devices.block_failed"),
-									action: () => blockDevice(device.mac, device.hostname),
-								});
-							}}
-						/>
-						{/* Swipe actions fill their symbols; SymbolImage keeps the outline. */}
-						<Button
-							modifiers={[tint(Colors.routyOrange), accessibilityLabel(t("devices.forget"))]}
-							onPress={() =>
-								confirmAction({
-									title: t("devices.forget_title", { name }),
-									message: t("devices.forget_message"),
-									errorMessage: t("common.error_generic"),
-									action: () => hideDevice(device.mac),
-								})
-							}
-						>
-							<SymbolImage systemName="eye.slash" />
-						</Button>
-					</>
-				);
+				return [blockButton(device, false), forgetButton(device), editButton(device)];
 			case "blocked":
-				return (
-					<Button
-						label={t("devices.unblock")}
-						systemImage="checkmark"
-						modifiers={[labelStyle("iconOnly"), tint(Colors.routyGreen)]}
-						onPress={() =>
-							confirmAction({
-								title: t("devices.unblock_title", { name }),
-								message: t("devices.unblock_message"),
-								destructive: false,
-								errorMessage: t("devices.unblock_failed"),
-								action: () => unblockDevice(device.mac),
-							})
-						}
-					/>
-				);
+				return [unblockButton(device)];
 		}
 	};
 
@@ -346,7 +342,13 @@ export default function DevicesScreen() {
 								{/* Trailing only: a swipe to the right stays the system back gesture.
 								    No `destructive` role: SwiftUI would remove the row before the confirmation alert. */}
 								<SwipeActions modifiers={cardModifiers}>
-									<DeviceRow device={device} kind={group.kind} palette={palette} />
+									<DeviceRow
+										device={device}
+										kind={group.kind}
+										manualIcon={manualIconOf(device)}
+										isOwn={isOwn(device)}
+										palette={palette}
+									/>
 									<SwipeActions.Actions edge="trailing">
 										{actionsFor(group.kind, device)}
 									</SwipeActions.Actions>
@@ -374,6 +376,19 @@ export default function DevicesScreen() {
 						</Section>
 					)}
 				</List>
+			</Host>
+
+			{/* Its own zero-size host: the sheet is presented, so it needs no room in the layout. */}
+			<Host style={{ position: "absolute", width: 0, height: 0 }}>
+				<DeviceEditSheet
+					device={editing}
+					isPresented={editOpen}
+					manualIcon={editing ? manualIconOf(editing) : null}
+					onClose={() => setEditOpen(false)}
+					onDismissed={() => setEditing(null)}
+					onSetIcon={setDeviceIcon}
+					onRename={renameDevice}
+				/>
 			</Host>
 		</View>
 	);

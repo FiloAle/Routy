@@ -25,7 +25,8 @@ export interface DataUsage {
 	realtimeTxThrpt: string; // Kbps
 	pppStatus: string; // ppp_connected, disconnected, etc.
 	wanIp: string;
-	ssid: string;
+	ssid24: string; // wifi_chip1_ssid1_ssid, "" if missing
+	ssid5: string; // wifi_chip2_ssid1_ssid, "" if missing
 	cellId: string;
 	enbId: string;
 	mcc: string;
@@ -43,7 +44,7 @@ export interface Device {
 	type: string; // 'cable' or 'wireless'
 }
 
-export const isDisconnected = (device: Device) => !device.ip || device.ip === "-";
+export const isDisconnected = (device: Pick<Device, "ip">) => !device.ip || device.ip === "-";
 
 // An entry of the router's Wi-Fi MAC blacklist.
 export interface BlockedDevice {
@@ -191,7 +192,7 @@ export class RouterApi {
 		const res = await this.client.get("goform/goform_get_cmd_process", {
 			params: {
 				isTest: false,
-				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual,lte_band_lock",
+				cmd: "ppp_status,wan_ipaddr,wan_apn,monthly_rx_bytes,monthly_tx_bytes,spn_name_data,network_provider,network_type,wan_lte_ca,lte_ca_pcell_band,lte_ca_scell_info,lte_rsrp,sinr,wifi_access_sta_num,realtime_rx_thrpt,realtime_tx_thrpt,wifi_chip1_ssid1_ssid,wifi_chip2_ssid1_ssid,mcc,mnc,Z_eNB_id,dns_mode,prefer_dns_manual,standby_dns_manual,lte_band_lock",
 				multi_data: "1",
 			},
 		});
@@ -262,7 +263,8 @@ export class RouterApi {
 			realtimeTxThrpt: toKbps(data.realtime_tx_thrpt),
 			pppStatus: data.ppp_status,
 			wanIp: data.wan_ipaddr,
-			ssid: data.wifi_chip1_ssid1_ssid || "Unknown",
+			ssid24: (data.wifi_chip1_ssid1_ssid ?? "").trim(),
+			ssid5: (data.wifi_chip2_ssid1_ssid ?? "").trim(),
 			cellId: data.Z_eNB_id || "-",
 			enbId,
 			mcc: data.mcc || "",
@@ -661,6 +663,15 @@ export class RouterApi {
 		if (res.data?.result !== "success" && res.data?.result !== "0") {
 			throw new Error(`Device rename failed: ${res.data?.result}`);
 		}
+	}
+
+	// MAC of the client making the request, i.e. the phone running Routy.
+	async fetchOwnMac(): Promise<string | null> {
+		const res = await this.client.get("goform/goform_get_cmd_process", {
+			params: { isTest: false, cmd: "get_user_mac_addr" },
+		});
+		const mac = res.data?.get_user_mac_addr;
+		return typeof mac === "string" && mac !== "" ? mac.toUpperCase() : null;
 	}
 
 	// ── BLACKLIST ───────────────────────────────────────────────────────────
