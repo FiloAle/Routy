@@ -92,13 +92,14 @@ function IconCell({
 				)}
 				<Circle
 					modifiers={[
-						foregroundStyle(selected ? Colors.routyBlue : palette.fill),
+						foregroundStyle(selected ? Colors.routyBlue : palette.pickerFill),
 						frame({ width: 44, height: 44 }),
 					]}
 				/>
 				<Image
 					systemName={option ? symbolFor(option) : "sparkles"}
-					color={selected ? Colors.routyWhite : palette.text}
+					// "Automatic" stands apart in the app blue until it's the selected cell.
+					color={selected ? Colors.routyWhite : option ? palette.text : Colors.routyBlue}
 					size={20}
 					modifiers={[symbolMonochrome()]}
 				/>

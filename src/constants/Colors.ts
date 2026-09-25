@@ -10,6 +10,7 @@ export const DarkPalette = {
 	bubbleReceived: "#1C1C1E",
 	separator: "#3A3A3C", // Divider lines
 	fill: "#3A3A3C", // Icon wells, switch tracks
+	pickerFill: "#3A3A3C", // Unselected cells of the device icon picker
 	text: "#FFFFFF", // Primary text
 	secondaryText: "#8E8E93",
 	lime: "#A7FF00", // Sent data
@@ -28,6 +29,7 @@ export const LightPalette: typeof DarkPalette = {
 	bubbleReceived: "#E9E9EB",
 	separator: "#C6C6C8",
 	fill: "#D8D8DD", // Readable on the gray cards
+	pickerFill: "#FFFFFF", // Stands out on the light sheet
 	text: "#000000",
 	secondaryText: "#6C6C70", // #8E8E93 is too close to the gray cards
 	lime: "#4C9A00", // #A7FF00 is unreadable on white
