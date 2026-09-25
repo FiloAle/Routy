@@ -37,7 +37,6 @@
     "expo-task-manager": "~57.0.20",
     "expo-web-browser": "~57.0.3",
     "i18n-js": "^4.5.3",
-    "iconoir-react-native": "^7.8.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

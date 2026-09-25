@@ -1,4 +1,4 @@
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import {
 	ActivityIndicator,
@@ -10,7 +10,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Check } from "iconoir-react-native";
+import { SymbolView } from "expo-symbols";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { Colors, useThemePalette } from "@/constants/Colors";
@@ -61,7 +61,7 @@ export default function DnsScreen() {
 				preferDns: mode === "manual" ? preferDns.trim() : "",
 				standbyDns: mode === "manual" ? standbyDns.trim() : "",
 			});
-		} catch (error) {
+		} catch {
 			Alert.alert(t("settings.attention"), t("settings.dns_error_msg"));
 		} finally {
 			setIsSaving(false);
@@ -123,12 +123,7 @@ export default function DnsScreen() {
 								{t("settings.dns_automatic")}
 							</Text>
 							{mode === "auto" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 						<View style={globalStyles.divider} />
@@ -140,12 +135,7 @@ export default function DnsScreen() {
 								{t("settings.dns_manual")}
 							</Text>
 							{mode === "manual" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 					</View>

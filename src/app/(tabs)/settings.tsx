@@ -1,5 +1,4 @@
 import { Link, Stack } from "expo-router";
-import { NavArrowRight } from "iconoir-react-native";
 import React, { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
@@ -13,6 +12,7 @@ import {
 	Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { SymbolView } from "expo-symbols";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "@/context/router-context";
 import { isDemoCredentials } from "@/services/demo-router-api";
@@ -356,13 +356,12 @@ export default function SettingsScreen() {
 												? t("settings.dns_manual")
 												: t("settings.dns_automatic")}
 										</Text>
-										<NavArrowRight
-											width={20}
-											height={20}
-											strokeWidth={2}
-											color={palette.secondaryText}
-											opacity={0.5}
-											style={{ marginBottom: -2, marginRight: -2 }}
+										<SymbolView
+											name="chevron.right"
+											size={13}
+											weight="semibold"
+											tintColor={palette.secondaryText}
+											style={{ opacity: 0.5, marginLeft: 2 }}
 										/>
 									</View>
 								</TouchableOpacity>

@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, Text, View, ViewStyle, TextStyle } from "react-native";
-import { NavArrowRight } from "iconoir-react-native";
+import { SymbolView } from "expo-symbols";
 
 import { useThemePalette } from "../constants/Colors";
 import { cardStyles } from "@/styles/cardStyles";
@@ -34,11 +34,11 @@ export function DashboardCard({
 			<View style={cardStyles.headerRow}>
 				{label && <Text style={[cardStyles.label, labelStyle]}>{label}</Text>}
 				{showChevron && (
-					<NavArrowRight
-						width={14}
-						height={14}
-						strokeWidth={2.5}
-						color={palette.secondaryText}
+					<SymbolView
+						name="chevron.right"
+						size={10}
+						weight="bold"
+						tintColor={palette.secondaryText}
 						style={cardStyles.chevron}
 					/>
 				)}

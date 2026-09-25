@@ -1,4 +1,4 @@
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import {
 	ActivityIndicator,
@@ -8,7 +8,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Check } from "iconoir-react-native";
+import { SymbolView } from "expo-symbols";
 import { useRouter } from "@/context/router-context";
 import { t } from "@/i18n";
 import { Colors, useThemePalette } from "@/constants/Colors";
@@ -93,7 +93,7 @@ export default function BandsScreen() {
 				mode: mode,
 				bands: mode === "manual" ? selectedBands : SELECTABLE_BANDS,
 			});
-		} catch (error) {
+		} catch {
 			Alert.alert(t("settings.attention"), t("settings.bands_error_msg"));
 		} finally {
 			setIsSaving(false);
@@ -155,12 +155,7 @@ export default function BandsScreen() {
 								{t("settings.bands_automatic")}
 							</Text>
 							{mode === "auto" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 						<View style={globalStyles.divider} />
@@ -172,12 +167,7 @@ export default function BandsScreen() {
 								{t("settings.bands_manual")}
 							</Text>
 							{mode === "manual" && (
-								<Check
-									width={20}
-									height={20}
-									strokeWidth={2.5}
-									color={Colors.routyBlue}
-								/>
+								<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 							)}
 						</TouchableOpacity>
 					</View>
@@ -198,12 +188,7 @@ export default function BandsScreen() {
 								>
 									<Text style={globalStyles.fieldLabel}>{band}</Text>
 									{selectedBands.includes(band) && (
-										<Check
-											width={20}
-											height={20}
-											strokeWidth={2.5}
-											color={Colors.routyBlue}
-										/>
+										<SymbolView name="checkmark" size={16} weight="semibold" tintColor={Colors.routyBlue} />
 									)}
 								</TouchableOpacity>
 							</React.Fragment>
