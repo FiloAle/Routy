@@ -5,9 +5,36 @@ struct RootView: View {
 	@Environment(AppRouter.self) private var router
 	@Environment(\.colorScheme) private var colorScheme
 
+	/// A copy of the launch screen, kept until the router's first answer: iOS removes its own launch screen
+	/// at the first frame, before any data arrives.
+	@State private var showsSplash = true
+	/// The longest the splash waits for the router.
+	private static let splashTimeout = Duration.seconds(2)
+
 	var body: some View {
+		tabs
+			.overlay {
+				if showsSplash {
+					SplashView().transition(.opacity)
+				}
+			}
+			.onChange(of: store.hasFirstResponse, initial: true) {
+				if store.hasFirstResponse { hideSplash() }
+			}
+			.task {
+				try? await Task.sleep(for: Self.splashTimeout)
+				hideSplash()
+			}
+	}
+
+	private func hideSplash() {
+		guard showsSplash else { return }
+		withAnimation(.easeOut(duration: 0.3)) { showsSplash = false }
+	}
+
+	private var tabs: some View {
 		@Bindable var router = router
-		TabView(selection: $router.tab) {
+		return TabView(selection: $router.tab) {
 			Tab(value: .home) {
 				NavigationStack(path: $router.homePath) {
 					HomeScreen().routeDestinations().tabRoot(path: router.homePath)
@@ -36,6 +63,17 @@ struct RootView: View {
 				}
 			}
 		}
+	}
+}
+
+/// The launch screen as Info.plist describes it (UILaunchScreen): the icon at its own size, centered on the blue.
+private struct SplashView: View {
+	var body: some View {
+		Image(.splashIcon)
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
+			.background(Color(.launchBackground))
+			.ignoresSafeArea()
+			.accessibilityHidden(true)
 	}
 }
 

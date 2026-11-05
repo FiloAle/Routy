@@ -251,6 +251,14 @@ final class RouterStore {
 
 	var hasUnread: Bool { conversations.contains { $0.unreadCount > 0 } }
 
+	/// Whether there's something to show: the router's first answer arrived, it can't answer (the login
+	/// failed), or there's no router to ask yet.
+	var hasFirstResponse: Bool {
+		if password.isEmpty { return true }
+		if case .failed = auth { return true }
+		return dataUsage != nil || smsList != nil
+	}
+
 	func displayName(for number: String) -> String {
 		contacts.name(for: number) ?? (isDemo ? DemoClient.contacts[number] : nil) ?? number
 	}
