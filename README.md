@@ -50,6 +50,8 @@ ditto build/catalyst/Build/Products/Release-maccatalyst/Routy.app /Applications/
 
 On the Mac the router password is kept in a file inside the app's sandbox container rather than in the Keychain, which refuses apps without an Apple profile. There's no background refresh: while the app is open, even in the background, it checks for new SMS every 30 seconds.
 
+If it can't reach the router, allow it in System Settings → Privacy & Security → Local Network (turn it off and on if it's already allowed): macOS may keep the decision it took for an earlier build, without asking again.
+
 ## Structure
 
 | Folder | Contents |
