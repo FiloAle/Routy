@@ -65,7 +65,14 @@ final class RouterStore {
 	private var didStart = false
 	/// Changes with the client, so answers from the previous router are dropped.
 	private var generation = 0
-	private static let pollInterval = Duration.seconds(3)
+	/// The Mac doesn't suspend apps and has no background refresh: there polling goes on in the background,
+	/// slower, to notify new SMS.
+	#if targetEnvironment(macCatalyst)
+	private static let pollsInBackground = true
+	#else
+	private static let pollsInBackground = false
+	#endif
+	private var pollInterval: Duration { isActive ? .seconds(3) : .seconds(30) }
 	/// How many views on display show each kind of live data (see `View.shows(_:)`).
 	@ObservationIgnored private var viewers: [LiveData: Int] = [:]
 
@@ -96,13 +103,17 @@ final class RouterStore {
 		isActive = true
 		switch auth {
 		case .idle, .failed: if didStart, !password.isEmpty { Task { await login() } }
-		case .loggedIn: startPolling()
+		case .loggedIn:
+			// Restarted, so a poll sleeping at the background pace runs at once.
+			stopPolling()
+			startPolling()
 		case .loading: break
 		}
 	}
 
 	func appDidEnterBackground() {
 		isActive = false
+		guard !Self.pollsInBackground else { return }
 		stopPolling()
 		BackgroundRefresh.schedule()
 	}
@@ -182,11 +193,12 @@ final class RouterStore {
 	// MARK: - Polling
 
 	private func startPolling() {
-		guard pollTask == nil, isActive, auth == .loggedIn else { return }
+		guard pollTask == nil, isActive || Self.pollsInBackground, auth == .loggedIn else { return }
 		pollTask = Task { [weak self] in
 			while !Task.isCancelled {
 				await self?.refresh()
-				try? await Task.sleep(for: Self.pollInterval)
+				guard let interval = self?.pollInterval else { return }
+				try? await Task.sleep(for: interval)
 			}
 		}
 	}

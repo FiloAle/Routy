@@ -53,7 +53,7 @@ struct DevicesScreen: View {
 				ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
 					Section {
 						DeviceRow(device: device, group: group, icon: store.icon(for: device), isOwn: store.isOwn(device))
-							.swipeActions(edge: .trailing) { actions(for: device, in: group).labelStyle(.iconOnly) }
+							.rowActions { actions(for: device, in: group) }
 							.cardRows()
 					} header: {
 						if index == 0 {

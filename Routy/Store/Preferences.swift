@@ -84,29 +84,59 @@ enum DataLimitUnit: String, CaseIterable, Sendable {
 	var label: String { L("settings.\(rawValue.lowercased())") }
 }
 
-/// The router password, readable by the background refresh while the phone is locked.
+/// The router password. On the iPhone it's in the Keychain, readable by the background refresh while
+/// the phone is locked. On the Mac the app is signed only for this Mac, with no Apple profile, and the
+/// Keychain refuses it: the password is a file only this user can read, inside the app's sandbox container,
+/// which macOS keeps from other apps.
 enum Keychain {
+	static var password: String {
+		get { read() ?? "" }
+		set { newValue.isEmpty ? delete() : write(newValue) }
+	}
+
+	#if targetEnvironment(macCatalyst)
+	private static var file: URL {
+		URL.applicationSupportDirectory.appending(path: "router-password")
+	}
+
+	private static func read() -> String? {
+		(try? Data(contentsOf: file)).map { String(decoding: $0, as: UTF8.self) }
+	}
+
+	private static func write(_ password: String) {
+		try? FileManager.default.createDirectory(at: .applicationSupportDirectory, withIntermediateDirectories: true)
+		guard (try? Data(password.utf8).write(to: file, options: .atomic)) != nil else { return }
+		try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+	}
+
+	private static func delete() {
+		try? FileManager.default.removeItem(at: file)
+	}
+	#else
 	private static var query: [String: Any] { [
 		kSecClass as String: kSecClassGenericPassword,
 		kSecAttrService as String: "com.filippoalessandrini.routy",
 		kSecAttrAccount as String: "router-password",
 	] }
 
-	static var password: String {
-		get {
-			var item: CFTypeRef?
-			var search = query
-			search[kSecReturnData as String] = true
-			guard SecItemCopyMatching(search as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return "" }
-			return String(decoding: data, as: UTF8.self)
-		}
-		set {
-			SecItemDelete(query as CFDictionary)
-			guard !newValue.isEmpty else { return }
-			var item = query
-			item[kSecValueData as String] = Data(newValue.utf8)
-			item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-			SecItemAdd(item as CFDictionary, nil)
-		}
+	private static func read() -> String? {
+		var item: CFTypeRef?
+		var search = query
+		search[kSecReturnData as String] = true
+		guard SecItemCopyMatching(search as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return nil }
+		return String(decoding: data, as: UTF8.self)
 	}
+
+	private static func write(_ password: String) {
+		delete()
+		var item = query
+		item[kSecValueData as String] = Data(password.utf8)
+		item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+		SecItemAdd(item as CFDictionary, nil)
+	}
+
+	private static func delete() {
+		SecItemDelete(query as CFDictionary)
+	}
+	#endif
 }
