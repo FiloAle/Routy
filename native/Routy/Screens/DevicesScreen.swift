@@ -15,6 +15,7 @@ private enum DeviceGroup: Hashable {
 struct DevicesScreen: View {
 	@Environment(RouterStore.self) private var store
 	@State private var editing: Device?
+	@State private var editSheetHeight: CGFloat = 0
 	@State private var alert: AlertItem?
 	@State private var isLoading = true
 
@@ -82,7 +83,8 @@ struct DevicesScreen: View {
 		.shows(.devices)
 		.navigationTitle(L("devices.title"))
 		.navigationBarTitleDisplayMode(.inline)
-		.sheet(item: $editing) { DeviceEditSheet(device: $0, icon: store.icon(for: $0)) }
+		.background { DeviceEditSheet.sizer(height: $editSheetHeight) }
+		.sheet(item: $editing) { DeviceEditSheet(device: $0, icon: store.icon(for: $0), height: editSheetHeight) }
 		.alert($alert)
 	}
 

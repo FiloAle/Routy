@@ -86,6 +86,8 @@ enum Metrics {
 	static let iconWell: CGFloat = 40
 	/// Height of the message field on one line, and of the send button beside it.
 	static let composer: CGFloat = 40
+	/// The actions at the bottom of a sheet.
+	static let sheetButton: CGFloat = 50
 	static let usageRing: CGFloat = 120
 	static let usageRingStroke: CGFloat = 12
 	static let unreadDot: CGFloat = 10

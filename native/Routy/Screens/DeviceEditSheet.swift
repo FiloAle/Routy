@@ -8,19 +8,32 @@ struct DeviceEditSheet: View {
 	@Environment(\.dismiss) private var dismiss
 	@State private var name: String
 	@State private var icon: DeviceIcon?
-	@State private var isGridOpen = false
+	@State private var isPickingIcon = false
 	@State private var isSaving = false
 	@State private var saveError: String?
-	@State private var height: CGFloat = 400
+	/// The sheet's height, measured before it opens (see `sizer`).
+	private let height: CGFloat
 	@FocusState private var isNameFocused: Bool
 
 	/// "Automatic" first, then the catalog; `nil` stands for the automatic icon.
 	private static let options: [DeviceIcon?] = [nil] + DeviceIcon.allCases
 
-	init(device: Device, icon: DeviceIcon?) {
+	init(device: Device, icon: DeviceIcon?, height: CGFloat) {
 		self.device = device
+		self.height = height
 		_name = State(initialValue: device.hostname)
 		_icon = State(initialValue: icon)
+	}
+
+	/// An invisible copy that measures the sheet's height before it opens: measured once the sheet is up,
+	/// the height would change in the middle of the opening animation. It doesn't depend on the device
+	/// or the width, only on the text size.
+	static func sizer(height: Binding<CGFloat>) -> some View {
+		DeviceEditSheet(device: Device(hostname: "Device", ip: "-", mac: "", type: .wireless), icon: nil, height: 0)
+			.fixedSize(horizontal: false, vertical: true)
+			.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height.wrappedValue = $0 }
+			.hidden()
+			.allowsHitTesting(false)
 	}
 
 	private var originalIcon: DeviceIcon? { store.icon(for: device) }
@@ -32,7 +45,10 @@ struct DeviceEditSheet: View {
 
 	var body: some View {
 		VStack(spacing: Spacing.xl) {
-			Button(action: toggleGrid) {
+			Button {
+				isNameFocused = false
+				isPickingIcon = true
+			} label: {
 				Image(systemName: DeviceIcon.symbol(for: Device(hostname: name, ip: device.ip, mac: device.mac, type: device.type), manual: icon))
 					.font(.system(size: 32))
 					.symbolRenderingMode(.monochrome)
@@ -43,64 +59,58 @@ struct DeviceEditSheet: View {
 			.buttonStyle(.plain)
 			.accessibilityLabel(L("devices.change_icon"))
 			.accessibilityValue(icon?.name ?? L("devices.automatic_icon"))
-
-			if isGridOpen {
+			// Over the sheet rather than inside it: a sheet that changes height doesn't redraw its content
+			// along the way, it shows the final layout centered and the controls jump.
+			.popover(isPresented: $isPickingIcon, arrowEdge: .bottom) {
 				LazyVGrid(columns: Array(repeating: GridItem(.fixed(52), spacing: Spacing.md), count: 4), spacing: Spacing.md) {
 					ForEach(Self.options, id: \.self) { option in
-						IconCell(option: option, isSelected: option == icon) { icon = option }
+						IconCell(option: option, isSelected: option == icon) {
+							icon = option
+							isPickingIcon = false
+						}
 					}
 				}
+				.padding(Spacing.lg)
+				.presentationCompactAdaptation(.popover)
 			}
 
-			VStack(alignment: .leading, spacing: 6) {
-				TextField(L("devices.name_placeholder"), text: $name)
-					.focused($isNameFocused)
-					.autocorrectionDisabled()
-					.textInputAutocapitalization(.never)
-					.submitLabel(.done)
-					.padding(.horizontal, 14)
-					.padding(.vertical, Spacing.md)
-					.background(Palette.faintFill, in: .rect(cornerRadius: Radius.field))
-				if let error = nameError ?? saveError {
-					Text(error)
-						.font(Typography.metadata)
-						.foregroundStyle(Palette.red)
-						.padding(.leading, Spacing.xs)
+			TextField(L("devices.name_placeholder"), text: $name)
+				.focused($isNameFocused)
+				.autocorrectionDisabled()
+				.textInputAutocapitalization(.never)
+				.submitLabel(.done)
+				.padding(.horizontal, 14)
+				.padding(.vertical, Spacing.md)
+				.background(Palette.faintFill, in: .rect(cornerRadius: Radius.field))
+				// In the space below the field, so an error doesn't change the sheet's height.
+				.overlay(alignment: .bottomLeading) {
+					if let error = nameError ?? saveError {
+						Text(error)
+							.font(Typography.metadata)
+							.foregroundStyle(Palette.red)
+							.lineLimit(1)
+							.minimumScaleFactor(0.7)
+							.padding(.leading, Spacing.xs)
+							.alignmentGuide(.bottom) { $0[.top] - Spacing.xs }
+					}
 				}
-			}
 
 			HStack(spacing: Spacing.md) {
-				Button { dismiss() } label: {
-					Text(L("common.cancel")).frame(maxWidth: .infinity)
-				}
-				.buttonStyle(.bordered)
-				.disabled(isSaving)
+				Button(L("common.cancel")) { dismiss() }
+					.buttonStyle(.sheetSecondary)
+					.disabled(isSaving)
 				Button(action: save) {
-					Group {
-						if isSaving { ProgressView() } else { Text(L("common.confirm")) }
-					}
-					.frame(maxWidth: .infinity)
+					if isSaving { ProgressView() } else { Text(L("common.confirm")) }
 				}
-				.buttonStyle(.borderedProminent)
+				.buttonStyle(.sheetPrimary)
 				.disabled(!canSave)
 			}
-			.controlSize(.large)
 		}
 		.padding(.top, 32)
 		.padding(.horizontal, Spacing.xl)
 		.padding(.bottom, Spacing.lg)
-		.animation(Motion.standard, value: isGridOpen)
-		// One at a time: the keyboard and the open grid don't both fit.
-		.onChange(of: isNameFocused) { if isNameFocused { isGridOpen = false } }
-		// As tall as its content, growing with the grid.
-		.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
 		.presentationDetents([.height(height)])
 		.presentationDragIndicator(.visible)
-	}
-
-	private func toggleGrid() {
-		isNameFocused = false
-		isGridOpen.toggle()
 	}
 
 	private func save() {
