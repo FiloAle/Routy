@@ -17,6 +17,7 @@ struct DeviceEditSheet: View {
 
 	/// "Automatic" first, then the catalog; `nil` stands for the automatic icon.
 	private static let options: [DeviceIcon?] = [nil] + DeviceIcon.allCases
+	private static let iconSize: CGFloat = 72
 
 	init(device: Device, icon: DeviceIcon?, height: CGFloat) {
 		self.device = device
@@ -53,7 +54,7 @@ struct DeviceEditSheet: View {
 					.font(.system(size: 32))
 					.symbolRenderingMode(.monochrome)
 					.foregroundStyle(Palette.onAccent)
-					.frame(width: 72, height: 72)
+					.frame(width: Self.iconSize, height: Self.iconSize)
 					.background(Palette.accent, in: .circle)
 			}
 			.buttonStyle(.plain)
@@ -61,7 +62,12 @@ struct DeviceEditSheet: View {
 			.accessibilityValue(icon?.name ?? L("devices.automatic_icon"))
 			// Over the sheet rather than inside it: a sheet that changes height doesn't redraw its content
 			// along the way, it shows the final layout centered and the controls jump.
-			.popover(isPresented: $isPickingIcon, arrowEdge: .bottom) {
+			// Anchored a little above the icon, so the arrow doesn't touch it.
+			.popover(
+				isPresented: $isPickingIcon,
+				attachmentAnchor: .rect(.rect(CGRect(x: 0, y: -Spacing.sm, width: Self.iconSize, height: Self.iconSize + Spacing.sm))),
+				arrowEdge: .bottom
+			) {
 				LazyVGrid(columns: Array(repeating: GridItem(.fixed(52), spacing: Spacing.md), count: 4), spacing: Spacing.md) {
 					ForEach(Self.options, id: \.self) { option in
 						IconCell(option: option, isSelected: option == icon) {
