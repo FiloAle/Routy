@@ -26,6 +26,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
 			let scene = notification.object as? UIScene
 			MainActor.assumeIsolated { self?.showWindow(in: scene) }
 		}
+		// The selected segment in Routy's blue: SwiftUI's tint doesn't reach segmented pickers.
+		let segments = UISegmentedControl.appearance()
+		segments.selectedSegmentTintColor = UIColor(named: "AccentColor")
+		segments.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
 		showWindow(in: application.connectedScenes.first)
 
 		let center = NotificationCenter.default
