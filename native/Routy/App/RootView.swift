@@ -8,10 +8,12 @@ struct RootView: View {
 	var body: some View {
 		@Bindable var router = router
 		TabView(selection: $router.tab) {
-			Tab(L("tabs.home"), systemImage: "house.fill", value: .home) {
+			Tab(value: .home) {
 				NavigationStack(path: $router.homePath) {
 					HomeScreen().routeDestinations()
 				}
+			} label: {
+				Label { Text(L("tabs.home")) } icon: { Image(uiImage: HomeIcon.image) }
 			}
 			Tab(value: .messages) {
 				NavigationStack(path: $router.messagesPath) {
@@ -35,6 +37,19 @@ struct RootView: View {
 			}
 		}
 	}
+}
+
+/// The Home tab icon: Apple's private "home.fill" (the Home app's house), as in the Expo app.
+/// Loaded through UIKit's private lookup, so it may not pass App Store review; `house.fill` if it's missing.
+enum HomeIcon {
+	static let image: UIImage = {
+		let lookup = NSSelectorFromString("_systemImageNamed:")
+		if (UIImage.self as AnyObject).responds(to: lookup),
+			let image = (UIImage.self as AnyObject).perform(lookup, with: "home.fill")?.takeUnretainedValue() as? UIImage {
+			return image
+		}
+		return UIImage(systemName: "house.fill") ?? UIImage()
+	}()
 }
 
 /// The Messages tab icon with a blue dot. Drawn once into a bitmap: the tab bar would otherwise

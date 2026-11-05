@@ -144,7 +144,7 @@ Due implementazioni:
 - I titoli grandi sono nativi (`navigationTitle`), al posto degli header finti con dissolvenza Reanimated e `LinearGradient`.
 - La sfocatura sotto la barra è nativa e scorre insieme alla schermata durante il push, quindi `ScrollEdgeContainer` non serve più.
 - Impostazioni, DNS, Bande e Dispositivi usano `Form`/`List` `insetGrouped` con i colori di sistema. In modalità chiara le card diventano bianche su fondo grigio, cioè lo stile di Impostazioni di iOS. Oggi è il contrario, grigio su bianco.
-- **Icona Home:** `house.fill`. `home.fill` è un simbolo **privato**: l'ho verificato, non esiste nell'API pubblica.
+- **Icona Home:** il simbolo privato `home.fill`, come nell'app Expo, caricato con l'API privata `_systemImageNamed:` e con `house.fill` come ripiego. Può non passare la revisione dell'App Store.
 - **Pallino dei non letti sulla tab:** `message.badge.filled.fill` con palette blu, renderizzato una volta in `UIImage(.alwaysOriginal)` con API pubblica, in circa 10 righe al posto della patch Objective-C. Se la tab bar di SwiftUI non rispetta l'immagine originale, si usa `.badge` con il conteggio (da verificare nel prototipo).
 - Con iOS 26 come minimo spariscono i fallback `legacySymbol` e `minIOS` del catalogo delle icone.
 - Gli stati vuoti, di caricamento e di errore usano `ContentUnavailableView` e `ProgressView`.
