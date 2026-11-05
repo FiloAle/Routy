@@ -8,8 +8,12 @@ struct RootView: View {
 	/// A copy of the launch screen, kept until the router's first answer: iOS removes its own launch screen
 	/// at the first frame, before any data arrives.
 	@State private var showsSplash = true
-	/// The longest the splash waits for the router.
-	private static let splashTimeout = Duration.seconds(2)
+	@State private var isHidingSplash = false
+	/// The first screen with data is drawn under the opaque splash during this time, so the fade
+	/// runs over a finished screen instead of competing with its first layout.
+	private static let splashSettle = Duration.milliseconds(150)
+	/// The longest the splash stays, settle included.
+	private static let splashTimeout = Duration.seconds(2) - splashSettle
 
 	var body: some View {
 		tabs
@@ -28,8 +32,12 @@ struct RootView: View {
 	}
 
 	private func hideSplash() {
-		guard showsSplash else { return }
-		withAnimation(.easeOut(duration: 0.3)) { showsSplash = false }
+		guard showsSplash, !isHidingSplash else { return }
+		isHidingSplash = true
+		Task {
+			try? await Task.sleep(for: Self.splashSettle)
+			withAnimation(.easeInOut(duration: 0.35)) { showsSplash = false }
+		}
 	}
 
 	private var tabs: some View {
