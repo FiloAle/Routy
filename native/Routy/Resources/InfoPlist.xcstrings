@@ -1,0 +1,40 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSContactsUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routy uses your contacts to show the sender's name instead of the phone number."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routy usa i tuoi contatti per mostrare il nome del mittente invece del numero di telefono."
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routy connects to the ZTE router on the local network to visualize real-time info and SMSs."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routy si connette al router ZTE sulla rete locale per visualizzare info e SMS in tempo reale."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
