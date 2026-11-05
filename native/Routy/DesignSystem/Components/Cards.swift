@@ -15,7 +15,6 @@ struct SectionTitle: View {
 		Text(title)
 			.font(Typography.sectionTitle)
 			.foregroundStyle(Palette.textSecondary)
-			.padding(.leading, Spacing.xs)
 			.frame(maxWidth: .infinity, alignment: .leading)
 	}
 }

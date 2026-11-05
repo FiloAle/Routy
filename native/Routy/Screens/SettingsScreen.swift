@@ -10,6 +10,12 @@ struct SettingsScreen: View {
 	var body: some View {
 		Form {
 			routerSection
+			// Its own section, so the card above keeps its rounded corners.
+			Section {
+				prominentButton(store.isDemo ? L("settings.exit_demo") : L("settings.save_and_connect"), color: Palette.accent, isLoading: isSaving) {
+					if store.isDemo { store.exitDemo() } else { Task { await save() } }
+				}
+			}
 			networkSection
 			nightModeSection
 			infoSection
@@ -55,12 +61,11 @@ struct SettingsScreen: View {
 			LabeledContent(L("settings.password")) {
 				SecureField("••••••••", text: $passwordInput)
 			}
-			prominentButton(store.isDemo ? L("settings.exit_demo") : L("settings.save_and_connect"), color: Palette.accent, isLoading: isSaving) {
-				if store.isDemo { store.exitDemo() } else { Task { await save() } }
-			}
 		} header: {
 			header(L("settings.router"))
 		}
+		// The button below belongs to this card.
+		.listSectionSpacing(Spacing.md)
 		.multilineTextAlignment(.trailing)
 		.textInputAutocapitalization(.never)
 		.autocorrectionDisabled()
@@ -162,7 +167,6 @@ struct SettingsScreen: View {
 		.controlSize(.large)
 		.tint(color)
 		.disabled(isLoading)
-		.padding(.top, Spacing.sm)
 		.listRowInsets(EdgeInsets())
 		.listRowBackground(Color.clear)
 	}

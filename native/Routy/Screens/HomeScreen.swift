@@ -40,6 +40,7 @@ struct HomeScreen: View {
 				}
 			}
 			.padding(.horizontal, Spacing.lg)
+			.padding(.top, Spacing.sm)
 			.padding(.bottom, Spacing.xl)
 		}
 		.scrollIndicators(.hidden)
@@ -99,11 +100,20 @@ struct HomeScreen: View {
 	private var speedCard: some View {
 		InfoCard(label: L("dashboard.speed", speedUnit.rawValue)) {
 			HStack {
-				Text("\(Text("↓").foregroundStyle(Palette.rose)) \(Formatting.speed(usage?.realtimeRx ?? 0, unit: speedUnit))")
+				throughput("arrow.down", Formatting.speed(usage?.realtimeRx ?? 0, unit: speedUnit), color: Palette.rose)
 				Spacer(minLength: Spacing.xs)
-				Text("\(Text("↑").foregroundStyle(Palette.lime)) \(Formatting.speed(usage?.realtimeTx ?? 0, unit: speedUnit))")
+				throughput("arrow.up", Formatting.speed(usage?.realtimeTx ?? 0, unit: speedUnit), color: Palette.lime)
 					.padding(.trailing, Spacing.xs)
 			}
+		}
+	}
+
+	private func throughput(_ symbol: String, _ value: String, color: Color) -> some View {
+		HStack(spacing: Spacing.xs) {
+			Image(systemName: symbol)
+				.fontWeight(.bold)
+				.foregroundStyle(color)
+			Text(value)
 		}
 	}
 

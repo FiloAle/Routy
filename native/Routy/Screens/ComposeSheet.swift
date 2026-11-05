@@ -69,7 +69,8 @@ struct ComposeSheet: View {
 		.padding(.horizontal, Spacing.lg)
 		.frame(minHeight: 50)
 		.glassEffect(.regular.interactive(), in: .capsule)
-		.padding(.horizontal, Spacing.xl)
+		// The same margins as the message field below.
+		.padding(.horizontal, Spacing.lg)
 		.padding(.vertical, Spacing.md)
 		.contentShape(.rect)
 		.onTapGesture { isRecipientFocused = true }

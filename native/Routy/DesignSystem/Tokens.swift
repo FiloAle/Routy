@@ -60,7 +60,7 @@ enum Typography {
 	static let statUnit = Font.system(.subheadline, design: .rounded).weight(.heavy)
 	static let ringValue = Font.system(.title2, design: .rounded).weight(.heavy)
 	static let ringCaption = Font.caption2.weight(.semibold)
-	static let avatarInitials = Font.system(.title2, design: .rounded).bold()
+	static let avatarInitials = Font.system(.title3, design: .rounded).bold()
 }
 
 enum Spacing {
@@ -83,7 +83,8 @@ enum Radius {
 enum Metrics {
 	static let avatar: CGFloat = 50
 	static let iconWell: CGFloat = 40
-	static let sendButton: CGFloat = 36
+	/// Height of the message field on one line, and of the send button beside it.
+	static let composer: CGFloat = 40
 	static let usageRing: CGFloat = 120
 	static let usageRingStroke: CGFloat = 12
 	static let unreadDot: CGFloat = 10

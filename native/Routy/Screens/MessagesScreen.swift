@@ -86,7 +86,7 @@ private struct ConversationRow: View {
 		HStack(spacing: Spacing.md) {
 			Avatar(name: conversation.displayName)
 			VStack(alignment: .leading, spacing: Spacing.xxs) {
-				HStack(spacing: Spacing.sm) {
+				HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
 					Text(conversation.displayName)
 						.font(Typography.rowTitle)
 						.foregroundStyle(Palette.textPrimary)
@@ -97,7 +97,7 @@ private struct ConversationRow: View {
 						.foregroundStyle(Palette.textSecondary)
 						.layoutPriority(1)
 				}
-				HStack(spacing: Spacing.sm) {
+				HStack(alignment: .center, spacing: Spacing.sm) {
 					Text(last.isSent ? L("messages.you") + last.content : last.content)
 						.font(isUnread ? Typography.secondary.weight(.semibold) : Typography.secondary)
 						.foregroundStyle(isUnread ? Palette.textPrimary : Palette.textSecondary)
@@ -110,6 +110,8 @@ private struct ConversationRow: View {
 					}
 				}
 			}
+			// The separator starts under the text, not under the avatar.
+			.alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
 		}
 		.padding(.vertical, Spacing.xs)
 	}
