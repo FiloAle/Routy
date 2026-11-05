@@ -34,6 +34,7 @@ struct SettingsScreen: View {
 				}
 			}
 		}
+		.cardList()
 		.scrollIndicators(.hidden)
 		// Switches in the app blue, as in the Expo app.
 		.tint(Palette.accent)
@@ -64,6 +65,7 @@ struct SettingsScreen: View {
 		} header: {
 			header(L("settings.router"))
 		}
+		.cardRows()
 		// The button below belongs to this card.
 		.listSectionSpacing(Spacing.md)
 		.multilineTextAlignment(.trailing)
@@ -105,6 +107,7 @@ struct SettingsScreen: View {
 		} header: {
 			header(L("settings.network"))
 		}
+		.cardRows()
 	}
 
 	private var nightModeSection: some View {
@@ -115,6 +118,7 @@ struct SettingsScreen: View {
 		} header: {
 			header(L("settings.night_mode"))
 		}
+		.cardRows()
 		.disabled(store.nightMode == nil)
 	}
 
@@ -134,6 +138,7 @@ struct SettingsScreen: View {
 		} header: {
 			header(L("settings.info"))
 		}
+		.cardRows()
 	}
 
 	private var statusColor: Color {

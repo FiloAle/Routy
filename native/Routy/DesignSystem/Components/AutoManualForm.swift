@@ -23,6 +23,7 @@ struct AutoManualForm<Values: View>: View {
 			} header: {
 				header(modeHeader)
 			}
+			.cardRows()
 			Section {
 				values
 					.disabled(mode == .auto)
@@ -30,7 +31,9 @@ struct AutoManualForm<Values: View>: View {
 			} header: {
 				header(valuesHeader)
 			}
+			.cardRows()
 		}
+		.cardList()
 		.navigationTitle(title)
 		.navigationBarTitleDisplayMode(.inline)
 		.detailScreen()

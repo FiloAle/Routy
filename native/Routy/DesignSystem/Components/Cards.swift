@@ -5,6 +5,16 @@ extension View {
 	func card() -> some View {
 		background(Palette.card, in: .rect(cornerRadius: Radius.card))
 	}
+
+	/// A List or Form on the app's background, like the dashboard, instead of the system's grouped gray.
+	func cardList() -> some View {
+		scrollContentBackground(.hidden).background(Palette.background)
+	}
+
+	/// The rows of a section in the dashboard's card color. Goes with `cardList()`.
+	func cardRows() -> some View {
+		listRowBackground(Palette.card)
+	}
 }
 
 /// Opens a group of dashboard cards.

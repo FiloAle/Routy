@@ -53,6 +53,7 @@ struct DevicesScreen: View {
 					Section {
 						DeviceRow(device: device, group: group, icon: store.icon(for: device), isOwn: store.isOwn(device))
 							.swipeActions(edge: .trailing) { actions(for: device, in: group).labelStyle(.iconOnly) }
+							.cardRows()
 					} header: {
 						if index == 0 {
 							Text(group.title)
@@ -65,6 +66,7 @@ struct DevicesScreen: View {
 			}
 		}
 		.listSectionSpacing(Spacing.sm)
+		.cardList()
 		.scrollIndicators(.hidden)
 		.overlay {
 			if !isLoading, store.devices.isEmpty {

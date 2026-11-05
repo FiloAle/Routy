@@ -17,6 +17,7 @@ Goal: the Expo app's look, with system controls wherever iOS has one.
 |---|---|
 | `AlertItem`, `.alert(_:)` | Every alert: a message, or a confirmation that runs an action and reports how it went |
 | `InfoCard`, `CardRow`, `SectionTitle`, `.card()` | Dashboard cards and their grouping |
+| `.cardList()`, `.cardRows()` | Lists and forms in the dashboard's colors (screen background, card rows) instead of the system's grouped gray, so every screen matches in light mode |
 | `UsageRing` | Monthly usage against the user's reference |
 | `MessageComposer` | Text field and send button, in a chat and in a new message |
 | `Avatar` | Initials or a person on a gray gradient |
