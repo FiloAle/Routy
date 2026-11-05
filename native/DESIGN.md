@@ -24,7 +24,7 @@ Goal: the Expo app's look, with system controls wherever iOS has one.
 | `DeviceIconWell` | A device's symbol in a rounded well |
 | `Image.outlined(_:)` | A symbol that keeps its outline in swipe actions |
 | `AutoManualForm`, `CheckmarkRow`, `header(_:)` | Automatic or manual router settings (DNS, LTE bands) |
-| `.detailScreen()` | Pushed screens cover the tab bar |
+| `.tabRoot(path:)` | The tab bar shows only on the root screen of a tab, and fades as screens are pushed and popped |
 
 ## Interaction rules
 

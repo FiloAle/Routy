@@ -10,14 +10,14 @@ struct RootView: View {
 		TabView(selection: $router.tab) {
 			Tab(value: .home) {
 				NavigationStack(path: $router.homePath) {
-					HomeScreen().routeDestinations()
+					HomeScreen().routeDestinations().tabRoot(path: router.homePath)
 				}
 			} label: {
 				Label { Text(L("tabs.home")) } icon: { Image(uiImage: HomeIcon.image) }
 			}
 			Tab(value: .messages) {
 				NavigationStack(path: $router.messagesPath) {
-					MessagesScreen().routeDestinations()
+					MessagesScreen().routeDestinations().tabRoot(path: router.messagesPath)
 				}
 			} label: {
 				Label {
@@ -32,7 +32,7 @@ struct RootView: View {
 			}
 			Tab(L("tabs.settings"), systemImage: "gear", value: .settings) {
 				NavigationStack(path: $router.settingsPath) {
-					SettingsScreen().routeDestinations()
+					SettingsScreen().routeDestinations().tabRoot(path: router.settingsPath)
 				}
 			}
 		}

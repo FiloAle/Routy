@@ -17,7 +17,8 @@ extension View {
 	}
 }
 
-/// Opens a group of dashboard cards.
+/// Opens a group of dashboard cards. Aligned with the text inside the cards, like the section
+/// headers of the lists and forms on every other screen.
 struct SectionTitle: View {
 	let title: String
 
@@ -25,6 +26,7 @@ struct SectionTitle: View {
 		Text(title)
 			.font(Typography.sectionTitle)
 			.foregroundStyle(Palette.textSecondary)
+			.padding(.leading, Spacing.lg)
 			.frame(maxWidth: .infinity, alignment: .leading)
 	}
 }

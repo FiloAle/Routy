@@ -27,6 +27,13 @@ final class AppRouter {
 }
 
 extension View {
+	/// The root screen of a tab: the tab bar shows only while nothing is pushed above it.
+	/// The change runs in an animation, so the bar moves instead of vanishing at once.
+	func tabRoot(path: [Route]) -> some View {
+		toolbarVisibility(path.isEmpty ? .visible : .hidden, for: .tabBar)
+			.animation(Motion.standard, value: path.isEmpty)
+	}
+
 	func routeDestinations() -> some View {
 		navigationDestination(for: Route.self) { route in
 			switch route {
@@ -36,11 +43,6 @@ extension View {
 			case .dns: DNSScreen()
 			}
 		}
-	}
-
-	/// Detail screens cover the tab bar, as they did in the Expo app.
-	func detailScreen() -> some View {
-		toolbar(.hidden, for: .tabBar)
 	}
 
 	/// The view shows live data, so the store keeps it fresh while the view is on display.

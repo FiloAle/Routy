@@ -82,7 +82,6 @@ struct DevicesScreen: View {
 		.shows(.devices)
 		.navigationTitle(L("devices.title"))
 		.navigationBarTitleDisplayMode(.inline)
-		.detailScreen()
 		.sheet(item: $editing) { DeviceEditSheet(device: $0, icon: store.icon(for: $0)) }
 		.alert($alert)
 	}

@@ -42,7 +42,6 @@ struct ChatScreen: View {
 		}
 		.navigationTitle(store.displayName(for: number))
 		.navigationBarTitleDisplayMode(.inline)
-		.detailScreen()
 		// Also marks messages that arrive while the chat is open.
 		.task(id: conversation?.unreadCount) { await store.markRead(number) }
 		.alert($alert)

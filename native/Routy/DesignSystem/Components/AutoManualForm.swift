@@ -36,7 +36,6 @@ struct AutoManualForm<Values: View>: View {
 		.cardList()
 		.navigationTitle(title)
 		.navigationBarTitleDisplayMode(.inline)
-		.detailScreen()
 		.toolbar {
 			ToolbarItem(placement: .confirmationAction) {
 				if isSaving {
