@@ -1,0 +1,1137 @@
+{
+	"hashes": [
+		{
+			"password": "admin",
+			"ld": "A1B2C3",
+			"hash": "AB329BB160D51A38B8627553F58B4667F5B8053D949F5BCE44742C9CB7FA5DE0"
+		},
+		{
+			"password": "pässwörd 🔐",
+			"ld": "0123456789ABCDEF",
+			"hash": "677566DF3EF2DF65DC9C95C61791E91BF81130C9691D6127E5A90B1BCF9CBDEB"
+		},
+		{
+			"password": "",
+			"ld": "LD",
+			"hash": "C6BCC3A45B8551BD97BF8303173DD6684EB90A4A616EB86FA961C67527977D57"
+		}
+	],
+	"adToken": {
+		"crVersion": "CR_MF289FV1.0.0B05",
+		"innerVersion": "BD_MF289FV1.0.0B05",
+		"rd": "9F3A1C",
+		"token": "9389efd507500457b8e7f38160e8c923"
+	},
+	"ucs2": [
+		{
+			"text": "Ciao! Sei riuscito a sistemare il router?",
+			"hex": "004300690061006F0021002000530065006900200072006900750073006300690074006F00200061002000730069007300740065006D00610072006500200069006C00200072006F0075007400650072003F"
+		},
+		{
+			"text": "Porto io la pizza 🍕",
+			"hex": "0050006F00720074006F00200069006F0020006C0061002000700069007A007A00610020D83CDF55"
+		},
+		{
+			"text": "Sì, è fatta apposta per l'MF289F",
+			"hex": "005300EC002C002000E80020006600610074007400610020006100700070006F00730074006100200070006500720020006C0027004D00460032003800390046"
+		},
+		{
+			"text": "",
+			"hex": ""
+		},
+		{
+			"text": " spazi \n",
+			"hex": "0020007300700061007A00690020000A"
+		}
+	],
+	"ucs2Decode": [
+		{
+			"hex": "004300690061006F",
+			"text": "Ciao"
+		},
+		{
+			"hex": "D83CDF55",
+			"text": "🍕"
+		},
+		{
+			"hex": "00e800E9",
+			"text": "èé"
+		},
+		{
+			"hex": "0041004",
+			"text": "A\u0004"
+		},
+		{
+			"hex": "zz41004200",
+			"text": "B\u0000"
+		},
+		{
+			"hex": "+393",
+			"text": "Γ"
+		}
+	],
+	"dates": [
+		{
+			"value": "24,05,07,09,05,03,+8",
+			"local": "2024-05-07 09:05:03"
+		},
+		{
+			"value": "26,12,31,23,59,59,+1",
+			"local": "2026-12-31 23:59:59"
+		},
+		{
+			"value": "25,02,29,10,00,00,+1",
+			"local": "2025-03-01 10:00:00"
+		},
+		{
+			"value": "1,1,1,1,1,1",
+			"local": "2001-01-01 01:01:01"
+		}
+	],
+	"conversations": {
+		"raw": [
+			{
+				"id": "7",
+				"number": "002B003300390033003300330031003200330034003500360037",
+				"content": "0050006F00720074006F00200069006F0020006C0061002000700069007A007A00610020D83CDF550020",
+				"date": "26,11,05,18,10,00,+1",
+				"tag": "1"
+			},
+			{
+				"id": "6",
+				"number": "002B003300390033003300330031003200330034003500360037",
+				"content": "004F006B",
+				"date": "26,11,05,18,00,00,+1",
+				"tag": "2"
+			},
+			{
+				"id": "5",
+				"number": "004F00500045005200410054004F00520045",
+				"content": "00480061006900200063006F006E00730075006D00610074006F0020006C00270038003000250020006400650069002000470042",
+				"date": "26,11,01,09,00,00,+1",
+				"tag": "0"
+			},
+			{
+				"id": "4",
+				"number": "002B003300390033003300330031003200330034003500360037",
+				"content": "004300690061006F",
+				"date": "26,11,05,17,00,00,+1",
+				"tag": "1"
+			},
+			{
+				"id": "3",
+				"number": "00340030003900310036",
+				"content": "0043006F00640069006300650020003400380032003900310033",
+				"date": "26,10,20,08,00,00,+1",
+				"tag": "1"
+			},
+			{
+				"id": "2",
+				"number": "002B003300390033003400370039003800370036003500340033",
+				"content": "004100200064006F0070006F",
+				"date": "26,11,05,18,10,00,+1",
+				"tag": "0"
+			},
+			{
+				"id": "1",
+				"number": "002B003300390033003400370039003800370036003500340033",
+				"content": "00530074006500730073006F0020006F0072006100720069006F",
+				"date": "26,11,05,18,10,00,+1",
+				"tag": "2"
+			}
+		],
+		"readIds": [
+			"4"
+		],
+		"result": [
+			{
+				"number": "+393331234567",
+				"unreadCount": 1,
+				"lastMessageId": "7",
+				"messages": [
+					{
+						"id": "4",
+						"number": "+393331234567",
+						"content": "Ciao",
+						"date": "2026-11-05 17:00:00",
+						"isSent": false
+					},
+					{
+						"id": "6",
+						"number": "+393331234567",
+						"content": "Ok",
+						"date": "2026-11-05 18:00:00",
+						"isSent": true
+					},
+					{
+						"id": "7",
+						"number": "+393331234567",
+						"content": "Porto io la pizza 🍕",
+						"date": "2026-11-05 18:10:00",
+						"isSent": false
+					}
+				]
+			},
+			{
+				"number": "+393479876543",
+				"unreadCount": 0,
+				"lastMessageId": "1",
+				"messages": [
+					{
+						"id": "2",
+						"number": "+393479876543",
+						"content": "A dopo",
+						"date": "2026-11-05 18:10:00",
+						"isSent": false
+					},
+					{
+						"id": "1",
+						"number": "+393479876543",
+						"content": "Stesso orario",
+						"date": "2026-11-05 18:10:00",
+						"isSent": true
+					}
+				]
+			},
+			{
+				"number": "OPERATORE",
+				"unreadCount": 0,
+				"lastMessageId": "5",
+				"messages": [
+					{
+						"id": "5",
+						"number": "OPERATORE",
+						"content": "Hai consumato l'80% dei GB",
+						"date": "2026-11-01 09:00:00",
+						"isSent": false
+					}
+				]
+			},
+			{
+				"number": "40916",
+				"unreadCount": 1,
+				"lastMessageId": "3",
+				"messages": [
+					{
+						"id": "3",
+						"number": "40916",
+						"content": "Codice 482913",
+						"date": "2026-10-20 08:00:00",
+						"isSent": false
+					}
+				]
+			}
+		]
+	},
+	"dataUsage": [
+		{
+			"json": {
+				"ppp_status": "ppp_connected",
+				"wan_ipaddr": "100.64.12.34",
+				"monthly_rx_bytes": "335431254016",
+				"monthly_tx_bytes": 44774564659,
+				"spn_name_data": "0049006C006900610064",
+				"network_provider": "iliad",
+				"network_type": "LTE",
+				"wan_lte_ca": "active",
+				"lte_ca_pcell_band": "3",
+				"lte_ca_scell_info": "120,1,7,3350,20;121,2,B20,6300,10",
+				"lte_rsrp": "-89",
+				"sinr": "14.2",
+				"realtime_rx_thrpt": "8396800",
+				"realtime_tx_thrpt": "972800",
+				"wifi_chip1_ssid1_ssid": " Casa ",
+				"wifi_chip2_ssid1_ssid": "Casa-5G",
+				"mcc": "222",
+				"mnc": "50",
+				"Z_eNB_id": "25600513",
+				"dns_mode": "manual",
+				"prefer_dns_manual": "1.1.1.1",
+				"standby_dns_manual": "1.0.0.1",
+				"lte_band_lock": "0x20080800C5"
+			},
+			"usage": {
+				"monthlyRxBytes": 335431254016,
+				"monthlyTxBytes": 44774564659,
+				"monthlyTotalBytes": 380205818675,
+				"networkProvider": "Iliad",
+				"networkType": "4G",
+				"isCA": true,
+				"bands": "B3, B7, B20",
+				"rsrp": "-89",
+				"sinr": "14.2",
+				"connectedDevices": 0,
+				"realtimeRxThrpt": "8200.0",
+				"realtimeTxThrpt": "950.0",
+				"pppStatus": "ppp_connected",
+				"wanIp": "100.64.12.34",
+				"ssid24": "Casa",
+				"ssid5": "Casa-5G",
+				"cellId": "25600513",
+				"enbId": "100002",
+				"mcc": "222",
+				"mnc": "50",
+				"dnsMode": "manual",
+				"preferDns": "1.1.1.1",
+				"standbyDns": "1.0.0.1",
+				"lteBandLock": "0x20080800C5"
+			}
+		},
+		{
+			"json": {
+				"ppp_status": "ppp_disconnected",
+				"wan_ipaddr": "",
+				"monthly_rx_bytes": "0",
+				"monthly_tx_bytes": "",
+				"spn_name_data": "",
+				"network_provider": "TIM",
+				"network_type": "LTE_A",
+				"wan_lte_ca": "",
+				"lte_ca_pcell_band": "B1",
+				"lte_ca_scell_info": "",
+				"lte_rsrp": "",
+				"sinr": "",
+				"realtime_rx_thrpt": "",
+				"realtime_tx_thrpt": "0",
+				"wifi_chip1_ssid1_ssid": "",
+				"wifi_chip2_ssid1_ssid": "",
+				"mcc": "",
+				"mnc": "",
+				"Z_eNB_id": "-",
+				"dns_mode": "auto",
+				"prefer_dns_manual": "",
+				"standby_dns_manual": "",
+				"lte_band_lock": ""
+			},
+			"error": "TypeError: Cannot read properties of null (reading 'map')"
+		}
+	],
+	"devices": {
+		"hostNameList": {
+			"devices": [
+				{
+					"mac": "a4:83:e7:12:34:56",
+					"hostname": "iPhone di Filippo"
+				},
+				{
+					"mac": "5c:cb:99:aa:10:20",
+					"hostname": "Galaxy-S23"
+				},
+				{
+					"mac": "70:2a:d5:11:22:33",
+					"hostname": "70:2A:D5:11:22:33"
+				},
+				{
+					"mac_addr": "8C:86:1E:30:40:50",
+					"hostname": ""
+				},
+				{
+					"hostname": "senza mac"
+				}
+			]
+		},
+		"stationList": {
+			"station_list": [
+				{
+					"mac_addr": "A4:83:E7:12:34:56",
+					"hostname": "iPhone",
+					"ip_addr": "192.168.0.101",
+					"connect_type": "wireless"
+				},
+				{
+					"mac_addr": "70:2a:d5:11:22:33",
+					"hostname": "",
+					"ip_addr": "192.168.0.103",
+					"connect_type": "wired"
+				},
+				{
+					"mac": "DC:A9:04:44:55:66",
+					"ip": "192.168.0.104"
+				}
+			]
+		},
+		"result": [
+			{
+				"hostname": "iPhone di Filippo",
+				"ip": "192.168.0.101",
+				"mac": "A4:83:E7:12:34:56",
+				"type": "wireless"
+			},
+			{
+				"hostname": "70:2A:D5:11:22:33",
+				"ip": "192.168.0.103",
+				"mac": "70:2A:D5:11:22:33",
+				"type": "cable"
+			},
+			{
+				"hostname": "DC:A9:04:44:55:66",
+				"ip": "192.168.0.104",
+				"mac": "DC:A9:04:44:55:66",
+				"type": "wireless"
+			},
+			{
+				"hostname": "Galaxy-S23",
+				"ip": "-",
+				"mac": "5C:CB:99:AA:10:20",
+				"type": "wireless"
+			},
+			{
+				"hostname": "8C:86:1E:30:40:50",
+				"ip": "-",
+				"mac": "8C:86:1E:30:40:50",
+				"type": "wireless"
+			}
+		]
+	},
+	"accessControl": [
+		{
+			"json": {
+				"AclMode": "2",
+				"BlackMacList": "AA:BB:CC:DD:EE:FF;11:22:33:44:55:66;77:88:99:AA:BB:CC",
+				"BlackNameList": "TV;;Camera"
+			},
+			"result": {
+				"aclMode": "2",
+				"blocked": [
+					{
+						"hostname": "TV",
+						"mac": "AA:BB:CC:DD:EE:FF"
+					},
+					{
+						"hostname": "11:22:33:44:55:66",
+						"mac": "11:22:33:44:55:66"
+					},
+					{
+						"hostname": "Camera",
+						"mac": "77:88:99:AA:BB:CC"
+					}
+				]
+			}
+		},
+		{
+			"json": {
+				"AclMode": 0,
+				"BlackMacList": "",
+				"BlackNameList": ""
+			},
+			"result": {
+				"aclMode": "0",
+				"blocked": []
+			}
+		}
+	],
+	"softwareInfo": [
+		{
+			"crVersion": "CR_MF289FV1.0.0B05",
+			"result": {
+				"model": "ZTE MF289F",
+				"version": "1.0.0B05"
+			}
+		},
+		{
+			"crVersion": "BD_MF289F_V2.01.B07",
+			"result": {
+				"model": "ZTE MF289F_",
+				"version": "2.01.B07"
+			}
+		},
+		{
+			"crVersion": "NOVERSION",
+			"result": {
+				"model": "ZTE Router",
+				"version": "ERSION"
+			}
+		},
+		{
+			"crVersion": "VERSION",
+			"result": {
+				"model": "ZTE Router",
+				"version": "ERSION"
+			}
+		}
+	],
+	"bandLocks": [
+		{
+			"bands": [
+				"B1",
+				"B3",
+				"B7",
+				"B8",
+				"B20",
+				"B28",
+				"B32",
+				"B38"
+			],
+			"lock": "0x20880800C5"
+		},
+		{
+			"bands": [
+				"B3"
+			],
+			"lock": "0x4"
+		},
+		{
+			"bands": [
+				"B20",
+				"B28"
+			],
+			"lock": "0x8080000"
+		},
+		{
+			"bands": [
+				"B1",
+				"B3",
+				"B7",
+				"B8",
+				"B20",
+				"B28",
+				"B38"
+			],
+			"lock": "0x20080800C5"
+		}
+	],
+	"commands": [
+		{
+			"name": "deleteSms",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"DELETE_SMS"
+				],
+				[
+					"msg_id",
+					"12;13"
+				]
+			]
+		},
+		{
+			"name": "markAsRead",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"SET_MSG_READ"
+				],
+				[
+					"msg_id",
+					"12;13;"
+				],
+				[
+					"tag",
+					"0"
+				]
+			]
+		},
+		{
+			"name": "connect",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"CONNECT_NETWORK"
+				]
+			]
+		},
+		{
+			"name": "disconnect",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"DISCONNECT_NETWORK"
+				]
+			]
+		},
+		{
+			"name": "reboot",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"REBOOT_DEVICE"
+				]
+			]
+		},
+		{
+			"name": "nightMode",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"SET_DEVICE_LED"
+				],
+				[
+					"night_mode_switch",
+					"1"
+				],
+				[
+					"night_mode_start_time",
+					"22:30"
+				],
+				[
+					"night_mode_end_time",
+					"06:45"
+				]
+			]
+		},
+		{
+			"name": "dnsManual",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"ROUTER_DNS_SETTING"
+				],
+				[
+					"dns_mode",
+					"manual"
+				],
+				[
+					"prefer_dns_manual",
+					"1.1.1.1"
+				],
+				[
+					"standby_dns_manual",
+					"1.0.0.1"
+				]
+			]
+		},
+		{
+			"name": "bandsAuto",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"SET_LTE_BAND_LOCK"
+				],
+				[
+					"lte_band_lock",
+					"0x20080800C5"
+				]
+			]
+		},
+		{
+			"name": "rename",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"EDIT_HOSTNAME"
+				],
+				[
+					"mac",
+					"A4:83:E7:12:34:56"
+				],
+				[
+					"hostname",
+					"iPhone di Filippo"
+				]
+			]
+		},
+		{
+			"name": "block",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"setDeviceAccessControlList"
+				],
+				[
+					"AclMode",
+					"2"
+				],
+				[
+					"WhiteMacList",
+					""
+				],
+				[
+					"WhiteNameList",
+					""
+				],
+				[
+					"BlackMacList",
+					"aa:bb:cc:dd:ee:ff;11:22:33:44:55:66"
+				],
+				[
+					"BlackNameList",
+					"TV;Camera"
+				]
+			]
+		},
+		{
+			"name": "unblock",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"setDeviceAccessControlList"
+				],
+				[
+					"AclMode",
+					"2"
+				],
+				[
+					"WhiteMacList",
+					""
+				],
+				[
+					"WhiteNameList",
+					""
+				],
+				[
+					"BlackMacList",
+					""
+				],
+				[
+					"BlackNameList",
+					""
+				]
+			]
+		},
+		{
+			"name": "sendSms",
+			"body": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"SEND_SMS"
+				],
+				[
+					"Number",
+					"+393331234567"
+				],
+				[
+					"MessageBody",
+					"004300690061006F0020D83CDF55"
+				],
+				[
+					"ID",
+					"-1"
+				],
+				[
+					"encode_type",
+					"UNICODE"
+				]
+			]
+		}
+	],
+	"queries": [
+		{
+			"pairs": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"cmd",
+					"LD"
+				]
+			],
+			"query": "isTest=false&cmd=LD"
+		},
+		{
+			"pairs": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"cmd",
+					"sms_data_total"
+				],
+				[
+					"page",
+					"0"
+				],
+				[
+					"data_per_page",
+					"500"
+				],
+				[
+					"mem_store",
+					"1"
+				],
+				[
+					"tags",
+					"10"
+				],
+				[
+					"order_by",
+					"order by id desc"
+				]
+			],
+			"query": "isTest=false&cmd=sms_data_total&page=0&data_per_page=500&mem_store=1&tags=10&order_by=order+by+id+desc"
+		},
+		{
+			"pairs": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"cmd",
+					"cr_version,wa_inner_version"
+				],
+				[
+					"multi_data",
+					"1"
+				]
+			],
+			"query": "isTest=false&cmd=cr_version,wa_inner_version&multi_data=1"
+		},
+		{
+			"pairs": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"cmd",
+					"a:b$c+d!e'f(g)h~i*j é/k"
+				]
+			],
+			"query": "isTest=false&cmd=a:b$c%2Bd!e'f(g)h~i*j+%C3%A9%2Fk"
+		}
+	],
+	"bodies": [
+		{
+			"pairs": [
+				[
+					"isTest",
+					"false"
+				],
+				[
+					"goformId",
+					"SEND_SMS"
+				],
+				[
+					"Number",
+					"+393331234567"
+				],
+				[
+					"MessageBody",
+					"0043"
+				]
+			],
+			"body": "isTest=false&goformId=SEND_SMS&Number=%2B393331234567&MessageBody=0043"
+		},
+		{
+			"pairs": [
+				[
+					"hostname",
+					"iPhone di Filippo"
+				],
+				[
+					"BlackNameList",
+					"TV;Camera \"2\" \\ ok"
+				],
+				[
+					"x",
+					"a:b,c$d!e'f(g)h~i*j é/k&l=m"
+				]
+			],
+			"body": "hostname=iPhone+di+Filippo&BlackNameList=TV%3BCamera+%222%22+%5C+ok&x=a%3Ab%2Cc%24d!e'f(g)h~i*j+%C3%A9%2Fk%26l%3Dm"
+		}
+	],
+	"ssid": [
+		{
+			"ssid24": "Casa",
+			"ssid5": "Casa-5G",
+			"entries": [
+				{
+					"label": "SSID 2.4GHz",
+					"value": "Casa"
+				},
+				{
+					"label": "SSID 5GHz",
+					"value": "Casa-5G"
+				}
+			]
+		},
+		{
+			"ssid24": "Casa",
+			"ssid5": "Casa",
+			"entries": [
+				{
+					"label": "SSID",
+					"value": "Casa"
+				}
+			]
+		},
+		{
+			"ssid24": "",
+			"ssid5": "Casa-5G",
+			"entries": [
+				{
+					"label": "SSID",
+					"value": "Casa-5G"
+				}
+			]
+		},
+		{
+			"ssid24": " ",
+			"ssid5": "",
+			"entries": []
+		},
+		{
+			"ssid24": "Casa ",
+			"ssid5": "",
+			"entries": [
+				{
+					"label": "SSID",
+					"value": "Casa"
+				}
+			]
+		}
+	],
+	"deviceSymbols": [
+		{
+			"device": {
+				"hostname": "iPhone di Filippo",
+				"ip": "192.168.0.101",
+				"type": "wireless"
+			},
+			"manual": null,
+			"symbol": "iphone"
+		},
+		{
+			"device": {
+				"hostname": "iPhone di Filippo",
+				"ip": "192.168.0.101",
+				"type": "wireless"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "iPhone di Filippo",
+				"ip": "192.168.0.101",
+				"type": "wireless"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "Smart-TV",
+				"ip": "192.168.0.103",
+				"type": "cable"
+			},
+			"manual": null,
+			"symbol": "tv"
+		},
+		{
+			"device": {
+				"hostname": "Smart-TV",
+				"ip": "192.168.0.103",
+				"type": "cable"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "Smart-TV",
+				"ip": "192.168.0.103",
+				"type": "cable"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "my-nas",
+				"ip": "-",
+				"type": "cable"
+			},
+			"manual": null,
+			"symbol": "externaldrive"
+		},
+		{
+			"device": {
+				"hostname": "my-nas",
+				"ip": "-",
+				"type": "cable"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "my-nas",
+				"ip": "-",
+				"type": "cable"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "Desktop",
+				"ip": "192.168.0.5",
+				"type": "cable"
+			},
+			"manual": null,
+			"symbol": "desktopcomputer"
+		},
+		{
+			"device": {
+				"hostname": "Desktop",
+				"ip": "192.168.0.5",
+				"type": "cable"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "Desktop",
+				"ip": "192.168.0.5",
+				"type": "cable"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "-",
+				"type": "wireless"
+			},
+			"manual": null,
+			"symbol": "wifi.slash"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "-",
+				"type": "wireless"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "-",
+				"type": "wireless"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "192.168.0.9",
+				"type": "wireless"
+			},
+			"manual": null,
+			"symbol": "wifi"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "192.168.0.9",
+				"type": "wireless"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "Galaxy",
+				"ip": "192.168.0.9",
+				"type": "wireless"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		},
+		{
+			"device": {
+				"hostname": "MacBook-Pro",
+				"ip": "",
+				"type": "wireless"
+			},
+			"manual": null,
+			"symbol": "macbook"
+		},
+		{
+			"device": {
+				"hostname": "MacBook-Pro",
+				"ip": "",
+				"type": "wireless"
+			},
+			"manual": "speaker",
+			"symbol": "homepod.and.homepod.mini"
+		},
+		{
+			"device": {
+				"hostname": "MacBook-Pro",
+				"ip": "",
+				"type": "wireless"
+			},
+			"manual": "camera",
+			"symbol": "web.camera"
+		}
+	],
+	"contactKeys": [
+		{
+			"phone": "+39 333 123 4567",
+			"key": "3331234567"
+		},
+		{
+			"phone": "333-123-4567",
+			"key": "3331234567"
+		},
+		{
+			"phone": "+44 20 7946 0958",
+			"key": "442079460958"
+		},
+		{
+			"phone": "39 333 1234",
+			"key": "393331234"
+		},
+		{
+			"phone": "(06) 1234567",
+			"key": "061234567"
+		}
+	]
+}
