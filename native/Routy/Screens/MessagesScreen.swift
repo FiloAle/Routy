@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessagesScreen: View {
 	@Environment(RouterStore.self) private var store
+	@Environment(AppRouter.self) private var router
 	@State private var isComposing = false
 	@State private var alert: AlertItem?
 
@@ -37,9 +38,12 @@ struct MessagesScreen: View {
 
 	private var list: some View {
 		List(store.conversations) { conversation in
-			NavigationLink(value: Route.chat(number: conversation.number)) {
+			// A button rather than a NavigationLink, whose own chevron would sit between the lines
+			// and push the date and the unread dot away from the edge, where the Expo app had them.
+			Button { router.messagesPath.append(.chat(number: conversation.number)) } label: {
 				ConversationRow(conversation: conversation)
 			}
+			.listRowInsets(EdgeInsets(top: Spacing.sm + Spacing.xxs, leading: Spacing.lg, bottom: Spacing.sm + Spacing.xxs, trailing: Spacing.lg))
 			// No line between the title and the first conversation.
 			.listRowSeparator(conversation.id == store.conversations.first?.id ? .hidden : .automatic, edges: .top)
 			.swipeActions(edge: .trailing) {
@@ -108,11 +112,14 @@ private struct ConversationRow: View {
 							.fill(Palette.accent)
 							.frame(width: Metrics.unreadDot, height: Metrics.unreadDot)
 					}
+					Image(systemName: "chevron.right")
+						.font(Typography.metadata.weight(.semibold))
+						.foregroundStyle(Palette.chevron)
 				}
 			}
 			// The separator starts under the text, not under the avatar.
 			.alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
 		}
-		.padding(.vertical, Spacing.xs)
+		.contentShape(.rect)
 	}
 }
