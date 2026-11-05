@@ -13,6 +13,27 @@ struct FixesTests {
 		#expect(ZTE.smsTime(summer, timeZone: TimeZone(identifier: "Europe/Rome")!) == "26;07;01;02;00;00;+2")
 	}
 
+	/// Dates as a real MF289F listed them, in UTC: received ones carry quarters of an hour, sent ones hours.
+	@Test func datesUseTheOffsetTheyWereWrittenIn() {
+		let utc = { (value: String, tag: String) in
+			ZTE.parseDate(value, unit: ZTE.ZoneUnit(tag: tag)).formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false))
+		}
+		#expect(utc("26,10,24,11,30,28,8", "0") == "2026-10-24T09:30:28")
+		#expect(utc("26,10,26,13,19,37,4", "0") == "2026-10-26T12:19:37")
+		#expect(utc("26,05,16,15,01,05,+2", "2") == "2026-05-16T13:01:05")
+		#expect(utc("26,01,10,09,00,00,-20", "1") == "2026-01-10T14:00:00")
+		#expect(utc("26,01,10,09,00,00,+5.5", "2") == "2026-01-10T03:30:00")
+		// No offset, or one that isn't: the phone's local time.
+		#expect(ZTE.parseDate("26,01,10,09,00,00", unit: .hours) == ZTE.parseDate("26,01,10,09,00,00"))
+		#expect(ZTE.parseDate("26,01,10,09,00,00,99", unit: .hours) == ZTE.parseDate("26,01,10,09,00,00"))
+		// What the demo and the app write reads back as the same moment.
+		let now = Date(timeIntervalSince1970: 1_782_864_000)
+		let rome = TimeZone(identifier: "Europe/Rome")!
+		#expect(ZTE.zoneField(now, unit: .quarterHours, timeZone: rome) == "8")
+		#expect(ZTE.zoneField(now, unit: .hours, timeZone: rome) == "+2")
+		#expect(ZTE.zoneField(now, unit: .quarterHours, timeZone: TimeZone(identifier: "America/New_York")!) == "-16")
+	}
+
 	@Test func plainNumbersStayAsTheyAre() {
 		#expect(ZTE.decodeNumber("+393331234567") == "+393331234567")
 		#expect(ZTE.decodeNumber("3933312345") == "3933312345")

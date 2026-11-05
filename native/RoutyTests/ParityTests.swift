@@ -16,8 +16,11 @@ struct ParityTests {
 		Self.golden[key] as! [[String: Any]]
 	}
 
-	private func local(_ date: Date) -> String {
-		let c = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+	/// The wall-clock time of `date`, in the phone's time zone or in the given one.
+	private func local(_ date: Date, in timeZone: TimeZone = .current) -> String {
+		var calendar = Calendar(identifier: .gregorian)
+		calendar.timeZone = timeZone
+		let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
 		return String(format: "%04d-%02d-%02d %02d:%02d:%02d", c.year!, c.month!, c.day!, c.hour!, c.minute!, c.second!)
 	}
 
@@ -64,6 +67,11 @@ struct ParityTests {
 			RawSms(id: $0["id"]!, number: $0["number"]!, content: $0["content"]!, date: $0["date"]!, tag: $0["tag"]!)
 		}
 		let result = ZTE.conversations(raw, readIDs: Set(input["readIds"] as! [String]))
+		// The Expo app shows the time as the router wrote it; the native app reads it in the offset it was
+		// written in. Seen from that same offset, the two must match.
+		let zones = Dictionary(uniqueKeysWithValues: raw.map { sms in
+			(sms.id, TimeZone(secondsFromGMT: ZTE.utcOffset(of: sms.date, unit: ZTE.ZoneUnit(tag: sms.tag))!)!)
+		})
 		let expected = input["result"] as! [[String: Any]]
 		#expect(result.count == expected.count)
 		for (conversation, expected) in zip(result, expected) {
@@ -75,7 +83,7 @@ struct ParityTests {
 			for (message, expected) in zip(conversation.messages, messages) {
 				#expect(message.number == expected["number"] as! String)
 				#expect(message.content == expected["content"] as! String)
-				#expect(local(message.date) == expected["date"] as! String)
+				#expect(local(message.date, in: zones[message.id]!) == expected["date"] as! String)
 				#expect(message.isSent == expected["isSent"] as! Bool)
 			}
 		}

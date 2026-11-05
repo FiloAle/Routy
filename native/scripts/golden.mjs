@@ -88,13 +88,14 @@ golden.dates = ["24,05,07,09,05,03,+8", "26,12,31,23,59,59,+1", "25,02,29,10,00,
 }));
 
 const enc = (text) => sms.encodeZTE(text);
+// Dates as a real MF289F lists them: received in quarters of an hour (8 in summer, 4 in winter), sent in hours.
 const rawMessages = [
-	{ id: "7", number: enc("+393331234567"), content: enc("Porto io la pizza 🍕 "), date: "26,11,05,18,10,00,+1", tag: "1" },
+	{ id: "7", number: enc("+393331234567"), content: enc("Porto io la pizza 🍕 "), date: "26,11,05,18,10,00,4", tag: "1" },
 	{ id: "6", number: enc("+393331234567"), content: enc("Ok"), date: "26,11,05,18,00,00,+1", tag: "2" },
-	{ id: "5", number: enc("OPERATORE"), content: enc("Hai consumato l'80% dei GB"), date: "26,11,01,09,00,00,+1", tag: "0" },
-	{ id: "4", number: enc("+393331234567"), content: enc("Ciao"), date: "26,11,05,17,00,00,+1", tag: "1" },
-	{ id: "3", number: enc("40916"), content: enc("Codice 482913"), date: "26,10,20,08,00,00,+1", tag: "1" },
-	{ id: "2", number: enc("+393479876543"), content: enc("A dopo"), date: "26,11,05,18,10,00,+1", tag: "0" },
+	{ id: "5", number: enc("OPERATORE"), content: enc("Hai consumato l'80% dei GB"), date: "26,11,01,09,00,00,4", tag: "0" },
+	{ id: "4", number: enc("+393331234567"), content: enc("Ciao"), date: "26,11,05,17,00,00,4", tag: "1" },
+	{ id: "3", number: enc("40916"), content: enc("Codice 482913"), date: "26,10,20,08,00,00,8", tag: "1" },
+	{ id: "2", number: enc("+393479876543"), content: enc("A dopo"), date: "26,11,05,18,10,00,4", tag: "0" },
 	{ id: "1", number: enc("+393479876543"), content: enc("Stesso orario"), date: "26,11,05,18,10,00,+1", tag: "2" },
 ];
 const readIds = ["4"];

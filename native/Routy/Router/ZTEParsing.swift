@@ -68,8 +68,31 @@ enum ZTE {
 
 	// MARK: - Dates
 
-	/// "yy,mm,dd,hh,mi,ss,tz" in the router's local time.
-	static func parseDate(_ value: String) -> Date {
+	/// The unit of the last field of a ZTE date, the UTC offset its time is written in. Read from a
+	/// real MF289F: the network writes received SMS in quarters of an hour without a sign ("8" in
+	/// Italian summer time, "4" in winter), while sent ones keep what the sender wrote, in hours ("+2").
+	enum ZoneUnit {
+		case hours, quarterHours
+
+		var seconds: Double { self == .hours ? 3600 : 900 }
+
+		/// Sent messages carry the sender's hours; every other kind comes from the network.
+		init(tag: String) { self = tag == "2" ? .hours : .quarterHours }
+	}
+
+	/// The UTC offset, in seconds, a "yy,mm,dd,hh,mi,ss,tz" date is written in; `nil` without one.
+	static func utcOffset(of value: String, unit: ZoneUnit) -> Int? {
+		let parts = value.split(separator: ",", omittingEmptySubsequences: false)
+		guard parts.count >= 7, let zone = Double(parts[6].trimmingCharacters(in: .whitespaces)) else { return nil }
+		let seconds = zone * unit.seconds
+		// UTC offsets run from -12 to +14 hours; anything else isn't one.
+		guard abs(seconds) <= 14 * 3600 else { return nil }
+		return Int(seconds.rounded())
+	}
+
+	/// "yy,mm,dd,hh,mi,ss,tz". With a unit, the time is read in the offset it was written in, so it shows
+	/// right in the phone's time zone; without one, or without an offset, as the phone's local time.
+	static func parseDate(_ value: String, unit: ZoneUnit? = nil) -> Date {
 		guard !value.isEmpty else { return Date(timeIntervalSince1970: 0) }
 		let parts = value.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
 		func part(_ index: Int, _ fallback: Int) -> Int? {
@@ -78,8 +101,19 @@ enum ZTE {
 		guard let year = part(0, 0), let month = part(1, 1), let day = part(2, 1),
 			let hour = part(3, 0), let minute = part(4, 0), let second = part(5, 0)
 		else { return Date(timeIntervalSince1970: 0) }
+		var calendar = Calendar(identifier: .gregorian)
+		if let offset = unit.flatMap({ utcOffset(of: value, unit: $0) }), let zone = TimeZone(secondsFromGMT: offset) {
+			calendar.timeZone = zone
+		}
 		let components = DateComponents(year: 2000 + year, month: month, day: day, hour: hour, minute: minute, second: second)
-		return Calendar(identifier: .gregorian).date(from: components) ?? Date(timeIntervalSince1970: 0)
+		return calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
+	}
+
+	/// The offset field for a date written now in `timeZone`: "+2" in hours, "8" in quarters of an hour.
+	static func zoneField(_ date: Date, unit: ZoneUnit, timeZone: TimeZone = .current) -> String {
+		let value = Double(timeZone.secondsFromGMT(for: date)) / unit.seconds
+		let number = value.rounded() == value ? String(Int(value)) : String(value)
+		return unit == .hours && value >= 0 ? "+" + number : number
 	}
 
 	/// "yy;MM;dd;HH;mm;ss;+1" for a sent SMS, with the phone's UTC offset in hours as the router's dashboard sends it.
@@ -88,10 +122,8 @@ enum ZTE {
 		calendar.timeZone = timeZone
 		let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
 		let two = { (value: Int?) in String(format: "%02d", value ?? 0) }
-		let hours = Double(timeZone.secondsFromGMT(for: date)) / 3600
-		let offset = hours.rounded() == hours ? String(Int(hours)) : String(hours)
 		return [two(c.year.map { $0 % 100 }), two(c.month), two(c.day), two(c.hour), two(c.minute), two(c.second),
-			(hours >= 0 ? "+" : "") + offset].joined(separator: ";")
+			zoneField(date, unit: .hours, timeZone: timeZone)].joined(separator: ";")
 	}
 
 	// MARK: - SMS
@@ -128,7 +160,7 @@ enum ZTE {
 				id: sms.id,
 				number: number,
 				content: decodeUCS2(sms.content).trimmingCharacters(in: .whitespacesAndNewlines),
-				date: parseDate(sms.date),
+				date: parseDate(sms.date, unit: ZoneUnit(tag: sms.tag)),
 				isSent: sms.tag == "2"
 			)
 			if byNumber[number] == nil { order.append(number) }

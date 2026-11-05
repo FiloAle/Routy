@@ -118,14 +118,18 @@ actor DemoClient: RouterClient {
 		await delay()
 		// Newest first, as the router orders them.
 		return messages.reversed().map {
-			RawSms(id: $0.id, number: ZTE.encodeUCS2($0.number), content: ZTE.encodeUCS2($0.content), date: Self.zteDate($0.date), tag: $0.tag)
+			RawSms(
+				id: $0.id, number: ZTE.encodeUCS2($0.number), content: ZTE.encodeUCS2($0.content),
+				date: Self.zteDate($0.date, unit: ZTE.ZoneUnit(tag: $0.tag)), tag: $0.tag
+			)
 		}
 	}
 
-	/// "yy,MM,dd,HH,mm,ss,+2", the inverse of `ZTE.parseDate`.
-	private static func zteDate(_ date: Date) -> String {
+	/// "yy,MM,dd,HH,mm,ss,tz" as the router lists it, the inverse of `ZTE.parseDate`.
+	private static func zteDate(_ date: Date, unit: ZTE.ZoneUnit) -> String {
 		let c = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-		return [c.year! % 100, c.month!, c.day!, c.hour!, c.minute!, c.second!].map { String(format: "%02d", $0) }.joined(separator: ",") + ",+2"
+		return ([c.year! % 100, c.month!, c.day!, c.hour!, c.minute!, c.second!].map { String(format: "%02d", $0) }
+			+ [ZTE.zoneField(date, unit: unit)]).joined(separator: ",")
 	}
 
 	func sendSms(to number: String, text: String) async throws {
