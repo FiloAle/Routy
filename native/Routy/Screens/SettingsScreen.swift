@@ -36,6 +36,8 @@ struct SettingsScreen: View {
 		}
 		.cardList()
 		.scrollIndicators(.hidden)
+		// Dragging the form down also closes the keyboard.
+		.scrollDismissesKeyboard(.interactively)
 		// Switches in the app blue, as in the Expo app.
 		.tint(Palette.accent)
 		.navigationTitle(L("settings.title"))
@@ -93,7 +95,9 @@ struct SettingsScreen: View {
 					TextField("0", text: Binding(get: { store.dataLimitValue }) { value in
 						store.setDataLimit(value: value.filter { $0.isASCII && $0.isNumber }, unit: store.dataLimitUnit)
 					})
-					.keyboardType(.numberPad)
+					// Not the number pad, which has no key to close it: this keyboard's return key says Done.
+					.keyboardType(.numbersAndPunctuation)
+					.submitLabel(.done)
 					.multilineTextAlignment(.trailing)
 					Picker(L("settings.data_limit"), selection: Binding(get: { store.dataLimitUnit }) { unit in
 						store.setDataLimit(value: store.dataLimitValue, unit: unit)
