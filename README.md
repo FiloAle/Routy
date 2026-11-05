@@ -1,67 +1,73 @@
 # Routy
 
-Routy is an iOS-first Expo client designed to interface with ZTE routers. It allows to manage SMS messages and monitor device status directly from your smartphone without using the router's web interface.
+Routy is a native iOS client for ZTE routers. It manages SMS messages and monitors the router directly from your iPhone, without using the router's web interface.
 
 ## Overview
 
-The application connects to the ZTE router over the local network using its internal API. It provides a native messaging experience, background monitoring for new messages, a real-time dashboard for network statistics and other settings such as manual
-DNS configuration, device management and Night Mode.
+The app connects to the ZTE router over the local network using its internal `goform` API. It provides a native messaging experience, background checks for new messages, a real-time dashboard for network statistics and settings such as manual DNS, LTE bands, device management and Night Mode.
 
 ## Key Features
 
-- **SMS Management**: Read, send and delete SMS messages with a native mobile interface.
-- **Background Monitoring**: Periodic background polling for new messages with local system notifications (using `expo-background-fetch`).
-- **Network Dashboard**: Real-time monitoring of signal strength (RSRP/SINR), active bands (Carrier Aggregation support), connected cell ID and network status.
-- **Data Tracking**: Monthly data usage visualization and real-time throughput monitoring.
-- **Device Management**: View and monitor all devices currently connected to the router's network.
-- **Privacy Focused**: Every communication happens between the smartphone and the router: nothing gets out of your network, and the router's password is only saved locally on your own device.
-
-## How it Works
-
-The app interacts with the ZTE router's `goform` API. It handles authentication, session management and data parsing locally.
+- **SMS Management**: read, send and delete SMS messages, with conversations that open on the latest message.
+- **Background Monitoring**: periodic background checks for new messages, with local notifications.
+- **Network Dashboard**: signal strength (RSRP/SINR), active bands (Carrier Aggregation support), connected cell ID and network status.
+- **Data Tracking**: monthly data usage and real-time throughput.
+- **Device Management**: connected and disconnected devices, with custom names and icons, blocking and forgetting.
+- **Router Settings**: Wi-Fi names, mobile data, DNS, LTE bands, Night Mode and reboot.
+- **Demo Mode**: address `demo`, password `demo`, to try the app without a router.
+- **Privacy Focused**: every communication happens between the iPhone and the router: nothing leaves your network, and the router's password is kept in the iPhone's Keychain.
 
 ## Tech Stack
 
-- **Framework**: [Expo](https://expo.dev) (React Native)
-- **Navigation**: Expo Router (File-based routing)
-- **Styling**: Focus on native iOS UI components
-- **Animations**: React Native Reanimated
-- **Storage**: AsyncStorage for local credentials and message tracking
-- **Background Tasks**: Expo Task Manager & Background Fetch for SMS notifications
+- SwiftUI and Swift 6, iOS 26, no third-party dependencies.
+- `@Observable` state, actors for the router client and notifications.
+- `BackgroundTasks` and `UserNotifications` for SMS notifications, `Contacts` for names.
 
 ## Requirements
 
 - A compatible ZTE router (only tested on MF289F).
-- The smartphone must be connected to the router's Wi-Fi network.
-- Local Network permissions must be granted to allow communication with the router.
+- The iPhone must be connected to the router's Wi-Fi network, with Local Network permission granted.
+- Xcode 26 or later to build.
 
-## Execute a Debug Build
+## Build
 
-1. Install dependencies:
+Open `Routy.xcodeproj` in Xcode and run the `Routy` scheme on your iPhone. Choose the Release configuration for everyday use.
 
-   ```bash
-   npm install
-   ```
+The bundle ID is `com.filippoalessandrini.routy`, the same as the Expo app it replaces, so it installs as an update. On first launch `LegacyStorage` moves what the Expo app kept in AsyncStorage: the password to the Keychain, everything else to `UserDefaults`, then deletes those files, which held the password in plain text. The Expo app's last version is tagged `expo-final`.
 
-2. Run on a physical device (recommended for testing your own changes to the code):
+## Structure
 
-   ```bash
-   npx expo run:ios --device
-   ```
+| Folder | Contents |
+|---|---|
+| `Routy/App` | Entry point and window, tabs, navigation |
+| `Routy/DesignSystem` | Tokens and reusable components. Rules are in [DESIGN.md](DESIGN.md) |
+| `Routy/Router` | The `goform` client, the demo client, parsing, parameter encoding, models |
+| `Routy/Logic` | Text shown on screen, device icons |
+| `Routy/Store` | App state, preferences, Keychain, migration from the Expo app |
+| `Routy/Services` | Contacts, SMS notifications, background refresh |
+| `Routy/Screens` | Home, Messages, Chat, New message, Devices, Settings, DNS, LTE bands |
+| `RoutyTests` | Router layer parity and fixed bugs |
 
-## Execute a Release Build
+## Tests
 
-1. Install dependencies:
+`RoutyTests/golden.json` holds what the Expo app returned for fixed inputs: hashes, UCS2, dates, conversations, router data, the fields of every write command and how parameters are encoded. It's a frozen reference: the native router layer must keep returning the same.
 
-   ```bash
-   npm install
-   ```
+```bash
+xcodebuild -project Routy.xcodeproj -scheme Routy -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
 
-2. Run on a physical device (recommended for everyday use):
+## Translations
 
-   ```bash
-   npx expo run:ios --device --configuration Release
-   ```
+English and Italian, in `Routy/Resources/Localizable.xcstrings` and `InfoPlist.xcstrings`. Edit them in Xcode.
+
+## On the router
+
+Things the simulator can't check, to try with the real router:
+
+- Sending an SMS to a `+39…` number, renaming a device with spaces in its name, blocking and unblocking, separate 2.4GHz and 5GHz Wi-Fi names, DNS, bands and Night Mode.
+- Logging into the router's web dashboard while the app is open: the app should log in again on its own.
+- The throughput unit: the app shows `realtime_*_thrpt / 1024` as "Kbps", as the Expo app did. Other ZTE clients read the value as bytes per second, in which case the speed is about 8 times higher. Compare once with a speed test; the conversion is in `Formatting.speed`.
+- Background notifications: in Xcode, pause the app and run `e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"com.filippoalessandrini.routy.refresh"]`, then resume.
 
 ## Screenshots
 

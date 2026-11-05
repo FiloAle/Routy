@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import Routy
 
-/// The native app must return what the Expo app returns for the same input.
-/// `golden.json` comes from running the Expo app's TypeScript: `node native/scripts/golden.mjs`.
+/// The native app must return what the Expo app returned for the same input.
+/// `golden.json` was recorded from the Expo app's TypeScript (tag `expo-final`) and is now a frozen reference.
 struct ParityTests {
 	private final class BundleToken {}
 
