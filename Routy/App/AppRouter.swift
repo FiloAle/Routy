@@ -20,6 +20,15 @@ final class AppRouter {
 	var messagesPath: [Route] = []
 	var settingsPath: [Route] = []
 
+	/// The screen pushed on top of the current tab, if any.
+	var topRoute: Route? {
+		switch tab {
+		case .home: homePath.last
+		case .messages: messagesPath.last
+		case .settings: settingsPath.last
+		}
+	}
+
 	func openChat(_ number: String) {
 		tab = .messages
 		messagesPath = [.chat(number: number)]

@@ -1,6 +1,6 @@
 # Routy
 
-Routy is a native iOS client for ZTE routers. It manages SMS messages and monitors the router directly from your iPhone, without using the router's web interface.
+Routy is a native client for ZTE routers, for iPhone and Mac. It manages SMS messages and monitors the router directly, without using the router's web interface.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The app connects to the ZTE router over the local network using its internal `go
 - **Device Management**: connected and disconnected devices, with custom names and icons, blocking and forgetting.
 - **Router Settings**: Wi-Fi names, mobile data, DNS, LTE bands, Night Mode and reboot.
 - **Demo Mode**: address `demo`, password `demo`, to try the app without a router.
-- **Privacy Focused**: every communication happens between the iPhone and the router: nothing leaves your network, and the router's password is kept in the iPhone's Keychain.
+- **Privacy Focused**: every communication happens between your device and the router: nothing leaves your network, and the router's password stays on the device (in the Keychain on iPhone, in the app's sandbox container on Mac).
 
 ## Tech Stack
 
@@ -27,6 +27,7 @@ The app connects to the ZTE router over the local network using its internal `go
 
 - A compatible ZTE router (only tested on MF289F).
 - The iPhone must be connected to the router's Wi-Fi network, with Local Network permission granted.
+- iOS 26, or macOS 26 on a Mac with Apple silicon.
 - Xcode 26 or later to build.
 
 ## Build
@@ -34,6 +35,22 @@ The app connects to the ZTE router over the local network using its internal `go
 Open `Routy.xcodeproj` in Xcode and run the `Routy` scheme on your iPhone. Choose the Release configuration for everyday use.
 
 The bundle ID is `com.filippoalessandrini.routy`, the same as the Expo app it replaces, so it installs as an update. On first launch `LegacyStorage` moves what the Expo app kept in AsyncStorage: the password to the Keychain, everything else to `UserDefaults`, then deletes those files, which held the password in plain text. The Expo app's last version is tagged `expo-final`.
+
+## Mac
+
+The same code builds a Mac app with Mac Catalyst. It's signed only for the Mac that builds it, with no Apple profile, so it never expires. Build it and copy it to Applications:
+
+```bash
+xcodebuild -project Routy.xcodeproj -scheme Routy -configuration Release -destination 'platform=macOS,arch=arm64,variant=Mac Catalyst' -derivedDataPath build/catalyst build
+```
+
+```bash
+ditto build/catalyst/Build/Products/Release-maccatalyst/Routy.app /Applications/Routy.app
+```
+
+On the Mac the router password is kept in a file inside the app's sandbox container rather than in the Keychain, which refuses apps without an Apple profile. There's no background refresh: while the app is open, even in the background, it checks for new SMS every 30 seconds.
+
+If it can't reach the router, allow it in System Settings → Privacy & Security → Local Network (turn it off and on if it's already allowed): macOS may keep the decision it took for an earlier build, without asking again.
 
 ## Structure
 

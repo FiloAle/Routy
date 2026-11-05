@@ -46,10 +46,9 @@ struct MessagesScreen: View {
 			.listRowInsets(EdgeInsets(top: Spacing.sm + Spacing.xxs, leading: Spacing.lg, bottom: Spacing.sm + Spacing.xxs, trailing: Spacing.lg))
 			// No line between the title and the first conversation.
 			.listRowSeparator(conversation.id == store.conversations.first?.id ? .hidden : .automatic, edges: .top)
-			.swipeActions(edge: .trailing) {
+			.rowActions {
 				// No destructive role: SwiftUI would remove the row before the confirmation.
 				Button(L("messages.delete"), systemImage: "trash") { confirmDelete(conversation) }
-					.labelStyle(.iconOnly)
 					.tint(Palette.red)
 			}
 		}

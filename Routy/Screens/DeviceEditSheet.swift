@@ -116,6 +116,11 @@ struct DeviceEditSheet: View {
 		.padding(.horizontal, Spacing.xl)
 		.padding(.bottom, Spacing.lg)
 		.presentationDetents([.height(height)])
+		#if targetEnvironment(macCatalyst)
+		// The Mac shows sheets as centered panels, which ignore detents: this one fits its content.
+		// Not on the iPhone, where it makes the sheet full height.
+		.presentationSizing(.fitted)
+		#endif
 		.presentationDragIndicator(.visible)
 	}
 
