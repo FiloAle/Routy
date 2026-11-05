@@ -1344,6 +1344,23 @@
         }
       }
     },
+    "messages.send": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia"
+          }
+        }
+      }
+    },
     "messages.title": {
       "extractionState": "manual",
       "localizations": {

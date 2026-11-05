@@ -14,7 +14,7 @@ const toFormat = (text) =>
 	text.replace(/%(?!\{)/g, "%%").replace(/%\{\w+\}/g, () => `%${++placeholders}$@`);
 
 // Keys nothing reads anymore in either app.
-const UNUSED = new Set(["messages.send", "settings.status_disconnecting", "settings.status_disconnected", "common.info", "common.save"]);
+const UNUSED = new Set(["settings.status_disconnecting", "settings.status_disconnected", "common.info", "common.save"]);
 
 function catalog(languages) {
 	const keys = [...new Set(Object.values(languages).flatMap((entries) => entries.map(([key]) => key)))].sort();
