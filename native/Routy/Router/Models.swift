@@ -12,9 +12,6 @@ struct DataUsage: Equatable, Sendable {
 	var bands: String
 	var rsrp: String
 	var sinr: String
-	/// Raw throughput values; see `ThroughputUnit`.
-	var realtimeRx: Double
-	var realtimeTx: Double
 	var pppStatus: String
 	var wanIP: String
 	var ssid24: String
@@ -32,6 +29,16 @@ struct DataUsage: Equatable, Sendable {
 	var isConnected: Bool { pppStatus == "ppp_connected" || pppStatus == "connected" }
 	/// "4G" plus the carrier aggregation "+", unless the type already says so.
 	var networkLabel: String { isCA && !networkType.hasSuffix("+") ? networkType + "+" : networkType }
+}
+
+/// The live download and upload speed, as the router's raw values (see `Formatting.speed`).
+/// Kept apart from `DataUsage` because it changes at every poll while the rest rarely does,
+/// so only the view showing it has to update.
+struct Throughput: Equatable, Sendable {
+	var rx: Double
+	var tx: Double
+
+	static let zero = Throughput(rx: 0, tx: 0)
 }
 
 enum SettingMode: String, Sendable {
@@ -70,7 +77,7 @@ struct SmsMessage: Identifiable, Hashable, Sendable {
 }
 
 /// A message as the router lists it, before grouping.
-struct RawSms: Sendable {
+struct RawSms: Equatable, Sendable {
 	var id: String
 	var number: String
 	var content: String

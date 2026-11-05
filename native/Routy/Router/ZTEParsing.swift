@@ -223,8 +223,6 @@ enum ZTE {
 			bands: bands.isEmpty ? "-" : bands,
 			rsrp: nonEmpty(json, "lte_rsrp") ?? "-",
 			sinr: nonEmpty(json, "sinr") ?? "-",
-			realtimeRx: Double(parseInt(string(json, "realtime_rx_thrpt")) ?? 0),
-			realtimeTx: Double(parseInt(string(json, "realtime_tx_thrpt")) ?? 0),
 			pppStatus: string(json, "ppp_status") ?? "",
 			wanIP: string(json, "wan_ipaddr") ?? "",
 			ssid24: (string(json, "wifi_chip1_ssid1_ssid") ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
@@ -236,6 +234,14 @@ enum ZTE {
 			preferDNS: string(json, "prefer_dns_manual") ?? "",
 			standbyDNS: string(json, "standby_dns_manual") ?? "",
 			lteBandLock: string(json, "lte_band_lock") ?? ""
+		)
+	}
+
+	/// The live speed, from the same reply as `dataUsage`.
+	static func throughput(_ json: [String: Any]) -> Throughput {
+		Throughput(
+			rx: Double(parseInt(string(json, "realtime_rx_thrpt")) ?? 0),
+			tx: Double(parseInt(string(json, "realtime_tx_thrpt")) ?? 0)
 		)
 	}
 

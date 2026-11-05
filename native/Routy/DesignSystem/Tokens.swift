@@ -10,7 +10,6 @@ enum Palette {
 	static let textPrimary = Color(uiColor: .label)
 	/// Darker than the system's in light mode, which is too close to the gray cards.
 	static let textSecondary = dynamic(light: 0x6C6C70, dark: 0x8E8E93)
-	static let separator = Color(uiColor: .opaqueSeparator)
 	/// The disclosure chevron of a row, as the system draws it.
 	static let chevron = Color(uiColor: .tertiaryLabel)
 	static let bubbleReceived = dynamic(light: 0xE9E9EB, dark: 0x1C1C1E)

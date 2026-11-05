@@ -13,8 +13,8 @@ struct ChatScreen: View {
 		let messages = conversation?.messages ?? []
 		ScrollView {
 			LazyVStack(spacing: 0) {
-				ForEach(messages.indices, id: \.self) { index in
-					let message = messages[index]
+				// Identified by message, not position, so a message that moves keeps its own bubble.
+				ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
 					let previous = index > 0 ? messages[index - 1] : nil
 					let startsDay = previous.map { !Calendar.current.isDate($0.date, inSameDayAs: message.date) } ?? true
 					if startsDay {

@@ -79,6 +79,7 @@ struct DevicesScreen: View {
 			await store.loadDevices()
 			isLoading = false
 		}
+		.shows(.devices)
 		.navigationTitle(L("devices.title"))
 		.navigationBarTitleDisplayMode(.inline)
 		.detailScreen()

@@ -96,9 +96,10 @@ actor ZTEClient: RouterClient {
 
 	// MARK: - Reads
 
-	func dataUsage() async throws -> DataUsage {
+	func dataUsage() async throws -> (usage: DataUsage, throughput: Throughput) {
 		try await withSession {
-			try ZTE.dataUsage(try await get(["cmd": ZTE.dataUsageCommands.joined(separator: ","), "multi_data": "1"]))
+			let json = try await get(["cmd": ZTE.dataUsageCommands.joined(separator: ","), "multi_data": "1"])
+			return (try ZTE.dataUsage(json), ZTE.throughput(json))
 		}
 	}
 

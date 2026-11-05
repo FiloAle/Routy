@@ -3,7 +3,6 @@ import SwiftUI
 struct HomeScreen: View {
 	@Environment(RouterStore.self) private var store
 	@Environment(\.openURL) private var openURL
-	@State private var speedUnit = Formatting.SpeedUnit.kbps
 
 	private var usage: DataUsage? { store.dataUsage }
 
@@ -17,8 +16,7 @@ struct HomeScreen: View {
 						InfoCard(label: L("dashboard.network_tech"), value: usage?.networkLabel ?? "-")
 					}
 					CardRow {
-						Button { speedUnit = speedUnit.toggled } label: { speedCard }
-							.buttonStyle(.plain)
+						SpeedCard()
 						NavigationLink(value: Route.devices) {
 							InfoCard(label: L("dashboard.devices"), value: String(store.connectedDeviceCount), showsChevron: true)
 						}
@@ -47,6 +45,8 @@ struct HomeScreen: View {
 		.background(Palette.background)
 		.refreshable { await store.refreshDataUsage() }
 		.navigationTitle(L("tabs.home"))
+		// For the device count.
+		.shows(.devices)
 		.task(id: store.auth) {
 			if store.auth == .loggedIn, store.dataUsage == nil || store.softwareInfo == nil { await store.refreshDataUsage() }
 		}
@@ -97,26 +97,6 @@ struct HomeScreen: View {
 		}
 	}
 
-	private var speedCard: some View {
-		InfoCard(label: L("dashboard.speed", speedUnit.rawValue)) {
-			HStack {
-				throughput("arrow.down", Formatting.speed(usage?.realtimeRx ?? 0, unit: speedUnit), color: Palette.rose)
-				Spacer(minLength: Spacing.xs)
-				throughput("arrow.up", Formatting.speed(usage?.realtimeTx ?? 0, unit: speedUnit), color: Palette.lime)
-					.padding(.trailing, Spacing.xs)
-			}
-		}
-	}
-
-	private func throughput(_ symbol: String, _ value: String, color: Color) -> some View {
-		HStack(spacing: Spacing.xs) {
-			Image(systemName: symbol)
-				.fontWeight(.bold)
-				.foregroundStyle(color)
-			Text(value)
-		}
-	}
-
 	/// Opens the cell on lteitaly.it; a long press can copy the link instead.
 	@ViewBuilder private var cellCard: some View {
 		let cellID = usage?.cellID ?? "-"
@@ -130,6 +110,37 @@ struct HomeScreen: View {
 				}
 		} else {
 			card
+		}
+	}
+}
+
+/// The live speed. A view of its own: it's the only part of the dashboard that changes at every poll,
+/// and it reads `throughput` alone, so the rest of the screen isn't recomputed with it.
+private struct SpeedCard: View {
+	@Environment(RouterStore.self) private var store
+	@State private var unit = Formatting.SpeedUnit.kbps
+
+	var body: some View {
+		Button { unit = unit.toggled } label: {
+			InfoCard(label: L("dashboard.speed", unit.rawValue)) {
+				HStack {
+					value("arrow.down", store.throughput.rx, color: Palette.rose)
+					Spacer(minLength: Spacing.xs)
+					value("arrow.up", store.throughput.tx, color: Palette.lime)
+						.padding(.trailing, Spacing.xs)
+				}
+			}
+		}
+		.buttonStyle(.plain)
+		.shows(.throughput)
+	}
+
+	private func value(_ symbol: String, _ raw: Double, color: Color) -> some View {
+		HStack(spacing: Spacing.xs) {
+			Image(systemName: symbol)
+				.fontWeight(.bold)
+				.foregroundStyle(color)
+			Text(Formatting.speed(raw, unit: unit))
 		}
 	}
 }

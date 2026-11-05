@@ -5,7 +5,8 @@ protocol RouterClient: Sendable {
 	var isDemo: Bool { get }
 
 	func login(password: String) async throws
-	func dataUsage() async throws -> DataUsage
+	/// The dashboard data and the live speed, from one request.
+	func dataUsage() async throws -> (usage: DataUsage, throughput: Throughput)
 	/// Every stored SMS, newest first, as the router lists them.
 	func smsList() async throws -> [RawSms]
 	func sendSms(to number: String, text: String) async throws

@@ -24,7 +24,12 @@ final class RouterStore {
 
 	// MARK: Router data
 
+	/// Set only when it changes, so the screens reading it don't update at every poll.
 	private(set) var dataUsage: DataUsage?
+	/// The live speed, apart from `dataUsage`: it changes at every poll, and only its card reads it.
+	/// Published only while that card is on display; `latestThroughput` keeps it meanwhile.
+	private(set) var throughput = Throughput.zero
+	@ObservationIgnored private var latestThroughput = Throughput.zero
 	private(set) var softwareInfo: SoftwareInfo?
 	private(set) var nightMode: NightMode?
 	private(set) var devices: [Device] = []
@@ -61,6 +66,8 @@ final class RouterStore {
 	/// Changes with the client, so answers from the previous router are dropped.
 	private var generation = 0
 	private static let pollInterval = Duration.seconds(3)
+	/// How many views on display show each kind of live data (see `View.shows(_:)`).
+	@ObservationIgnored private var viewers: [LiveData: Int] = [:]
 
 	init() {
 		LegacyStorage.migrateIfNeeded()
@@ -150,6 +157,8 @@ final class RouterStore {
 		client = RouterClients.make(address: address, password: password)
 		auth = .idle
 		dataUsage = nil
+		throughput = .zero
+		latestThroughput = .zero
 		softwareInfo = nil
 		nightMode = nil
 		devices = []
@@ -191,18 +200,51 @@ final class RouterStore {
 	func refresh() async {
 		guard auth == .loggedIn else { return }
 		let client = client, generation = generation
+		let wantsDevices = isShown(.devices)
 		async let sms = Self.attempt { try await client.smsList() }
 		async let usage = Self.attempt { try await client.dataUsage() }
-		async let devices = Self.attempt { try await client.devices() }
+		async let devices = Self.attempt(if: wantsDevices) { try await client.devices() }
 		let (smsResult, usageResult, devicesResult) = await (sms, usage, devices)
 		guard generation == self.generation else { return }
-		if case .success(let value) = usageResult { dataUsage = value }
-		if case .success(let value) = devicesResult { apply(devices: value) }
+		if case .success(let value) = usageResult { apply(dataUsage: value) }
+		if case .success(let value)? = devicesResult { apply(devices: value) }
 		if case .success(let value) = smsResult { await apply(smsList: value) }
 	}
 
 	private nonisolated static func attempt<T: Sendable>(_ operation: @Sendable () async throws -> T) async -> Result<T, any Error> {
 		do { return .success(try await operation()) } catch { return .failure(error) }
+	}
+
+	private nonisolated static func attempt<T: Sendable>(if condition: Bool, _ operation: @Sendable () async throws -> T) async -> Result<T, any Error>? {
+		condition ? await attempt(operation) : nil
+	}
+
+	/// Data that changes at every poll, kept fresh only while a view on display shows it.
+	enum LiveData {
+		/// The device list: polling reads it from the router only while it's shown.
+		case devices
+		/// The live speed: read anyway with the dashboard data, published only while it's shown.
+		case throughput
+	}
+
+	private func isShown(_ data: LiveData) -> Bool {
+		viewers[data, default: 0] > 0
+	}
+
+	/// Called as views showing `data` appear and disappear. The first to appear gets it at once.
+	func setShows(_ data: LiveData, _ shows: Bool) {
+		viewers[data, default: 0] += shows ? 1 : -1
+		guard shows, viewers[data] == 1 else { return }
+		switch data {
+		case .throughput:
+			if latestThroughput != throughput { throughput = latestThroughput }
+		case .devices:
+			guard auth == .loggedIn else { return }
+			let client = client, generation = generation
+			Task {
+				if let devices = try? await client.devices(), generation == self.generation { apply(devices: devices) }
+			}
+		}
 	}
 
 	// MARK: - SMS
@@ -219,6 +261,11 @@ final class RouterStore {
 	}
 
 	private func apply(smsList list: [RawSms]) async {
+		// The same list as last time changes nothing, unless a sent message waits to leave the outbox.
+		if list == smsList, outbox.isEmpty {
+			isFirstListAfterLogin = false
+			return
+		}
 		smsList = list
 		let ids = Set(list.map(\.id))
 		let messages = ZTE.conversations(list, readIDs: []).flatMap(\.messages)
@@ -316,8 +363,14 @@ final class RouterStore {
 	func refreshDataUsage() async {
 		guard auth == .loggedIn else { return }
 		let generation = generation
-		if let usage = try? await client.dataUsage(), generation == self.generation { dataUsage = usage }
+		if let reading = try? await client.dataUsage(), generation == self.generation { apply(dataUsage: reading) }
 		if softwareInfo == nil, let info = try? await client.softwareInfo(), generation == self.generation { softwareInfo = info }
+	}
+
+	private func apply(dataUsage reading: (usage: DataUsage, throughput: Throughput)) {
+		if reading.usage != dataUsage { dataUsage = reading.usage }
+		latestThroughput = reading.throughput
+		if isShown(.throughput), reading.throughput != throughput { throughput = reading.throughput }
 	}
 
 	func setDataConnection(_ connected: Bool) async throws {
@@ -372,12 +425,13 @@ final class RouterStore {
 		let (devicesResult, blockedResult, ownResult) = await (devices, blocked, own)
 		guard generation == self.generation else { return }
 		if case .success(let value) = devicesResult { apply(devices: value) }
-		if case .success(let value) = blockedResult { blockedDevices = value }
-		if case .success(let value?) = ownResult { ownMac = value }
+		if case .success(let value) = blockedResult, value != blockedDevices { blockedDevices = value }
+		if case .success(let value?) = ownResult, value != ownMac { ownMac = value }
 	}
 
 	/// A forgotten device is known again once it reconnects.
 	private func apply(devices: [Device]) {
+		guard devices != self.devices else { return }
 		self.devices = devices
 		let reconnected = Set(devices.filter { !$0.isDisconnected }.map(\.mac)).intersection(hiddenDevices)
 		if !reconnected.isEmpty { setHiddenDevices(hiddenDevices.subtracting(reconnected)) }

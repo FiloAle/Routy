@@ -42,4 +42,20 @@ extension View {
 	func detailScreen() -> some View {
 		toolbar(.hidden, for: .tabBar)
 	}
+
+	/// The view shows live data, so the store keeps it fresh while the view is on display.
+	func shows(_ data: RouterStore.LiveData) -> some View {
+		modifier(LiveDataViewer(data: data))
+	}
+}
+
+private struct LiveDataViewer: ViewModifier {
+	let data: RouterStore.LiveData
+	@Environment(RouterStore.self) private var store
+
+	func body(content: Content) -> some View {
+		content
+			.onAppear { store.setShows(data, true) }
+			.onDisappear { store.setShows(data, false) }
+	}
 }

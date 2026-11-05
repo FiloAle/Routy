@@ -85,11 +85,12 @@ actor DemoClient: RouterClient {
 		await delay(600)
 	}
 
-	func dataUsage() async throws -> DataUsage {
+	func dataUsage() async throws -> (usage: DataUsage, throughput: Throughput) {
 		await delay()
 		// A small jitter, so the live throughput looks alive.
 		let jitter = { (base: Double) in (base * Double.random(in: 0.8...1.2) * 10).rounded() / 10 }
-		return DataUsage(
+		let throughput = pppConnected ? Throughput(rx: jitter(8200) * 1024, tx: jitter(950) * 1024) : .zero
+		let usage = DataUsage(
 			monthlyRxBytes: Int64(312.4 * 1_073_741_824),
 			monthlyTxBytes: Int64(41.7 * 1_073_741_824),
 			networkProvider: "Demo Mobile",
@@ -98,8 +99,6 @@ actor DemoClient: RouterClient {
 			bands: "B3, B7, B20",
 			rsrp: "-89",
 			sinr: "14",
-			realtimeRx: pppConnected ? jitter(8200) * 1024 : 0,
-			realtimeTx: pppConnected ? jitter(950) * 1024 : 0,
 			pppStatus: pppConnected ? "ppp_connected" : "ppp_disconnected",
 			wanIP: pppConnected ? "100.64.12.34" : "",
 			ssid24: "Routy-Demo",
@@ -112,6 +111,7 @@ actor DemoClient: RouterClient {
 			standbyDNS: dns.secondary,
 			lteBandLock: bandLock
 		)
+		return (usage, throughput)
 	}
 
 	func smsList() async throws -> [RawSms] {
