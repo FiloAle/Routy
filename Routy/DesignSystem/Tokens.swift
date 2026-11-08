@@ -75,7 +75,8 @@ enum Spacing {
 }
 
 enum Radius {
-	static let card: CGFloat = 24
+	/// What iOS 26 gives the sections of a Form, so the dashboard cards and the form cards match.
+	static let card: CGFloat = 26
 	static let bubble: CGFloat = 20
 	static let iconWell: CGFloat = 10
 	static let field: CGFloat = 12
@@ -92,6 +93,9 @@ enum Metrics {
 	static let usageRingStroke: CGFloat = 12
 	static let unreadDot: CGFloat = 10
 	static let statusDot: CGFloat = 8
+	/// Above and below a dashboard section title: what a Form leaves around its section headers,
+	/// so the first card starts where the first card of a Form does.
+	static let sectionTitleGap: CGFloat = 10
 	static let disabledOpacity = 0.5
 }
 

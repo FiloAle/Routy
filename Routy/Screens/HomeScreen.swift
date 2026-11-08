@@ -38,7 +38,7 @@ struct HomeScreen: View {
 				}
 			}
 			.padding(.horizontal, Spacing.lg)
-			.padding(.top, Spacing.sm)
+			.padding(.top, Metrics.sectionTitleGap)
 			.padding(.bottom, Spacing.xl)
 		}
 		.scrollIndicators(.hidden)
@@ -55,6 +55,7 @@ struct HomeScreen: View {
 	private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
 		VStack(spacing: Spacing.sm) {
 			SectionTitle(title: title)
+				.padding(.bottom, Metrics.sectionTitleGap - Spacing.sm)
 			content()
 		}
 	}
